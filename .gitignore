@@ -1,0 +1,8 @@
+node_modules/
+.next/
+*.db
+dot-claude
+.env.local
+.env.production
+.env.vercel
+.env

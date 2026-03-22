@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 22% 4%;
+    --foreground: 0 0% 100%;
+    --card: 222 22% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 222 22% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 43 50% 54%;
+    --primary-foreground: 222 22% 4%;
+    --secondary: 222 18% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 18% 12%;
+    --muted-foreground: 222 10% 60%;
+    --accent: 222 18% 15%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 350 100% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 18% 14%;
+    --input: 222 18% 14%;
+    --ring: 43 50% 54%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-[#0a0b10] text-white antialiased;
+    font-feature-settings: "tnum" on, "lnum" on;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a, [role="button"] { min-height: 44px; min-width: 44px; }
+  .inline-link, span > a, p > a { min-height: unset; min-width: unset; }
+}
+
+@layer utilities {
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #B8961E 0%, #C9A84C 40%, #F5E7A7 70%, #C9A84C 100%);
+  }
+  .glass-card {
+    @apply border border-white/5 rounded-xl backdrop-blur-sm;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line { stroke: #1a1d2e; }
+.recharts-text { fill: #8A8F9E; font-size: 12px; }
+
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }

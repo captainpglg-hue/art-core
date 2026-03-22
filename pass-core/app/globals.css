@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 64% 6%;
+    --foreground: 0 0% 100%;
+    --card: 222 55% 9%;
+    --card-foreground: 0 0% 100%;
+    --popover: 222 55% 9%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 43 50% 54%;
+    --primary-foreground: 222 64% 6%;
+    --secondary: 222 45% 16%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 40% 14%;
+    --muted-foreground: 222 15% 60%;
+    --accent: 43 50% 54%;
+    --accent-foreground: 222 64% 6%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 40% 18%;
+    --input: 222 40% 18%;
+    --ring: 43 50% 54%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a, [role="button"] { min-height: 44px; min-width: 44px; }
+  .inline-link, span > a, p > a { min-height: unset; min-width: unset; }
+}
+
+.text-gold-shimmer {
+  background: linear-gradient(90deg, #B8961E, #C9A84C, #F5E7A7, #C9A84C, #B8961E);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-shimmer 3s ease infinite;
+}
+
+@keyframes gold-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hash-reveal {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: hash-typing 1.5s steps(64) forwards;
+}
+@keyframes hash-typing { from { width: 0; } to { width: 100%; } }
+
+.scan-line {
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+  animation: scan-line 2s ease-in-out infinite;
+}
+@keyframes scan-line { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }

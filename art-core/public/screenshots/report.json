@@ -1,0 +1,92 @@
+[
+  {
+    "page": "01-hub",
+    "url": "/",
+    "status": "OK",
+    "title": "Art-Core — Unveil the Unique"
+  },
+  {
+    "page": "02-art-core-marketplace",
+    "url": "/art-core",
+    "status": "OK",
+    "title": "Marketplace | ART-CORE"
+  },
+  {
+    "page": "03-art-core-deposer",
+    "url": "/art-core/deposer",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "04-art-core-checkout",
+    "url": "/art-core/checkout",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "05-pass-core-certifier",
+    "url": "/pass-core/certifier",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "06-pass-core-verifier",
+    "url": "/pass-core/verifier",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "07-pass-core-gallery",
+    "url": "/pass-core/gallery",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "08-auth-login",
+    "url": "/auth/login",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "09-auth-signup",
+    "url": "/auth/signup",
+    "status": "ERROR",
+    "error": "Navigation timeout of 15000 ms exceeded"
+  },
+  {
+    "page": "10-auth-onboarding",
+    "url": "/auth/onboarding",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "11-prime-core-dashboard",
+    "url": "/prime-core/dashboard",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "12-prime-core-leaderboard",
+    "url": "/prime-core/leaderboard",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "13-prime-core-wallet",
+    "url": "/prime-core/wallet",
+    "status": "OK",
+    "title": "Authentification | Art-Core"
+  },
+  {
+    "page": "14-art-core-search",
+    "url": "/art-core/search",
+    "status": "OK",
+    "title": "ART-CORE | Art-Core"
+  },
+  {
+    "page": "15-art-core-trending",
+    "url": "/art-core/trending",
+    "status": "OK",
+    "title": "Tendances | ART-CORE | ART-CORE"
+  }
+]

@@ -1,0 +1,24 @@
+import type { Metadata } from "next";
+import { Navbar } from "@/components/art-core/Navbar";
+import { MobileBottomNav } from "@/components/art-core/MobileBottomNav";
+import { Toaster } from "@/components/ui/toaster";
+
+export const metadata: Metadata = {
+  title: { default: "ART-CORE", template: "%s | ART-CORE" },
+  description: "Unveil the Unique — Marketplace d'art exclusif.",
+};
+
+export default function ArtCoreLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <Navbar />
+      <main className="pt-16 pb-[68px] md:pb-0">{children}</main>
+      <MobileBottomNav />
+      <Toaster />
+    </div>
+  );
+}

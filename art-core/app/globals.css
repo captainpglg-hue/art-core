@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ART-CORE Dark Luxe — #0a0a0a base, #C9A84C gold accent */
+    --background: 0 0% 4%;            /* #0a0a0a */
+    --foreground: 0 0% 100%;          /* #FFFFFF */
+
+    --card: 0 0% 7%;                  /* #111111 */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 43 50% 54%;            /* #C9A84C gold */
+    --primary-foreground: 0 0% 4%;
+
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 43 50% 54%;
+    --accent-foreground: 0 0% 4%;
+
+    --destructive: 350 100% 66%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 43 50% 54%;
+
+    --radius: 0.75rem;
+  }
+
+  /* Pass-Core — Navy theme */
+  [data-theme="pass-core"] {
+    --background: 222 65% 10%;
+    --foreground: 0 0% 100%;
+    --card: 222 55% 13%;
+    --card-foreground: 0 0% 100%;
+    --border: 222 40% 20%;
+    --input: 222 40% 20%;
+  }
+
+  /* Prime-Core — Fintech theme */
+  [data-theme="prime-core"] {
+    --background: 225 20% 5%;
+    --foreground: 0 0% 100%;
+    --card: 225 20% 8%;
+    --card-foreground: 0 0% 100%;
+    --border: 225 20% 14%;
+    --input: 225 20% 14%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile: ensure touch targets are at least 44px */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exceptions for inline/tiny elements */
+  .inline-link, span > a, p > a, .text-xs a {
+    min-height: unset;
+    min-width: unset;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-white/20; }
+
+  /* Selection */
+  ::selection { @apply bg-gold/20 text-white; }
+
+  /* Safe area for bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@layer utilities {
+  .text-gold-gradient {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
+    background-size: 200% 200%;
+  }
+
+  .card-glass {
+    @apply bg-card-glass backdrop-blur-sm border border-white/5;
+  }
+
+  .pass-locked {
+    @apply shadow-pass-locked opacity-90;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    @apply font-mono;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Touch-friendly spacing */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
