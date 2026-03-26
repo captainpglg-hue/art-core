@@ -82,7 +82,7 @@ export function FilterBar() {
   return (
     <div
       className={cn(
-        "sticky top-16 z-30 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5 py-3 px-4 space-y-2.5 transition-opacity",
+        "space-y-2.5 transition-opacity",
         isPending && "opacity-70"
       )}
     >
