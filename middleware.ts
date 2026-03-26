@@ -7,15 +7,19 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const token = request.cookies.get(AUTH_COOKIE)?.value;
 
-  // ── Subdomain routing ─────────────────────────────────
-  // pass-core.art-core.app → /pass-core
-  // prime-core.art-core.app → /prime-core
-  if (host.startsWith("pass-core.") && !pathname.startsWith("/pass-core") && !pathname.startsWith("/api") && !pathname.startsWith("/auth") && !pathname.startsWith("/_next") && !pathname.startsWith("/icons") && !pathname.startsWith("/logos")) {
+  // ── Domain & subdomain routing ─────────────────────────────────
+  const skipPrefixes = ["/api", "/auth", "/_next", "/icons", "/logos", "/sw-"];
+
+  // pass-core.app or pass-core.* subdomain → /pass-core
+  if ((host === "pass-core.app" || host === "www.pass-core.app" || host.startsWith("pass-core."))
+    && !pathname.startsWith("/pass-core") && !skipPrefixes.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? "/pass-core" : `/pass-core${pathname}`;
     return NextResponse.rewrite(url);
   }
-  if (host.startsWith("prime-core.") && !pathname.startsWith("/prime-core") && !pathname.startsWith("/api") && !pathname.startsWith("/auth") && !pathname.startsWith("/_next") && !pathname.startsWith("/icons") && !pathname.startsWith("/logos")) {
+  // prime-core.app or prime-core.* subdomain → /prime-core
+  if ((host === "prime-core.app" || host === "www.prime-core.app" || host.startsWith("prime-core."))
+    && !pathname.startsWith("/prime-core") && !skipPrefixes.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? "/prime-core" : `/prime-core${pathname}`;
     return NextResponse.rewrite(url);
