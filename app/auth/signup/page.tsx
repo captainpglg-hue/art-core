@@ -100,8 +100,22 @@ export default function SignupPage() {
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-white">Créer un compte</h2>
         <p className="text-white/50 text-sm mt-1">
-          Un seul compte pour tout l&apos;écosystème : Pass-Core, Art-Core et Prime-Core.
+          Un seul compte pour tout l&apos;écosystème :
         </p>
+        <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+            <Shield className="size-3.5 text-[#D4AF37]" />
+            <span className="text-xs text-[#D4AF37] font-medium">Pass-Core</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+            <Palette className="size-3.5 text-[#D4AF37]" />
+            <span className="text-xs text-[#D4AF37] font-medium">Art-Core</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+            <Users className="size-3.5 text-[#D4AF37]" />
+            <span className="text-xs text-[#D4AF37] font-medium">Prime-Core</span>
+          </div>
+        </div>
       </div>
 
       {/* Role selection */}
