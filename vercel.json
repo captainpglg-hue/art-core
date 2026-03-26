@@ -30,6 +30,26 @@
     {
       "source": "/sitemap.xml",
       "destination": "/sitemap.xml"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "pass-core.app" }],
+      "destination": "/pass-core"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "pass-core.app" }],
+      "destination": "/pass-core/:path*"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "prime-core.app" }],
+      "destination": "/prime-core"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "prime-core.app" }],
+      "destination": "/prime-core/:path*"
     }
   ]
 }
