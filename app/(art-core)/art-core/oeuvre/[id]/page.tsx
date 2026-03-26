@@ -213,9 +213,18 @@ export default async function ArtworkDetailPage({ params }: Props) {
               </div>
 
               <div className="border-t border-white/5 pt-3 text-[11px] text-white/25 space-y-1">
-                <div className="flex justify-between"><span>Artiste (85%)</span><span>{formatPrice(artwork.price * 0.85)}</span></div>
-                <div className="flex justify-between"><span>Ambassadeur (5%)</span><span>{formatPrice(artwork.price * 0.05)}</span></div>
-                <div className="flex justify-between"><span>Plateforme (10%)</span><span>{formatPrice(artwork.price * 0.10)}</span></div>
+                {(() => {
+                  const platformFee = parseInt(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENT || "10");
+                  const ambassadorFee = 5;
+                  const artistFee = 100 - platformFee - ambassadorFee;
+                  return (
+                    <>
+                      <div className="flex justify-between"><span>Artiste ({artistFee}%)</span><span>{formatPrice(artwork.price * artistFee / 100)}</span></div>
+                      <div className="flex justify-between"><span>Ambassadeur ({ambassadorFee}%)</span><span>{formatPrice(artwork.price * ambassadorFee / 100)}</span></div>
+                      <div className="flex justify-between"><span>Plateforme ({platformFee}%)</span><span>{formatPrice(artwork.price * platformFee / 100)}</span></div>
+                    </>
+                  );
+                })()}
                 {isLocked && (
                   <div className="flex justify-between text-[#C9A84C]/50">
                     <span>Pool Initiés (50% plateforme)</span>
