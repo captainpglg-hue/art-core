@@ -82,6 +82,10 @@ export function ArtworkDetailClient({
   }
 
   function handleBuy() {
+    if (!currentUser) {
+      router.push(`/auth/login?redirectTo=/art-core/oeuvre/${artworkId}`);
+      return;
+    }
     router.push(`/art-core/checkout?artwork=${artworkId}`);
   }
 
