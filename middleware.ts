@@ -8,24 +8,23 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE)?.value;
 
   // ── Domain & subdomain routing ─────────────────────────────────
-  const skipPrefixes = ["/api", "/auth", "/_next", "/icons", "/logos", "/sw-"];
+  const skipPrefixes = ["/api", "/auth", "/_next", "/icons", "/logos", "/sw-", "/manifest"];
+  const shouldSkip = skipPrefixes.some(p => pathname.startsWith(p));
 
-  // pass-core.app or pass-core.* subdomain → /pass-core
-  if ((host === "pass-core.app" || host === "www.pass-core.app" || host.startsWith("pass-core."))
-    && !pathname.startsWith("/pass-core") && !skipPrefixes.some(p => pathname.startsWith(p))) {
+  // pass-core.app → /pass-core
+  if (host.includes("pass-core") && !pathname.startsWith("/pass-core") && !shouldSkip) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? "/pass-core" : `/pass-core${pathname}`;
     return NextResponse.rewrite(url);
   }
-  // prime-core.app or prime-core.* subdomain → /prime-core
-  if ((host === "prime-core.app" || host === "www.prime-core.app" || host.startsWith("prime-core."))
-    && !pathname.startsWith("/prime-core") && !skipPrefixes.some(p => pathname.startsWith(p))) {
+  // prime-core.app → /prime-core
+  if (host.includes("prime-core") && !pathname.startsWith("/prime-core") && !shouldSkip) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? "/prime-core" : `/prime-core${pathname}`;
     return NextResponse.rewrite(url);
   }
-  // art-core.app (root domain) → /art-core
-  if ((host === "art-core.app" || host === "www.art-core.app") && pathname === "/") {
+  // art-core.app → /art-core
+  if (host.includes("art-core") && pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/art-core";
     return NextResponse.rewrite(url);
