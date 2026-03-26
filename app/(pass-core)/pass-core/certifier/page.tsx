@@ -241,7 +241,7 @@ export default function CertifierPage() {
     setLoading(true);
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 120000);
 
       // Send as FormData to include the photo
       const fd = new FormData();
