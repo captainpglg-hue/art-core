@@ -319,7 +319,7 @@ export default function CertifierPage() {
             <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center mx-auto mb-4">
               <ShieldCheck className="size-8 text-[#D4AF37]" />
             </div>
-            <h1 className="text-2xl font-semibold text-white mb-2">Certifiez votre oeuvre</h1>
+            <h1 className="text-2xl font-semibold text-white mb-2">Certifiez votre œuvre</h1>
             <p className="text-white/40 text-sm">Photo + empreinte SHA-256 = protection definitive</p>
           </div>
 
@@ -542,7 +542,7 @@ export default function CertifierPage() {
       {/* ═══ ANALYSIS ═══ */}
       {step === "analysis" && (
         <div className="animate-fade-in">
-          <h2 className="text-lg font-semibold text-white mb-4 text-center">Analyse qualite</h2>
+          <h2 className="text-lg font-semibold text-white mb-4 text-center">Analyse qualité</h2>
 
           {!analysis && (
             <div className="flex flex-col items-center py-16">
@@ -588,7 +588,7 @@ export default function CertifierPage() {
                 <div className="space-y-3">
                   <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 flex items-center gap-3">
                     <Check className="size-5 text-green-400" />
-                    <p className="text-green-400 text-sm font-medium">Photo validee !</p>
+                    <p className="text-green-400 text-sm font-medium">Photo validée !</p>
                   </div>
                   <button onClick={() => setStep("coordinates")}
                     className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold flex items-center justify-center gap-2">
@@ -644,7 +644,7 @@ export default function CertifierPage() {
           <button onClick={() => { setStep("submit"); handleSubmit(); }}
             className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold flex items-center justify-center gap-2 active:brightness-90">
             {loading ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
-            Certifier cette oeuvre
+            Certifier cette œuvre
           </button>
         </div>
       )}
@@ -678,8 +678,8 @@ export default function CertifierPage() {
           <div className="w-16 h-16 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center mx-auto mb-4">
             <Check className="size-8 text-green-400" />
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">Oeuvre certifiee !</h2>
-          <p className="text-white/40 text-sm mb-6">Votre oeuvre est en ligne sur Art-Core</p>
+          <h2 className="text-xl font-semibold text-white mb-2">Œuvre certifiée !</h2>
+          <p className="text-white/40 text-sm mb-6">Votre œuvre est en ligne sur Art-Core</p>
 
           <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 mb-6 text-left text-sm space-y-2">
             <div className="flex justify-between"><span className="text-white/30">Titre</span><span className="text-white">{form.title}</span></div>

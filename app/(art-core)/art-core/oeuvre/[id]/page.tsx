@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const artwork = await getArtworkById(id);
   return {
-    title: artwork?.title ?? "Oeuvre",
-    description: `Decouvrez "${artwork?.title}" sur ART-CORE.`,
+    title: artwork?.title ?? "Œuvre",
+    description: `Découvrez "${artwork?.title}" sur ART-CORE.`,
   };
 }
 
@@ -100,7 +100,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
             )}
             {isLocked && (
               <Badge className="text-[10px] bg-[#C9A84C]/20 text-[#C9A84C] border-[#C9A84C]/30 animate-pulse">
-                <Lock className="size-3 mr-1" />Deal verrouille
+                <Lock className="size-3 mr-1" />Deal verrouillé
               </Badge>
             )}
             {artwork.status === "sold" && (
@@ -170,7 +170,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
             {/* Initiate list */}
             {gaugeEntries.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[11px] text-white/30">Points par initie</p>
+                <p className="text-[11px] text-white/30">Points par initié</p>
                 {gaugeEntries.map((entry: any) => (
                   <div key={entry.id} className="flex items-center justify-between text-xs">
                     <span className="text-white/50">{entry.initiate_name}</span>
@@ -279,10 +279,10 @@ export default async function ArtworkDetailPage({ params }: Props) {
             {artwork.dimensions && (() => {
               const match = artwork.dimensions.match(/(\d+)/);
               const cm = match ? parseInt(match[1]) : 0;
-              const hint = cm > 0 && cm < 30 ? "Format de bureau ou bibliotheque"
-                : cm >= 30 && cm <= 80 ? "Format ideal pour couloir ou bureau"
-                : cm > 80 && cm <= 150 ? "Format ideal pour salon ou salle a manger"
-                : cm > 150 ? "Grande installation, prevoir un grand mur" : null;
+              const hint = cm > 0 && cm < 30 ? "Format de bureau ou bibliothèque"
+                : cm >= 30 && cm <= 80 ? "Format idéal pour couloir ou bureau"
+                : cm > 80 && cm <= 150 ? "Format idéal pour salon ou salle à manger"
+                : cm > 150 ? "Grande installation, prévoir un grand mur" : null;
               return hint ? (
                 <p className="text-[11px] text-[#C9A84C]/60 italic pl-7 -mt-0.5">{hint}</p>
               ) : null;

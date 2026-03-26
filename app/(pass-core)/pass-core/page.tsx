@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldCheck, Camera, Search, Image as ImageIcon, CreditCard, ChevronRight } from "lucide-react";
 
 export const metadata = {
-  title: "PASS-CORE — Certifiez vos oeuvres",
+  title: "PASS-CORE — Certifiéz vos œuvres",
 };
 
 export default function PassCoreHomePage() {
@@ -15,7 +15,7 @@ export default function PassCoreHomePage() {
         </div>
         <h1 className="font-playfair text-3xl font-semibold text-white mb-3">PASS-CORE</h1>
         <p className="text-white/40 text-sm leading-relaxed max-w-sm mx-auto">
-          Certifiez l&apos;authenticite de vos oeuvres d&apos;art.<br />
+          Certifiéz l&apos;authenticité de vos œuvres d&apos;art.<br />
           Photo macro + empreinte SHA-256 = protection definitive.
         </p>
       </div>
@@ -28,7 +28,7 @@ export default function PassCoreHomePage() {
             <Camera className="size-6" />
           </div>
           <div className="flex-1">
-            <p className="font-bold text-lg">Certifier une oeuvre</p>
+            <p className="font-bold text-lg">Certifiér une œuvre</p>
             <p className="text-[#0A1128]/60 text-xs">Photo macro + hash blockchain en 5 min</p>
           </div>
           <ChevronRight className="size-6" />
@@ -40,7 +40,7 @@ export default function PassCoreHomePage() {
             <Search className="size-6 text-blue-400" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-white">Verifier une oeuvre</p>
+            <p className="font-semibold text-white">Verifier une œuvre</p>
             <p className="text-white/30 text-xs">Scannez un QR code ou entrez un hash</p>
           </div>
           <ChevronRight className="size-5 text-white/20" />
@@ -53,7 +53,7 @@ export default function PassCoreHomePage() {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-white">Mes certificats</p>
-            <p className="text-white/30 text-xs">Toutes vos oeuvres certifiees</p>
+            <p className="text-white/30 text-xs">Toutes vos œuvres certifiées</p>
           </div>
           <ChevronRight className="size-5 text-white/20" />
         </Link>
@@ -76,9 +76,9 @@ export default function PassCoreHomePage() {
         <h2 className="text-white font-semibold text-center mb-6">Comment ca marche</h2>
         <div className="space-y-5">
           {[
-            { num: "1", title: "Photographiez", desc: "Prenez une photo macro de votre oeuvre avec votre smartphone" },
-            { num: "2", title: "Certifiez", desc: "Un hash SHA-256 unique est calcule a partir de l'empreinte visuelle" },
-            { num: "3", title: "Vendez", desc: "L'oeuvre apparait sur Art-Core avec le badge Certifie" },
+            { num: "1", title: "Photographiez", desc: "Prenez une photo macro de votre œuvre avec votre smartphone" },
+            { num: "2", title: "Certifiéz", desc: "Un hash SHA-256 unique est calcule a partir de l'empreinte visuelle" },
+            { num: "3", title: "Vendez", desc: "L'œuvre apparait sur Art-Core avec le badge Certifié" },
           ].map(s => (
             <div key={s.num} className="flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center shrink-0">

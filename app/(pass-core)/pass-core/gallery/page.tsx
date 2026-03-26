@@ -59,7 +59,7 @@ export default function GalleryPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-playfair text-2xl font-semibold text-white mb-1">Galerie des certificats</h1>
-        <p className="text-white/40 text-sm">Toutes les oeuvres certifiees par PASS-CORE</p>
+        <p className="text-white/40 text-sm">Toutes les œuvres certifiées par PASS-CORE</p>
       </div>
 
       {/* Search & Filters */}
