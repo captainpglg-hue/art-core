@@ -73,13 +73,20 @@ export default function SignupPage() {
         return;
       }
 
-      toast({ title: "Compte créé !", description: "Bienvenue !" });
+      const roleMessages: Record<string, string> = {
+        artist: "Certifiez votre première œuvre !",
+        client: "Découvrez les œuvres !",
+        initiate: "Placez votre premier pari !",
+        ambassador: "Certifiez des œuvres pour les artistes !",
+        gallery: "Gérez votre galerie !",
+      };
+      toast({ title: "Compte créé !", description: roleMessages[data.role] || "Bienvenue !" });
       const roleRedirects: Record<string, string> = {
         artist: "/pass-core/certifier",
         client: "/art-core",
-        initiate: "/prime-core/dashboard",
+        initiate: "/prime-core/paris",
         ambassador: "/pass-core",
-        gallery: "/art-core/dashboard",
+        gallery: "/pass-core/abonnement",
       };
       router.push(roleRedirects[data.role] || redirectTo);
       router.refresh();
