@@ -68,6 +68,26 @@ export default function ParisPage() {
         </div>
       </div>
 
+      {/* Comment ça marche */}
+      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-5 mb-8">
+        <h2 className="text-white font-semibold text-sm mb-4">Comment ça marche</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { num: "1", text: "Choisissez un artiste dont vous pensez que la cote va monter" },
+            { num: "2", text: "Placez votre mise (minimum 5 €)" },
+            { num: "3", text: "La cote multiplie votre mise si vous avez raison" },
+            { num: "4", text: "Le résultat est calculé à l\u2019expiration du marché" },
+          ].map(s => (
+            <div key={s.num} className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-[#2ecc71]/10 border border-[#2ecc71]/20 flex items-center justify-center shrink-0">
+                <span className="text-[#2ecc71] font-bold text-xs">{s.num}</span>
+              </div>
+              <p className="text-white/40 text-xs leading-relaxed">{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {([
