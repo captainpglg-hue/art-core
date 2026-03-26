@@ -15,7 +15,7 @@ export default function ArtCoreLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#0F0F0F]">
       <Navbar />
       <main className="pt-16 pb-[68px] md:pb-0">{children}</main>
       <MobileBottomNav />

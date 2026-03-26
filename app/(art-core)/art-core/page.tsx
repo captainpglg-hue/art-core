@@ -139,7 +139,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       )}
 
       {/* Search + Filters (unified sticky bar) */}
-      <div id="catalogue" className="sticky top-16 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.06]">
+      <div id="catalogue" className="sticky top-16 z-30 bg-[#0F0F0F]/95 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-3 space-y-2">
           <SearchAutocomplete />
           <PriceSlider />

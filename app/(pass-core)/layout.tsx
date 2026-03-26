@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PassCoreLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div data-theme="pass-core" className="min-h-screen bg-[#0A1128]">
+    <div data-theme="pass-core" className="min-h-screen bg-[#0F0F0F]">
       <PassNavbar />
       <main className="pt-16 pb-20 md:pb-0">{children}</main>
       <PassMobileNav />

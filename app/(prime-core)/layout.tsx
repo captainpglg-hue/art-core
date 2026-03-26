@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrimeCoreLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div data-theme="prime-core" className="min-h-screen bg-[#0D0F14]">
+    <div data-theme="prime-core" className="min-h-screen bg-[#0F0F0F]">
       <PrimeNavbar />
       <main className="pt-16 pb-20 md:pb-0">{children}</main>
       <MobileBottomNav />
