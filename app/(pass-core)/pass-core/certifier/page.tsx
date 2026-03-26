@@ -430,8 +430,12 @@ export default function CertifierPage() {
           </div>
 
           <div className="rounded-xl bg-[#D4AF37]/5 border border-[#D4AF37]/15 p-4 mb-6">
-            <p className="text-[#D4AF37] text-sm font-medium mb-1">Comment prendre la photo macro</p>
-            <p className="text-white/40 text-xs">1. Approchez a 3-5cm de la zone a certifier</p>
+            <div className="flex items-start gap-2 mb-2">
+              <span className="text-base">🔍</span>
+              <p className="text-[#D4AF37] text-sm font-medium">Approchez votre appareil à 5-10 cm de l&apos;œuvre pour capturer la texture unique (grain de toile, pigments, coups de pinceau). C&apos;est cette empreinte microscopique qui garantit l&apos;authenticité.</p>
+            </div>
+            <p className="text-[#D4AF37] text-xs font-medium mt-3 mb-1">Comment prendre la photo macro</p>
+            <p className="text-white/40 text-xs">1. Approchez à 3-5 cm de la zone à certifier</p>
             <p className="text-white/40 text-xs">2. <strong className="text-[#D4AF37]">Zoomez x2 ou x3</strong> avec deux doigts (pincez l&apos;ecran)</p>
             <p className="text-white/40 text-xs">3. Tapez sur l&apos;ecran pour faire la mise au point</p>
             <p className="text-white/40 text-xs">4. Quand les barres sont vertes → appuyez pour capturer</p>
