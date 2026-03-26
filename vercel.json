@@ -5,6 +5,11 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "regions": ["cdg1"],
+  "functions": {
+    "app/api/certification/route.ts": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
