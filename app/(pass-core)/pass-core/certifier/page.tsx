@@ -647,10 +647,24 @@ export default function CertifierPage() {
 
       {/* ═══ SUBMIT (loading) ═══ */}
       {step === "submit" && !result && (
-        <div className="flex flex-col items-center py-16">
-          <Loader2 className="size-10 text-[#D4AF37] animate-spin mb-4" />
-          <p className="text-white/50 text-sm">Certification en cours...</p>
-          <p className="text-white/20 text-xs mt-2">Calcul du hash blockchain...</p>
+        <div className="flex flex-col items-center py-16 animate-fade-in">
+          <Loader2 className="size-12 text-[#D4AF37] animate-spin mb-6" />
+          <p className="text-white font-semibold text-lg mb-2">Certification en cours...</p>
+          <p className="text-white/40 text-sm mb-4">Génération de l&apos;empreinte SHA-256</p>
+          <div className="w-full max-w-xs space-y-2">
+            <div className="flex items-center gap-2 text-xs text-white/30">
+              <Check className="size-3.5 text-green-400" />
+              <span>Photo macro analysée</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/30">
+              <Check className="size-3.5 text-green-400" />
+              <span>Hash SHA-256 : <span className="font-mono text-[#D4AF37]">{hash.slice(0, 16)}...</span></span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/30">
+              <Loader2 className="size-3.5 text-[#D4AF37] animate-spin" />
+              <span>Enregistrement blockchain...</span>
+            </div>
+          </div>
         </div>
       )}
 
