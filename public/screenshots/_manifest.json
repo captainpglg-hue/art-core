@@ -1,0 +1,205 @@
+{
+  "generated_at": "2026-03-20T14:58:43.563Z",
+  "base_url": "http://localhost:3003",
+  "total": 28,
+  "success": 28,
+  "failed": 0,
+  "pages": [
+    {
+      "url": "/",
+      "file": "hub.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\hub.png",
+      "size": 150,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core",
+      "file": "art-core--marketplace.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--marketplace.png",
+      "size": 893,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/search",
+      "file": "art-core--search.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--search.png",
+      "size": 25,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/deposer",
+      "file": "art-core--deposer.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--deposer.png",
+      "size": 38,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/trending",
+      "file": "art-core--trending.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--trending.png",
+      "size": 22,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/favoris",
+      "file": "art-core--favoris.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--favoris.png",
+      "size": 19,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/orders",
+      "file": "art-core--orders.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--orders.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/collection",
+      "file": "art-core--collection.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--collection.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/dashboard",
+      "file": "art-core--dashboard.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--dashboard.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/notifications",
+      "file": "art-core--notifications.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--notifications.png",
+      "size": 19,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/carte",
+      "file": "art-core--carte.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--carte.png",
+      "size": 141,
+      "status": "ok"
+    },
+    {
+      "url": "/art-core/identifier",
+      "file": "art-core--identifier.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\art-core--identifier.png",
+      "size": 53,
+      "status": "ok"
+    },
+    {
+      "url": "/pass-core/certifier",
+      "file": "pass-core--certifier.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\pass-core--certifier.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/pass-core/verifier",
+      "file": "pass-core--verifier.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\pass-core--verifier.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/pass-core/gallery",
+      "file": "pass-core--gallery.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\pass-core--gallery.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/pass-core/proprietaire",
+      "file": "pass-core--proprietaire.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\pass-core--proprietaire.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/pass-core/abonnement",
+      "file": "pass-core--abonnement.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\pass-core--abonnement.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/dashboard",
+      "file": "prime-core--dashboard.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--dashboard.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/leaderboard",
+      "file": "prime-core--leaderboard.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--leaderboard.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/wallet",
+      "file": "prime-core--wallet.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--wallet.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/paris",
+      "file": "prime-core--paris.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--paris.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/artistes",
+      "file": "prime-core--artistes.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--artistes.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/niveaux",
+      "file": "prime-core--niveaux.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--niveaux.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/prime-core/abonnement",
+      "file": "prime-core--abonnement.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\prime-core--abonnement.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/auth/login",
+      "file": "auth--login.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\auth--login.png",
+      "size": 290,
+      "status": "ok"
+    },
+    {
+      "url": "/auth/signup",
+      "file": "auth--signup.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\auth--signup.png",
+      "size": 36,
+      "status": "ok"
+    },
+    {
+      "url": "/auth/forgot-password",
+      "file": "auth--forgot-password.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\auth--forgot-password.png",
+      "size": 27,
+      "status": "ok"
+    },
+    {
+      "url": "/auth/onboarding",
+      "file": "auth--onboarding.png",
+      "path": "C:\\Users\\User\\art-core\\public\\screenshots\\auth--onboarding.png",
+      "size": 6,
+      "status": "ok"
+    }
+  ]
+}

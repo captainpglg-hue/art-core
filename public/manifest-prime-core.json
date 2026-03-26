@@ -1,0 +1,17 @@
+{
+  "name": "PRIME-CORE — Stand the Unique Out",
+  "short_name": "PRIME-CORE",
+  "description": "Scouting, royalties et marchés prédictifs",
+  "start_url": "/prime-core/dashboard",
+  "scope": "/prime-core",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0D0F14",
+  "background_color": "#0D0F14",
+  "icons": [
+    { "src": "/icons/prime-core-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/prime-core-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["finance"],
+  "lang": "fr"
+}
