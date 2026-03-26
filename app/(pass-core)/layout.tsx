@@ -16,7 +16,19 @@ export default function PassCoreLayout({ children }: { children: React.ReactNode
       <main className="pt-16 pb-20 md:pb-0">{children}</main>
       <PassMobileNav />
       <Toaster />
-      <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).catch(()=>{});}` }} />
+      <script dangerouslySetInnerHTML={{ __html: `
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).catch(()=>{});
+        }
+        // PWA launch: always start on /pass-core home
+        if(window.matchMedia('(display-mode: standalone)').matches && window.location.pathname !== '/pass-core'){
+          var lastVisit = sessionStorage.getItem('pass-core-visited');
+          if(!lastVisit){
+            sessionStorage.setItem('pass-core-visited','1');
+            window.location.replace('/pass-core');
+          }
+        }
+      ` }} />
     </div>
   );
 }
