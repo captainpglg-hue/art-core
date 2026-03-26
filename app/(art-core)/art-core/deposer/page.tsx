@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Upload, Loader2, Image as ImageIcon, X, Package, Shield, Truck } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Upload, Loader2, Image as ImageIcon, X, Package, Shield, Truck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,11 +21,18 @@ const CATEGORIES = [
 
 export default function DeposerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
+  const certHash = searchParams.get("hash") || "";
+  const certDate = searchParams.get("date") || "";
   const [form, setForm] = useState({
-    title: "", description: "", technique: "", dimensions: "",
-    creation_date: "", category: "painting", price: "",
+    title: searchParams.get("title") || "",
+    description: "",
+    technique: searchParams.get("technique") || "",
+    dimensions: searchParams.get("dimensions") || "",
+    creation_date: "", category: "painting",
+    price: searchParams.get("price") || "",
     weight_kg: "", fragility: "standard" as Fragility,
   });
   const [shippingPreview, setShippingPreview] = useState<ShippingResult | null>(null);
@@ -75,8 +82,20 @@ export default function DeposerPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="font-playfair text-3xl font-semibold text-white mb-2">Déposer une oeuvre</h1>
+      <h1 className="font-playfair text-3xl font-semibold text-white mb-2">Déposer une œuvre</h1>
       <p className="text-white/40 text-sm mb-8">En 3 clics : photo, titre, prix.</p>
+
+      {/* Certification info from Pass-Core */}
+      {certHash && (
+        <div className="rounded-xl bg-green-500/5 border border-green-500/15 p-4 mb-6 flex items-start gap-3">
+          <ShieldCheck className="size-5 text-green-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-green-400 font-medium">Œuvre certifiée via Pass-Core</p>
+            <p className="text-[11px] text-white/35 mt-1">Hash : <span className="font-mono text-white/50">{certHash.slice(0, 20)}...</span></p>
+            {certDate && <p className="text-[11px] text-white/35">Certifiée le : {certDate}</p>}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photos */}
