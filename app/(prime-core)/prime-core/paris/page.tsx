@@ -209,16 +209,16 @@ export default function ParisPage() {
             ) : (
               <>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Placer un pari</h3>
+                  <h3 className="text-lg font-semibold text-white">Confirmer votre pari</h3>
                   <button onClick={() => setBetModal(null)} className="text-white/30 hover:text-white/60">
                     <X className="size-5" />
                   </button>
                 </div>
 
-                <div className="mb-4">
-                  <p className="text-sm text-white/40 mb-1">Artiste</p>
-                  <p className="text-white font-medium">{betModal.artist}</p>
-                  <p className="text-xs text-[#D4AF37] mt-1">Cote actuelle : x{betModal.odds}</p>
+                <div className="mb-4 rounded-xl bg-white/[0.03] border border-white/[0.08] p-3 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-white/40">Artiste</span><span className="text-white font-medium">{betModal.artist}</span></div>
+                  <div className="flex justify-between"><span className="text-white/40">Cote actuelle</span><span className="text-[#D4AF37] font-semibold">x{betModal.odds}</span></div>
+                  <div className="flex justify-between"><span className="text-white/40">Expire dans</span><span className="text-white/60">{betModal.timeLeft}</span></div>
                 </div>
 
                 {/* Direction */}
