@@ -139,8 +139,12 @@ export default async function ArtworkDetailPage({ params }: Props) {
 
           {/* Stats */}
           <div className="flex items-center gap-5 text-xs text-white/30">
-            <span className="flex items-center gap-1.5"><Eye className="size-3.5" />{artwork.views_count ?? 0} vue{(artwork.views_count ?? 0) !== 1 ? "s" : ""}</span>
-            <span className="flex items-center gap-1.5"><Heart className="size-3.5" />{artwork.favorites_count ?? 0} favori{(artwork.favorites_count ?? 0) !== 1 ? "s" : ""}</span>
+            {(artwork.views_count ?? 0) >= 5 && (
+              <span className="flex items-center gap-1.5"><Eye className="size-3.5" />{artwork.views_count} vue{artwork.views_count !== 1 ? "s" : ""}</span>
+            )}
+            {(artwork.favorites_count ?? 0) >= 5 && (
+              <span className="flex items-center gap-1.5"><Heart className="size-3.5" />{artwork.favorites_count} favori{artwork.favorites_count !== 1 ? "s" : ""}</span>
+            )}
             {artwork.creation_date && (
               <span className="flex items-center gap-1.5"><Calendar className="size-3.5" />{artwork.creation_date}</span>
             )}
