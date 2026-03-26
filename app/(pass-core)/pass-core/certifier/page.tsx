@@ -679,15 +679,30 @@ export default function CertifierPage() {
           </div>
 
           <div className="space-y-3">
+            <button onClick={() => {
+              const params = new URLSearchParams({
+                hash: hash,
+                date: new Date().toISOString().split("T")[0],
+                title: form.title,
+                technique: form.technique,
+                dimensions: `${form.width} x ${form.height} cm`,
+                ...(form.price ? { price: form.price } : {}),
+                ...(result?.id ? { certificationId: result.id } : {}),
+              });
+              router.push(`/art-core/deposer?${params.toString()}`);
+            }}
+              className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold flex items-center justify-center gap-2">
+              <Share2 className="size-5" /> Mettre en vente sur Art-Core →
+            </button>
             {result.id && (
               <button onClick={() => router.push(`/art-core/oeuvre/${result.id}`)}
-                className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold">
-                Voir mon oeuvre sur Art-Core
+                className="w-full py-3 rounded-xl border border-white/10 text-white/60 text-sm font-medium">
+                Voir mon œuvre sur Art-Core
               </button>
             )}
             <button onClick={() => { setStep("intro"); setForm({ title: "", technique: "", width: "", height: "", year: "", price: "", description: "" }); setGlobalPhoto(null); setMacroPhoto(null); setAnalysis(null); setHash(""); setResult(null); }}
               className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm flex items-center justify-center gap-2">
-              <RotateCcw className="size-4" /> Certifier une autre oeuvre
+              <RotateCcw className="size-4" /> Certifier une autre œuvre
             </button>
           </div>
         </div>
