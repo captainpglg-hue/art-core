@@ -131,7 +131,7 @@ export default function CertifierPage() {
       macroRef.current?.click();
       return;
     }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 4032 }, height: { ideal: 3024 } }, audio: false })
       .then(stream => {
         streamRef.current = stream;
         if (videoRef.current) {
@@ -232,25 +232,71 @@ export default function CertifierPage() {
     else setFlashBorder(false);
   }
 
-  function captureLivePhoto() {
-    const v = videoRef.current;
-    if (!v) return;
+  async function captureLivePhoto() {
     // Flash blanc pour feedback visuel
     const flash = document.createElement("div");
     flash.style.cssText = "position:fixed;inset:0;background:white;z-index:9999;opacity:0.8;transition:opacity 0.3s";
     document.body.appendChild(flash);
     setTimeout(() => { flash.style.opacity = "0"; setTimeout(() => flash.remove(), 300); }, 100);
 
-    const c = document.createElement("canvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d")!.drawImage(v, 0, 0);
-    stopLiveCamera();
-    c.toBlob(async blob => {
-      if (!blob) return;
-      const file = new File([blob], "macro.jpg", { type: "image/jpeg" });
-      setStep("analysis");
-      await analyzeMacro(file);
-    }, "image/jpeg", 0.95);
+    const currentZoom = zoomLevel;
+    const track = streamRef.current?.getVideoTracks()[0];
+
+    try {
+      // 1. Reset zoom to 1x for full-resolution capture
+      if (track && currentZoom > 1) {
+        try { await track.applyConstraints({ advanced: [{ zoom: 1 } as any] }); } catch {}
+      }
+
+      // 2. Use ImageCapture API for full-sensor-resolution photo
+      let blob: Blob;
+      if (track && "ImageCapture" in window) {
+        const imageCapture = new (window as any).ImageCapture(track);
+        blob = await imageCapture.takePhoto();
+      } else {
+        const v = videoRef.current;
+        if (!v) return;
+        const c = document.createElement("canvas");
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext("2d")!.drawImage(v, 0, 0);
+        blob = await new Promise<Blob>((resolve) => c.toBlob((b) => resolve(b!), "image/jpeg", 0.95));
+      }
+
+      stopLiveCamera();
+
+      // 3. Crop the center region matching the zoom level
+      const fullImg = await createImageBitmap(blob);
+      const cropW = Math.round(fullImg.width / currentZoom);
+      const cropH = Math.round(fullImg.height / currentZoom);
+      const cropX = Math.round((fullImg.width - cropW) / 2);
+      const cropY = Math.round((fullImg.height - cropH) / 2);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = cropW;
+      canvas.height = cropH;
+      canvas.getContext("2d")!.drawImage(fullImg, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      canvas.toBlob(async (finalBlob) => {
+        if (!finalBlob) return;
+        const file = new File([finalBlob], "macro.jpg", { type: "image/jpeg" });
+        setStep("analysis");
+        await analyzeMacro(file);
+      }, "image/jpeg", 0.95);
+    } catch {
+      // Fallback: grab from video as-is
+      const v = videoRef.current;
+      if (!v) return;
+      const c = document.createElement("canvas");
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext("2d")!.drawImage(v, 0, 0);
+      stopLiveCamera();
+      c.toBlob(async (b) => {
+        if (!b) return;
+        const file = new File([b], "macro.jpg", { type: "image/jpeg" });
+        setStep("analysis");
+        await analyzeMacro(file);
+      }, "image/jpeg", 0.95);
+    }
   }
 
   // Start/stop camera when step changes
