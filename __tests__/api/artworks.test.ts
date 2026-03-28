@@ -84,7 +84,7 @@ describe("Artworks API Routes", () => {
     });
 
     it("returns 403 when user is not an artist", async () => {
-      vi.mocked(db.getUserByToken).mockReturnValue({
+      vi.mocked(db.getUserByToken).mockResolvedValue({
         id: "usr_1",
         role: "client",
       });
@@ -100,7 +100,7 @@ describe("Artworks API Routes", () => {
     });
 
     it("returns 400 when title or price missing", async () => {
-      vi.mocked(db.getUserByToken).mockReturnValue({
+      vi.mocked(db.getUserByToken).mockResolvedValue({
         id: "usr_1",
         role: "artist",
       });
@@ -116,14 +116,17 @@ describe("Artworks API Routes", () => {
     });
 
     it("creates artwork successfully for artist", async () => {
-      vi.mocked(db.getUserByToken).mockReturnValue({
+      vi.mocked(db.getUserByToken).mockResolvedValue({
         id: "usr_artist_1",
         role: "artist",
       });
-      const mockRun = vi.fn();
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: "art_new_1" }, error: null }),
+      };
       vi.mocked(db.getDb).mockReturnValue({
-        prepare: vi.fn(() => ({ run: mockRun, get: vi.fn(), all: vi.fn() })),
-        pragma: vi.fn(),
+        from: vi.fn(() => mockChain),
       } as any);
 
       const { POST } = await import("@/app/api/artworks/route");
@@ -142,7 +145,7 @@ describe("Artworks API Routes", () => {
 
   describe("GET /api/artworks/[id]", () => {
     it("returns 404 when artwork not found", async () => {
-      vi.mocked(db.getArtworkById).mockReturnValue(null);
+      vi.mocked(db.getArtworkById).mockResolvedValue(null);
 
       const { GET } = await import("@/app/api/artworks/[id]/route");
       const req = createRequest("http://localhost:3000/api/artworks/nonexistent");
@@ -151,18 +154,21 @@ describe("Artworks API Routes", () => {
     });
 
     it("returns artwork data when found", async () => {
-      vi.mocked(db.getArtworkById).mockReturnValue({
+      vi.mocked(db.getArtworkById).mockResolvedValue({
         id: "art_1",
         title: "Test Artwork",
         photos: '["photo1.jpg", "photo2.jpg"]',
         price: 2000,
         artist_id: "usr_1",
       });
-      vi.mocked(db.getGaugeEntries).mockReturnValue([]);
-      const mockAll = vi.fn(() => []);
+      vi.mocked(db.getGaugeEntries).mockResolvedValue([]);
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [] }),
+      };
       vi.mocked(db.getDb).mockReturnValue({
-        prepare: vi.fn(() => ({ all: mockAll, get: vi.fn(), run: vi.fn() })),
-        pragma: vi.fn(),
+        from: vi.fn(() => mockChain),
       } as any);
 
       const { GET } = await import("@/app/api/artworks/[id]/route");

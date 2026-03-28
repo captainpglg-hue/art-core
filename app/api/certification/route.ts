@@ -264,6 +264,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Done ──
+    const emailSent = !!(process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes("REMPLACE"));
     return NextResponse.json({
       id: artworkId,
       hash: sha256Hash,
@@ -275,6 +276,8 @@ export async function POST(req: NextRequest) {
       photos_count: certPhotos.length,
       certificate_url: certUrl,
       artwork_url: artworkUrl,
+      email_sent: emailSent,
+      email_to: emailSent ? user.email : undefined,
       warnings: stepErrors.length > 0 ? stepErrors : undefined,
     });
   } catch (error: any) {

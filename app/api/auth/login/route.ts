@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { getUserByEmail, createSession } from "@/lib/db";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,12 +13,35 @@ export async function POST(req: NextRequest) {
 
     const user = await getUserByEmail(email);
     if (!user) {
-      return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
+      return NextResponse.json({ error: "Aucun compte trouvé avec cet email. Vérifiez l'adresse ou créez un compte." }, { status: 401 });
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    // Try bcrypt first (custom password_hash in public.users)
+    let valid = false;
+    if (user.password_hash) {
+      try {
+        valid = await bcrypt.compare(password, user.password_hash);
+      } catch { valid = false; }
+    }
+
+    // Fallback: try Supabase Auth (for users created via signup with auth.users)
     if (!valid) {
-      return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
+      try {
+        const sb = createAdminClient();
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (!error && data?.user) {
+          valid = true;
+          // Sync password_hash to public.users for future logins
+          if (!user.password_hash) {
+            const newHash = await bcrypt.hash(password, 10);
+            await sb.from("users").update({ password_hash: newHash }).eq("id", user.id);
+          }
+        }
+      } catch { /* Supabase auth fallback failed — continue */ }
+    }
+
+    if (!valid) {
+      return NextResponse.json({ error: "Mot de passe incorrect. Vérifiez votre saisie ou utilisez \"Mot de passe oublié\"." }, { status: 401 });
     }
 
     const token = crypto.randomBytes(32).toString("hex");
@@ -46,6 +70,6 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Erreur de connexion. Réessayez dans quelques instants." }, { status: 500 });
   }
 }

@@ -28,8 +28,24 @@ export default function ProprietairePage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
+    fetch("/api/auth/me").then(r => r.json()).then(d => {
+      if (!d.user) {
+        setAuthenticated(false);
+        router.replace(`/auth/login?redirectTo=${encodeURIComponent("/pass-core/proprietaire")}`);
+      } else {
+        setAuthenticated(true);
+      }
+    }).catch(() => {
+      setAuthenticated(false);
+      router.replace(`/auth/login?redirectTo=${encodeURIComponent("/pass-core/proprietaire")}`);
+    });
+  }, [router]);
+
+  useEffect(() => {
+    if (authenticated !== true) return;
     async function fetchData() {
       try {
         const [certsRes, profileRes] = await Promise.all([
@@ -47,7 +63,7 @@ export default function ProprietairePage() {
       finally { setLoading(false); }
     }
     fetchData();
-  }, []);
+  }, [authenticated]);
 
   const totalCerts = certificates.length;
   const certifiedCount = certificates.filter(c => c.status === "certified").length;
@@ -63,7 +79,7 @@ export default function ProprietairePage() {
     }
   }
 
-  if (loading) {
+  if (loading || authenticated !== true) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="size-8 text-[#D4AF37] animate-spin" />

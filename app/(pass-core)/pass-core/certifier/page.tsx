@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Camera, ChevronRight, Check, Loader2, X, RotateCcw, Share2 } from "lucide-react";
+import { ShieldCheck, Camera, ChevronRight, Check, Loader2, X, RotateCcw, Share2, LogIn } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { detectPhone } from "@/lib/macro-compatibility";
 
@@ -30,6 +30,16 @@ export default function CertifierPage() {
   const analyzeTimerRef = useRef<number>(0);
   const [liveQuality, setLiveQuality] = useState({ sharpness: 0, brightness: 0, resolution: 0, ready: false });
   const [flashBorder, setFlashBorder] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomCaps, setZoomCaps] = useState<{ min: number; max: number } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name?: string } | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me").then(r => r.json()).then(d => {
+      if (d.user) setUser(d.user);
+    }).catch(() => {}).finally(() => setAuthChecked(true));
+  }, []);
 
   const introValid = form.title && form.technique && form.width && form.height && form.year;
 
@@ -128,15 +138,21 @@ export default function CertifierPage() {
           videoRef.current.srcObject = stream;
           videoRef.current.play().catch(() => {});
         }
-        // Try to auto-zoom x2 if supported
+        // Detect zoom capabilities and auto-zoom x2
         try {
           const track = stream.getVideoTracks()[0];
           const caps = track.getCapabilities() as any;
-          if (caps?.zoom?.max && caps.zoom.max >= 2) {
-            const zoom = Math.min(caps.zoom.max, 2.5);
-            track.applyConstraints({ advanced: [{ zoom } as any] }).catch(() => {});
+          if (caps?.zoom?.min != null && caps?.zoom?.max != null) {
+            setZoomCaps({ min: caps.zoom.min, max: caps.zoom.max });
+            if (caps.zoom.max >= 2) {
+              const z = Math.min(caps.zoom.max, 2);
+              track.applyConstraints({ advanced: [{ zoom: z } as any] }).catch(() => {});
+              setZoomLevel(2);
+            }
+          } else {
+            setZoomCaps(null);
           }
-        } catch {}
+        } catch { setZoomCaps(null); }
         // Start analysis loop every 400ms
         analyzeTimerRef.current = window.setInterval(analyzeLiveFrame, 400);
       })
@@ -145,6 +161,18 @@ export default function CertifierPage() {
         toast({ title: "Caméra indisponible", description: "Sélectionnez une photo macro depuis vos fichiers.", variant: "destructive" });
         macroRef.current?.click();
       });
+  }
+
+  function applyZoom(level: number) {
+    try {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (!track) return;
+      const caps = (track.getCapabilities() as any);
+      if (!caps?.zoom) return;
+      const z = Math.max(caps.zoom.min, Math.min(caps.zoom.max, level));
+      track.applyConstraints({ advanced: [{ zoom: z } as any] }).catch(() => {});
+      setZoomLevel(level);
+    } catch {}
   }
 
   function stopLiveCamera() {
@@ -376,10 +404,17 @@ export default function CertifierPage() {
             </div>
           </div>
 
-          <button onClick={() => globalRef.current?.click()} disabled={!introValid}
+          {authChecked && !user ? (
+            <button onClick={() => router.push(`/auth/login?redirectTo=${encodeURIComponent("/pass-core/certifier")}`)}
+              className="w-full py-4 rounded-xl bg-white/10 border border-[#D4AF37]/30 text-[#D4AF37] font-semibold flex items-center justify-center gap-2 active:brightness-90">
+              <LogIn className="size-5" /> Connectez-vous pour certifier
+            </button>
+          ) : (
+          <button onClick={() => globalRef.current?.click()} disabled={!introValid || !authChecked}
             className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold disabled:opacity-30 flex items-center justify-center gap-2 active:brightness-90">
             <Camera className="size-5" /> Photographier l&apos;œuvre <ChevronRight className="size-5" />
           </button>
+          )}
         </div>
       )}
 
@@ -486,6 +521,22 @@ export default function CertifierPage() {
             <p className="text-[#D4AF37] text-sm font-bold text-center mt-2 animate-pulse">Zoomez x2-x3 avec deux doigts</p>
             <p className="text-white/40 text-xs text-center mt-1">Puis tapez sur l&apos;ecran pour la mise au point</p>
           </div>
+
+          {/* Zoom buttons — always visible */}
+          {zoomCaps && (
+            <div className="absolute top-28 inset-x-0 flex justify-center gap-2 z-10">
+              {[1, 2, 5].filter(z => z <= zoomCaps.max).map(z => (
+                <button key={z} onClick={() => applyZoom(z)}
+                  className={`w-10 h-10 rounded-full text-xs font-bold transition-all ${
+                    zoomLevel === z
+                      ? "bg-[#D4AF37] text-black scale-110"
+                      : "bg-black/60 text-white/70 border border-white/20"
+                  }`}>
+                  x{z}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Bottom: live indicators */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4 pb-8">
@@ -596,7 +647,7 @@ export default function CertifierPage() {
                   </button>
                 </div>
               ) : (
-                <button onClick={() => { setAnalysis(null); setMacroPhoto(null); macroRef.current?.click(); }}
+                <button onClick={() => { setAnalysis(null); setMacroPhoto(null); setMacroFile(null); if (hasCamera) { setStep("live-camera"); } else { macroRef.current?.click(); } }}
                   className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#0A1128] font-semibold flex items-center justify-center gap-2">
                   <Camera className="size-5" /> Reprendre la photo
                 </button>
@@ -692,9 +743,15 @@ export default function CertifierPage() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 mb-6">
-            <p className="text-green-400 text-xs">Un email de confirmation avec votre certificat a ete envoye.</p>
-          </div>
+          {result?.email_sent && result?.email_to ? (
+            <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 mb-6">
+              <p className="text-green-400 text-xs">Un email de confirmation a ete envoye a <strong>{result.email_to}</strong></p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 mb-6">
+              <p className="text-white/40 text-xs">Votre certificat est disponible en ligne. Aucun email envoye pour le moment.</p>
+            </div>
+          )}
 
           <div className="space-y-3">
             <button onClick={() => {

@@ -1,7 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 describe("Pass-Core Pages", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Restore default global fetch mock
+    vi.mocked(global.fetch).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+        status: 200,
+      } as any)
+    );
+  });
   describe("Certifier Page", () => {
     it("renders Pass-Core certifier page", async () => {
       const CertifierPage = (await import("@/app/(pass-core)/pass-core/certifier/page")).default;
@@ -67,26 +78,44 @@ describe("Pass-Core Pages", () => {
 
   describe("Proprietaire Page", () => {
     it("renders proprietaire page after loading", async () => {
-      // Mock both fetch calls in proprietaire page
-      vi.mocked(global.fetch)
-        .mockResolvedValueOnce({
+      // Mock fetch to respond based on URL
+      vi.mocked(global.fetch).mockImplementation((url: any) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("/api/auth/me")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ user: { id: "usr_1", name: "Test Owner", role: "client" } }),
+            status: 200,
+          } as any);
+        }
+        if (urlStr.includes("/api/certification")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ certificates: [] }),
+            status: 200,
+          } as any);
+        }
+        if (urlStr.includes("/api/profile")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ name: "Test Owner", subscription: "premium", subscription_active: true }),
+            status: 200,
+          } as any);
+        }
+        return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ certificates: [] }),
-          status: 200,
-        } as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ name: "Test Owner", subscription: "premium", subscription_active: true }),
+          json: () => Promise.resolve({}),
           status: 200,
         } as any);
+      });
 
       const ProprietairePage = (await import("@/app/(pass-core)/pass-core/proprietaire/page")).default;
       render(<ProprietairePage />);
 
-      // Wait for loading to complete
+      // Wait for loading to complete and content to appear
       await waitFor(() => {
-        expect(document.body.textContent!.length).toBeGreaterThan(0);
-      });
+        expect(screen.getByText("Espace Proprietaire")).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
   });
 

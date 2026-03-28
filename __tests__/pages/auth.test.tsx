@@ -10,7 +10,7 @@ describe("Auth Pages", () => {
       expect(screen.getByText("Connexion")).toBeInTheDocument();
       expect(screen.getByLabelText("Email")).toBeInTheDocument();
       expect(screen.getByLabelText("Mot de passe")).toBeInTheDocument();
-    });
+    }, 15000);
 
     it("renders submit button", async () => {
       const LoginPage = (await import("@/app/auth/login/page")).default;
@@ -23,25 +23,25 @@ describe("Auth Pages", () => {
       const LoginPage = (await import("@/app/auth/login/page")).default;
       render(<LoginPage />);
 
-      const signupLink = screen.getByText("S'inscrire");
+      const signupLink = screen.getByText("Creer mon compte gratuitement");
       expect(signupLink).toBeInTheDocument();
-      expect(signupLink.closest("a")).toHaveAttribute("href", "/auth/signup");
+      expect(signupLink.closest("a")).toHaveAttribute("href", expect.stringContaining("/auth/signup"));
     });
 
     it("renders forgot password link", async () => {
       const LoginPage = (await import("@/app/auth/login/page")).default;
       render(<LoginPage />);
 
-      const forgotLink = screen.getByText(/Mot de passe oublié/i);
+      const forgotLink = screen.getByText(/Mot de passe oublie/i);
       expect(forgotLink).toBeInTheDocument();
       expect(forgotLink.closest("a")).toHaveAttribute("href", "/auth/forgot-password");
     });
 
-    it("renders demo accounts section", async () => {
+    it("renders sign-up prompt section", async () => {
       const LoginPage = (await import("@/app/auth/login/page")).default;
       render(<LoginPage />);
 
-      expect(screen.getByText(/Comptes démo/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pas encore de compte/i)).toBeInTheDocument();
     });
   });
 

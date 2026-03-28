@@ -89,15 +89,43 @@ vi.mock("@/lib/supabase/server", () => ({
   getUserProfile: vi.fn(),
 }));
 
+// ── Helper: create a chainable Supabase-style mock ───────────
+function createSupabaseMock() {
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    like: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    then: vi.fn((cb: any) => Promise.resolve({ data: null, error: null }).then(cb)),
+  };
+  return chain;
+}
+
 // ── Mock @/lib/db ────────────────────────────────────────────
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => ({
-    prepare: vi.fn(() => ({
-      get: vi.fn(),
-      all: vi.fn(() => []),
-      run: vi.fn(),
-    })),
-    pragma: vi.fn(),
+    from: vi.fn(() => createSupabaseMock()),
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.com/photo.jpg" } })),
+      })),
+    },
   })),
   getUserByEmail: vi.fn(),
   getUserByToken: vi.fn(),
