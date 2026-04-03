@@ -57,6 +57,8 @@ export interface CertificateEmailData {
   macroFingerprint?: string;
   certificationDate: string;
   artcoreUrl: string;
+  photos?: string[];       // Full URLs to artwork photos
+  mainPhoto?: string;      // Full URL to main photo (first photo)
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -99,6 +101,22 @@ export async function sendCertificateEmail(data: CertificateEmailData): Promise<
     <div style="background:#111111;border:1px solid rgba(201,168,76,0.2);border-radius:16px;padding:24px;margin-bottom:20px;">
 
       <h2 style="color:#ffffff;font-size:20px;margin:0 0 20px;font-weight:600;">${data.artworkTitle}</h2>
+
+      <!-- Artwork Photos -->
+      ${data.photos && data.photos.length > 0 ? `
+      <div style="margin-bottom:20px;text-align:center;">
+        ${data.mainPhoto || data.photos[0] ? `
+        <img src="${data.mainPhoto || data.photos[0]}" alt="${data.artworkTitle}" style="max-width:100%;height:auto;border-radius:12px;border:1px solid rgba(201,168,76,0.2);margin-bottom:12px;" />
+        ` : ''}
+        ${data.photos.length > 1 ? `
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+          ${data.photos.slice(1).map(photo => `
+          <img src="${photo}" alt="${data.artworkTitle}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid rgba(201,168,76,0.15);" />
+          `).join('')}
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
 
       <!-- Blockchain Hash -->
       <div style="margin-bottom:16px;">

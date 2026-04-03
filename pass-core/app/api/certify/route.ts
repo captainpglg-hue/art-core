@@ -3,11 +3,8 @@ import { getDb, getUserByToken } from "@/lib/db";
 import { certifyOnChain, getConfig } from "@/lib/blockchain";
 import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
-import fs from "fs";
+import { uploadPhoto } from "@/lib/supabase-storage";
 import path from "path";
-
-// Ensure uploads directory exists
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,27 +38,27 @@ export async function POST(req: NextRequest) {
       category = (formData.get("category") as string) || "painting";
       price = parseFloat((formData.get("price") as string) || "0");
 
-      // Save main photo
+      // Upload folder: cert/<artistId>
+      const storageFolder = `cert/${artistId}`;
+
+      // Save main photo → Supabase Storage
       const mainPhoto = formData.get("main_photo") as File;
       if (mainPhoto && mainPhoto.size > 0) {
-        const photoName = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.jpg`;
-        const photoPath = path.join(UPLOADS_DIR, photoName);
-        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-        fs.writeFileSync(photoPath, Buffer.from(await mainPhoto.arrayBuffer()));
-        photos.push(`/uploads/${photoName}`);
+        const photoName = `${Date.now()}_photo_full.jpg`;
+        const buffer = Buffer.from(await mainPhoto.arrayBuffer());
+        const publicUrl = await uploadPhoto(buffer, storageFolder, photoName);
+        photos.push(publicUrl);
       }
 
-      // Save & process macro photo (fingerprint)
+      // Save & process macro photo (fingerprint) → Supabase Storage
       const macroPhoto = formData.get("macro_photo") as File;
       if (macroPhoto && macroPhoto.size > 0) {
         const macroBuffer = Buffer.from(await macroPhoto.arrayBuffer());
-        const macroName = `macro_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.jpg`;
-        const macroPath = path.join(UPLOADS_DIR, macroName);
-        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-        fs.writeFileSync(macroPath, macroBuffer);
-        macroPhotoPath = `/uploads/${macroName}`;
+        const macroName = `${Date.now()}_macro.jpg`;
+        const publicUrl = await uploadPhoto(macroBuffer, storageFolder, macroName);
+        macroPhotoPath = publicUrl;
 
-        // Generate visual fingerprint
+        // Generate visual fingerprint (in-memory, no disk needed)
         const fp = await generateFingerprint(macroBuffer);
         macroFingerprint = fp.combined;
       }
@@ -70,14 +67,14 @@ export async function POST(req: NextRequest) {
       macroQualityScore = parseInt((formData.get("macro_quality_score") as string) || "0");
       recipientEmail = (formData.get("email") as string) || "";
 
-      // Additional photos
+      // Additional photos → Supabase Storage
       const extraPhotos = formData.getAll("extra_photos") as File[];
       for (const extra of extraPhotos) {
         if (extra && extra.size > 0) {
-          const eName = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.jpg`;
-          const ePath = path.join(UPLOADS_DIR, eName);
-          fs.writeFileSync(ePath, Buffer.from(await extra.arrayBuffer()));
-          photos.push(`/uploads/${eName}`);
+          const eName = `${Date.now()}_${Math.random().toString(36).slice(2, 5)}_extra.jpg`;
+          const buffer = Buffer.from(await extra.arrayBuffer());
+          const publicUrl = await uploadPhoto(buffer, storageFolder, eName);
+          photos.push(publicUrl);
         }
       }
     } else {
@@ -135,8 +132,13 @@ export async function POST(req: NextRequest) {
     ).run(mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue);
 
     const config = getConfig();
-    const artcoreUrl = `http://192.168.1.115:3000/art-core/oeuvre/${id}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://${req.headers.get("host") || "192.168.1.115:3000"}`;
+    const artcoreUrl = `${baseUrl}/art-core/oeuvre/${id}`;
     const certDate = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    // Photos are already absolute Supabase URLs — use directly for email
+    const photoUrls = photos;
+    const mainPhotoUrl = photoUrls.length > 0 ? photoUrls[0] : undefined;
 
     // ── Send certificate email ────────────────────────────
     let emailResult = null;
@@ -158,6 +160,8 @@ export async function POST(req: NextRequest) {
         macroFingerprint: macroFingerprint || undefined,
         certificationDate: certDate,
         artcoreUrl,
+        photos: photoUrls.length > 0 ? photoUrls : undefined,
+        mainPhoto: mainPhotoUrl,
       });
     }
 
