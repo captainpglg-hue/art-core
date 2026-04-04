@@ -1,4 +1,5 @@
 {
+  "id": "/art-core",
   "name": "ART-CORE — Unveil the Unique",
   "short_name": "ART-CORE",
   "description": "Marketplace d'art avec jauge de points, certification blockchain et marchés prédictifs.",
@@ -9,9 +10,12 @@
   "theme_color": "#0a0a0a",
   "background_color": "#0a0a0a",
   "icons": [
-    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "prefer_related_applications": false,
   "categories": ["shopping", "lifestyle"],
   "lang": "fr"
 }
