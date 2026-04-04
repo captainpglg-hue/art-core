@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Camera, ZoomIn, RotateCcw, ChevronRight, ChevronLeft, Check,
   Loader2, Sparkles, X, Award, Lock, TrendingUp, Image as ImgIcon, Move,
-  Fingerprint, Eye,
+  Fingerprint, Eye, Mic, MicOff,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
@@ -48,6 +48,8 @@ export default function CertifierPage() {
   const [result, setResult] = useState<any>(null);
   const [qualityScore, setQualityScore] = useState<any>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const zoneRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,72 @@ export default function CertifierPage() {
     const y = Math.max(0, Math.min(100 - macroZone.h, ((touch.clientY - rect.top) / rect.height) * 100 - macroZone.h / 2));
     setMacroZone(z => ({ ...z, x: Math.round(x), y: Math.round(y) }));
   }
+
+  // ── Speech-to-text (microphone) ─────────────────────────
+  function toggleListening() {
+    if (isListening) {
+      // Stop listening
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("La reconnaissance vocale n'est pas supportée par ce navigateur. Utilisez Chrome ou Safari.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "fr-FR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    // Store the description text at the moment recording started
+    const baseText = description.trimEnd();
+    let accumulatedFinal = "";
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      accumulatedFinal = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          accumulatedFinal += transcript;
+        } else {
+          interim = transcript;
+        }
+      }
+      const newText = (accumulatedFinal + interim).trim();
+      const combined = baseText ? baseText + " " + newText : newText;
+      setDescription(combined.slice(0, 600));
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        alert("Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.");
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   // ── AI description ─────────────────────────────────────
   async function generateAI() {
@@ -426,16 +494,39 @@ export default function CertifierPage() {
         <div className="animate-fade-in flex flex-col justify-center min-h-[50vh]">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-2xl font-semibold text-white">Description</h2>
-            <button onClick={generateAI} disabled={aiLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/10 text-[#C9A84C] text-xs font-medium active:bg-[#C9A84C]/20 disabled:opacity-30">
-              {aiLoading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
-              Generer par IA
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={toggleListening}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  isListening
+                    ? "bg-red-500/20 text-red-400 animate-pulse"
+                    : "bg-white/5 text-white/50 active:bg-white/10"
+                }`}>
+                {isListening ? <MicOff className="size-3" /> : <Mic className="size-3" />}
+                {isListening ? "Stop" : "Dicter"}
+              </button>
+              <button onClick={generateAI} disabled={aiLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/10 text-[#C9A84C] text-xs font-medium active:bg-[#C9A84C]/20 disabled:opacity-30">
+                {aiLoading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                IA
+              </button>
+            </div>
           </div>
-          <p className="text-white/30 text-sm mb-4">150 mots max — decrivez votre oeuvre</p>
-          <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 600))} rows={5}
-            placeholder="Decrivez votre oeuvre..."
-            className="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm p-4 resize-none focus:outline-none focus:border-[#C9A84C]/40" />
+          <p className="text-white/30 text-sm mb-4">
+            {isListening ? "Parlez maintenant..." : "150 mots max — decrivez votre oeuvre ou dictez"}
+          </p>
+          <div className="relative">
+            <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 600))} rows={5}
+              placeholder="Decrivez votre oeuvre ou appuyez sur Dicter..."
+              className={`w-full rounded-xl bg-white/5 border text-white text-sm p-4 resize-none focus:outline-none ${
+                isListening ? "border-red-500/40 bg-red-500/5" : "border-white/10 focus:border-[#C9A84C]/40"
+              }`} />
+            {isListening && (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-red-400 text-[10px] font-medium">REC</span>
+              </div>
+            )}
+          </div>
           <p className="text-[10px] text-white/15 mt-1">{description.length}/600</p>
           <NavButtons back="f_year" next={() => setStep("f_price")} />
         </div>
