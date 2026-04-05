@@ -19,30 +19,56 @@ export async function GET(req: NextRequest) {
     photos: typeof a.photos === "string" ? JSON.parse(a.photos || "[]") : (a.photos || []),
   }));
 
-  // Enrich certified artworks with merchant name from police_register_entries + merchants
-  const certifiedIds = parsed.filter((a: any) => a.blockchain_hash).map((a: any) => a.id);
-  if (certifiedIds.length > 0) {
+  // Enrich certified artworks with merchant name
+  const certifiedArts = parsed.filter((a: any) => a.blockchain_hash);
+  if (certifiedArts.length > 0) {
     try {
       const sb = getDb();
-      const { data: entries } = await sb
-        .from("police_register_entries")
-        .select("artwork_id, merchant_id")
-        .in("artwork_id", certifiedIds)
-        .not("merchant_id", "is", null);
 
-      if (entries && entries.length > 0) {
-        const merchantIds = Array.from(new Set(entries.map((e: any) => e.merchant_id)));
+      // Priority 1: direct FK certified_by_merchant_id
+      const directIds = certifiedArts
+        .filter((a: any) => a.certified_by_merchant_id)
+        .map((a: any) => a.certified_by_merchant_id);
+      const uniqueDirectIds = Array.from(new Set(directIds));
+
+      let merchantMap = new Map<string, string>();
+      if (uniqueDirectIds.length > 0) {
         const { data: merchants } = await sb
           .from("merchants")
           .select("id, raison_sociale")
-          .in("id", merchantIds);
+          .in("id", uniqueDirectIds);
+        for (const m of merchants || []) merchantMap.set(m.id, m.raison_sociale);
+      }
 
-        const merchantMap = new Map((merchants || []).map((m: any) => [m.id, m.raison_sociale]));
-        const artworkMerchant = new Map(entries.map((e: any) => [e.artwork_id, merchantMap.get(e.merchant_id)]));
+      for (const art of certifiedArts) {
+        if (art.certified_by_merchant_id && merchantMap.has(art.certified_by_merchant_id)) {
+          art.merchant_name = merchantMap.get(art.certified_by_merchant_id);
+        }
+      }
 
-        for (const art of parsed) {
-          if (artworkMerchant.has(art.id)) {
-            art.merchant_name = artworkMerchant.get(art.id);
+      // Priority 2: fallback via police_register_entries for those still missing
+      const missingIds = certifiedArts.filter((a: any) => !a.merchant_name).map((a: any) => a.id);
+      if (missingIds.length > 0) {
+        const { data: entries } = await sb
+          .from("police_register_entries")
+          .select("artwork_id, merchant_id")
+          .in("artwork_id", missingIds)
+          .not("merchant_id", "is", null);
+
+        if (entries && entries.length > 0) {
+          const regMerchantIds = Array.from(new Set(entries.map((e: any) => e.merchant_id)));
+          const { data: regMerchants } = await sb
+            .from("merchants")
+            .select("id, raison_sociale")
+            .in("id", regMerchantIds);
+
+          const regMap = new Map((regMerchants || []).map((m: any) => [m.id, m.raison_sociale]));
+          const artMap = new Map(entries.map((e: any) => [e.artwork_id, regMap.get(e.merchant_id)]));
+
+          for (const art of parsed) {
+            if (!art.merchant_name && artMap.has(art.id)) {
+              art.merchant_name = artMap.get(art.id);
+            }
           }
         }
       }

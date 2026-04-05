@@ -66,6 +66,9 @@ const SQL_STATEMENTS = [
   `ALTER TABLE police_register_entries ADD COLUMN IF NOT EXISTS seller_address TEXT`,
   `ALTER TABLE police_register_entries ADD COLUMN IF NOT EXISTS buyer_name TEXT`,
   `ALTER TABLE police_register_entries ADD COLUMN IF NOT EXISTS buyer_address TEXT`,
+  // Direct FK on artworks for certified-by merchant
+  `ALTER TABLE artworks ADD COLUMN IF NOT EXISTS certified_by_merchant_id UUID REFERENCES merchants(id)`,
+  `CREATE INDEX IF NOT EXISTS idx_artworks_certified_merchant ON artworks(certified_by_merchant_id)`,
 ];
 
 console.log("=".repeat(60));

@@ -49,25 +49,37 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const sb = getDb();
   const { data: markets } = await sb.from("betting_markets").select("*").eq("artwork_id", id);
 
-  // Get certifying merchant (from pass-core police register)
+  // Get certifying merchant (direct FK or via police register fallback)
   let certifyingMerchant: { raison_sociale: string; numero_rom_prefix: string } | null = null;
   if (artwork.blockchain_hash) {
     try {
-      const passCoreSb = sb; // Same Supabase instance (shared DB)
-      const { data: registerEntry } = await passCoreSb
-        .from("police_register_entries")
-        .select("merchant_id")
-        .eq("artwork_id", id)
-        .not("merchant_id", "is", null)
-        .limit(1)
-        .maybeSingle();
-      if (registerEntry?.merchant_id) {
-        const { data: merchant } = await passCoreSb
+      // Priority 1: direct FK on artworks.certified_by_merchant_id
+      const merchantId = artwork.certified_by_merchant_id;
+      if (merchantId) {
+        const { data: merchant } = await sb
           .from("merchants")
           .select("raison_sociale, numero_rom_prefix")
-          .eq("id", registerEntry.merchant_id)
+          .eq("id", merchantId)
           .single();
         if (merchant) certifyingMerchant = merchant;
+      }
+      // Priority 2: fallback via police_register_entries
+      if (!certifyingMerchant) {
+        const { data: registerEntry } = await sb
+          .from("police_register_entries")
+          .select("merchant_id")
+          .eq("artwork_id", id)
+          .not("merchant_id", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (registerEntry?.merchant_id) {
+          const { data: merchant } = await sb
+            .from("merchants")
+            .select("raison_sociale, numero_rom_prefix")
+            .eq("id", registerEntry.merchant_id)
+            .single();
+          if (merchant) certifyingMerchant = merchant;
+        }
       }
     } catch {}
   }

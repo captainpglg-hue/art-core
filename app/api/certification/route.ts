@@ -144,6 +144,19 @@ export async function POST(req: NextRequest) {
     const sb = getDb();
     const now = new Date().toISOString();
 
+    // ── Step 3b: Resolve merchant if user is a gallery/merchant ──
+    currentStep = "resolve_merchant";
+    let certifiedByMerchantId: string | null = null;
+    try {
+      const { data: merchantRow } = await sb
+        .from("merchants")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("actif", true)
+        .maybeSingle();
+      if (merchantRow) certifiedByMerchantId = merchantRow.id;
+    } catch {}
+
     // ── Step 4: Insert artwork ──
     currentStep = "insert_artwork";
     const { data: artwork, error: artworkError } = await sb.from("artworks").insert({
@@ -172,6 +185,7 @@ export async function POST(req: NextRequest) {
         raw: macroZone || null,
       }),
       listed_at: now,
+      certified_by_merchant_id: certifiedByMerchantId,
     }).select("id").single();
 
     if (artworkError) {
