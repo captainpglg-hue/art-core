@@ -124,3 +124,53 @@
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
   }
 }
+
+/* ── Print styles — Conformité PDF ── */
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+  body {
+    background: white !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  header, footer, .mobile-bottom-nav, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-section {
+    background: white !important;
+    color: #333 !important;
+  }
+  .print-section * {
+    color: #333 !important;
+    border-color: #ddd !important;
+  }
+  .print-section h1 {
+    color: #0a0a0a !important;
+  }
+  .print-section h2 {
+    color: #B8960C !important;
+  }
+  .print-section strong {
+    color: #111 !important;
+  }
+  .print-section [class*="bg-white/"] {
+    background: #f9f9f9 !important;
+  }
+  .print-section [class*="bg-[#D4AF37]"],
+  .print-section [class*="bg-[#B8960C]"] {
+    background: #B8960C !important;
+    color: white !important;
+  }
+  .print-section [class*="text-[#D4AF37]"],
+  .print-section [class*="text-[#B8960C]"] {
+    color: #B8960C !important;
+  }
+  a { text-decoration: none !important; }
+}

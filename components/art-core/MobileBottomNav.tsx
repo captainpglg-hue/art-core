@@ -17,7 +17,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.06]">
+    <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.06]">
       <div className="grid grid-cols-5 h-[60px] safe-area-bottom max-w-lg mx-auto">
         {TABS.map(({ label, icon: Icon, href, highlight }) => {
           const isActive = pathname === href || (href !== "/art-core" && pathname.startsWith(href));

@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutGrid, ShieldCheck, TrendingUp, LogOut, User, Settings,
   Heart, Package, ChevronDown, Coins, Menu, X, MessageSquare,
-  Store, Plus, Wallet, CreditCard,
+  Store, Plus, Wallet, CreditCard, FileCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -162,6 +162,9 @@ export function Navbar() {
                         <DropdownMenuItem asChild>
                           <Link href="/art-core/nova-bank" className="text-[#C9A84C]"><CreditCard className="size-4 text-[#C9A84C]" />Nova Bank</Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/conformite"><FileCheck className="size-4" />Conformité</Link>
+                        </DropdownMenuItem>
                         {!user.is_initie && (
                           <DropdownMenuItem asChild>
                             <Link href="/art-core/initie" className="text-[#C9A84C]"><Coins className="size-4 text-[#C9A84C]" />Devenir Initié</Link>
@@ -216,6 +219,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/art-core/deposer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">
                   <Plus className="size-4" />Déposer une oeuvre
+                </Link>
+                <Link href="/conformite" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all">
+                  <FileCheck className="size-4 text-[#C9A84C]/70" />Conformité réglementaire
                 </Link>
                 <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
                   <LogOut className="size-4" />Se déconnecter

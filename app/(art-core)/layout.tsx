@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/art-core/Navbar";
 import { MobileBottomNav } from "@/components/art-core/MobileBottomNav";
+import { Footer } from "@/components/art-core/Footer";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function ArtCoreLayout({
     <div className="min-h-screen bg-[#0F0F0F]">
       <Navbar />
       <main className="pt-16 pb-[68px] md:pb-0">{children}</main>
+      <Footer />
       <MobileBottomNav />
       <Toaster />
       <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw-art-core.js',{scope:'/art-core/'}).catch(()=>{});}` }} />

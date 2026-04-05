@@ -112,20 +112,27 @@ export default function ProInscriptionPage() {
 
         <div className="flex gap-3 justify-center">
           <Button asChild>
-            <Link href="/pass-core/certifier">Certifier une oeuvre</Link>
+            <Link href="/pass-core/pro/dashboard">Mon espace pro</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/art-core">Marketplace</Link>
+            <Link href="/pass-core/certifier">Certifier une oeuvre</Link>
           </Button>
         </div>
       </div>
     );
   }
 
-  const fields = [
+  const fields: { key: string; label: string; placeholder: string; icon: any; type: string; maxLength?: number; options?: { value: string; label: string }[] }[] = [
     { key: "raison_sociale", label: "Raison sociale", placeholder: "Galerie Dupont SARL", icon: Building, type: "text" },
     { key: "siret", label: "SIRET (14 chiffres)", placeholder: "12345678901234", icon: Hash, type: "text", maxLength: 14 },
-    { key: "activite", label: "Activite", placeholder: "Galerie d'art contemporain", icon: Briefcase, type: "text" },
+    { key: "activite", label: "Activite", placeholder: "", icon: Briefcase, type: "select", options: [
+      { value: "", label: "-- Choisir votre activité --" },
+      { value: "galerie", label: "Galerie d'art" },
+      { value: "antiquaire", label: "Antiquaire" },
+      { value: "brocanteur", label: "Brocanteur" },
+      { value: "commissaire-priseur", label: "Commissaire-priseur" },
+      { value: "depot-vente", label: "Dépôt-vente" },
+    ] },
     { key: "nom_gerant", label: "Nom du gerant", placeholder: "Jean Dupont", icon: User, type: "text" },
     { key: "email", label: "Email professionnel", placeholder: "contact@galerie.fr", icon: Mail, type: "email" },
     { key: "telephone", label: "Telephone", placeholder: "+33 6 12 34 56 78", icon: Phone, type: "tel" },
@@ -157,22 +164,37 @@ export default function ProInscriptionPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        {fields.map(({ key, label, placeholder, icon: Icon, type, maxLength }) => (
+        {fields.map(({ key, label, placeholder, icon: Icon, type, maxLength, options }) => (
           <div key={key} className="space-y-1">
             <Label htmlFor={key} className="text-xs">
               {label} <span className="text-red-400">*</span>
             </Label>
             <div className="relative">
               <Icon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/25" />
-              <Input
-                id={key}
-                type={type}
-                placeholder={placeholder}
-                className={`pl-9 ${errors[key] ? "border-red-500/50" : ""}`}
-                value={(form as any)[key]}
-                onChange={(e) => update(key, e.target.value)}
-                maxLength={maxLength}
-              />
+              {type === "select" && options ? (
+                <select
+                  id={key}
+                  name={key}
+                  required
+                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background pl-9 ${errors[key] ? "border-red-500/50" : ""}`}
+                  value={(form as any)[key]}
+                  onChange={(e) => update(key, e.target.value)}
+                >
+                  {options.map((opt: { value: string; label: string }) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id={key}
+                  type={type}
+                  placeholder={placeholder}
+                  className={`pl-9 ${errors[key] ? "border-red-500/50" : ""}`}
+                  value={(form as any)[key]}
+                  onChange={(e) => update(key, e.target.value)}
+                  maxLength={maxLength}
+                />
+              )}
             </div>
             {errors[key] && <p className="text-[11px] text-red-400">{errors[key]}</p>}
           </div>
