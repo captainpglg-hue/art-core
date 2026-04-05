@@ -1,4 +1,4 @@
-const CACHE_NAME = "pass-core-v3";
+const CACHE_NAME = "pass-core-v4";
 const START_URL = "/pass-core";
 
 self.addEventListener("install", () => {
