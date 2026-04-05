@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   manifest: "/manifest-pass-core.json",
 };
 
+// Bump this on every deploy to force PWA refresh
+const APP_VERSION = "2026-04-05-B";
+
 export default function PassCoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <div data-theme="pass-core" className="min-h-screen bg-[#0F0F0F]">
@@ -17,34 +20,37 @@ export default function PassCoreLayout({ children }: { children: React.ReactNode
       <PassMobileNav />
       <Toaster />
       <script dangerouslySetInnerHTML={{ __html: `
-        if('serviceWorker' in navigator){
-          // Force unregister stale SWs then register fresh
-          navigator.serviceWorker.getRegistrations().then(function(regs){
-            var needsRefresh = false;
-            regs.forEach(function(r){
-              if(r.active && r.active.scriptURL && !r.active.scriptURL.includes('sw-pass-core')){
-                r.unregister(); needsRefresh = true;
-              }
+        (function(){
+          var APP_V = "${APP_VERSION}";
+
+          // 1. Nuke ALL service workers and ALL caches — nuclear option
+          if('serviceWorker' in navigator){
+            navigator.serviceWorker.getRegistrations().then(function(regs){
+              regs.forEach(function(r){ r.unregister(); });
             });
-            // Clear old caches
-            if(typeof caches !== 'undefined'){
-              caches.keys().then(function(keys){
-                keys.forEach(function(k){ if(k !== 'pass-core-v4') caches.delete(k); });
-              });
-            }
-            navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).then(function(reg){
-              reg.update();
-            }).catch(function(){});
-          });
-        }
-        // PWA launch: always start on /pass-core home
-        if(window.matchMedia('(display-mode: standalone)').matches && window.location.pathname !== '/pass-core'){
-          var lastVisit = sessionStorage.getItem('pass-core-visited');
-          if(!lastVisit){
-            sessionStorage.setItem('pass-core-visited','1');
-            window.location.replace('/pass-core');
           }
-        }
+          if(typeof caches !== 'undefined'){
+            caches.keys().then(function(keys){
+              keys.forEach(function(k){ caches.delete(k); });
+            });
+          }
+
+          // 2. Version check — force hard reload if outdated
+          var stored = localStorage.getItem('pass-core-version');
+          if(stored && stored !== APP_V){
+            localStorage.setItem('pass-core-version', APP_V);
+            window.location.reload();
+            return;
+          }
+          localStorage.setItem('pass-core-version', APP_V);
+
+          // 3. Re-register clean SW after nuke
+          if('serviceWorker' in navigator){
+            setTimeout(function(){
+              navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).catch(function(){});
+            }, 2000);
+          }
+        })();
       ` }} />
     </div>
   );
