@@ -19,6 +19,36 @@ export async function GET(req: NextRequest) {
     photos: typeof a.photos === "string" ? JSON.parse(a.photos || "[]") : (a.photos || []),
   }));
 
+  // Enrich certified artworks with merchant name from police_register_entries + merchants
+  const certifiedIds = parsed.filter((a: any) => a.blockchain_hash).map((a: any) => a.id);
+  if (certifiedIds.length > 0) {
+    try {
+      const sb = getDb();
+      const { data: entries } = await sb
+        .from("police_register_entries")
+        .select("artwork_id, merchant_id")
+        .in("artwork_id", certifiedIds)
+        .not("merchant_id", "is", null);
+
+      if (entries && entries.length > 0) {
+        const merchantIds = Array.from(new Set(entries.map((e: any) => e.merchant_id)));
+        const { data: merchants } = await sb
+          .from("merchants")
+          .select("id, raison_sociale")
+          .in("id", merchantIds);
+
+        const merchantMap = new Map((merchants || []).map((m: any) => [m.id, m.raison_sociale]));
+        const artworkMerchant = new Map(entries.map((e: any) => [e.artwork_id, merchantMap.get(e.merchant_id)]));
+
+        for (const art of parsed) {
+          if (artworkMerchant.has(art.id)) {
+            art.merchant_name = artworkMerchant.get(art.id);
+          }
+        }
+      }
+    } catch {}
+  }
+
   return NextResponse.json({ artworks: parsed, total, limit, offset });
 }
 

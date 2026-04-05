@@ -17,6 +17,11 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
       <footer className="border-t border-white/5 px-6 py-6 text-center text-white/20 text-xs">
+        <div className="flex items-center justify-center gap-4 flex-wrap mb-2">
+          <Link href="/legal/cgu" className="hover:text-white/40 transition-colors">CGU</Link>
+          <span className="text-white/10">|</span>
+          <Link href="/legal/conformite" className="hover:text-white/40 transition-colors">Conformite PASS-CORE</Link>
+        </div>
         ART-CORE GROUP LTD — Companies House UK — contact@art-core.app
       </footer>
     </div>

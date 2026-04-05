@@ -32,8 +32,30 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     .eq("artwork_id", id)
     .order("created_at", { ascending: false });
 
+  // Enrich with certifying merchant name
+  let merchant_name: string | null = null;
+  if (artwork.blockchain_hash) {
+    try {
+      const { data: entry } = await sb
+        .from("police_register_entries")
+        .select("merchant_id")
+        .eq("artwork_id", id)
+        .not("merchant_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (entry?.merchant_id) {
+        const { data: merchant } = await sb
+          .from("merchants")
+          .select("raison_sociale")
+          .eq("id", entry.merchant_id)
+          .single();
+        if (merchant) merchant_name = merchant.raison_sociale;
+      }
+    } catch {}
+  }
+
   return NextResponse.json({
-    artwork: { ...artwork, photos },
+    artwork: { ...artwork, photos, merchant_name },
     gaugeEntries,
     offers,
     markets: markets || [],

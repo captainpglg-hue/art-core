@@ -49,6 +49,29 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const sb = getDb();
   const { data: markets } = await sb.from("betting_markets").select("*").eq("artwork_id", id);
 
+  // Get certifying merchant (from pass-core police register)
+  let certifyingMerchant: { raison_sociale: string; numero_rom_prefix: string } | null = null;
+  if (artwork.blockchain_hash) {
+    try {
+      const passCoreSb = sb; // Same Supabase instance (shared DB)
+      const { data: registerEntry } = await passCoreSb
+        .from("police_register_entries")
+        .select("merchant_id")
+        .eq("artwork_id", id)
+        .not("merchant_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (registerEntry?.merchant_id) {
+        const { data: merchant } = await passCoreSb
+          .from("merchants")
+          .select("raison_sociale, numero_rom_prefix")
+          .eq("id", registerEntry.merchant_id)
+          .single();
+        if (merchant) certifyingMerchant = merchant;
+      }
+    } catch {}
+  }
+
   const isLocked = artwork.gauge_locked === true || artwork.gauge_points >= 100;
   const isArtist = currentUser?.id === artwork.artist_id;
   const isCertified = !!artwork.blockchain_hash;
@@ -118,8 +141,30 @@ export default async function ArtworkDetailPage({ params }: Props) {
                   Cette œuvre a été certifiée via PASS-CORE. Son empreinte visuelle et son hash blockchain sont immuables.
                   {artwork.certification_date && ` Certifiée le ${new Date(artwork.certification_date).toLocaleDateString("fr-FR")}.`}
                 </p>
+                {certifyingMerchant && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#B8960C]/10 border border-[#B8960C]/25 text-[10px] text-[#B8960C] font-medium">
+                      <ShieldCheck className="size-3" />
+                      Certifié par {certifyingMerchant.raison_sociale}
+                    </span>
+                    <span className="text-[9px] text-white/20 font-mono">ROM {certifyingMerchant.numero_rom_prefix}</span>
+                  </div>
+                )}
               </div>
             </div>
+          )}
+
+          {/* Attestation officielle button */}
+          {isCertified && (
+            <a
+              href={`${process.env.NEXT_PUBLIC_PASS_CORE_URL || 'http://192.168.1.115:3001'}/api/attestation/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#B8960C]/30 bg-[#B8960C]/5 text-[#B8960C] text-sm font-medium hover:bg-[#B8960C]/10 transition"
+            >
+              <ShieldCheck className="size-4" />
+              Attestation officielle
+            </a>
           )}
 
           {/* Title + Artist */}

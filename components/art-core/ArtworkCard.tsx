@@ -19,6 +19,7 @@ type Artwork = {
   highlight_active?: number;
   category?: string;
   creation_date?: string;
+  merchant_name?: string;
 };
 
 interface ArtworkCardProps {
@@ -82,6 +83,15 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
             </span>
           )}
         </div>
+
+        {isCertified && artwork.merchant_name && (
+          <div className="absolute top-3 right-3">
+            <span className="flex items-center gap-1 rounded-full bg-black/70 backdrop-blur-sm border border-[#B8960C]/30 px-2 py-0.5 text-[9px] text-[#B8960C] font-medium">
+              <ShieldCheck className="size-2.5" />
+              {artwork.merchant_name}
+            </span>
+          </div>
+        )}
 
         {artwork.status !== "sold" && artwork.price > 0 && (
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-4">
