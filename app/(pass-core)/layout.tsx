@@ -18,7 +18,24 @@ export default function PassCoreLayout({ children }: { children: React.ReactNode
       <Toaster />
       <script dangerouslySetInnerHTML={{ __html: `
         if('serviceWorker' in navigator){
-          navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).catch(()=>{});
+          // Force unregister stale SWs then register fresh
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            var needsRefresh = false;
+            regs.forEach(function(r){
+              if(r.active && r.active.scriptURL && !r.active.scriptURL.includes('sw-pass-core')){
+                r.unregister(); needsRefresh = true;
+              }
+            });
+            // Clear old caches
+            if(typeof caches !== 'undefined'){
+              caches.keys().then(function(keys){
+                keys.forEach(function(k){ if(k !== 'pass-core-v4') caches.delete(k); });
+              });
+            }
+            navigator.serviceWorker.register('/sw-pass-core.js',{scope:'/'}).then(function(reg){
+              reg.update();
+            }).catch(function(){});
+          });
         }
         // PWA launch: always start on /pass-core home
         if(window.matchMedia('(display-mode: standalone)').matches && window.location.pathname !== '/pass-core'){
