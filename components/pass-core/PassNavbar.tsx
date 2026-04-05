@@ -16,6 +16,7 @@ export function PassNavbar() {
           <Link href="/pass-core/verifier" className="hover:text-white transition-colors">Vérifier</Link>
           <Link href="/pass-core/gallery" className="hover:text-white transition-colors">Galerie</Link>
           <Link href="/pass-core/proprietaire" className="hover:text-white transition-colors">Mon espace</Link>
+          <Link href="/pass-core/pro/inscription" className="hover:text-white text-[#D4AF37]/60 transition-colors">Espace Pro</Link>
           <Link href="/legal/conformite" className="hover:text-white transition-colors">Conformite</Link>
         </nav>
         <div className="ml-auto flex items-center gap-3">

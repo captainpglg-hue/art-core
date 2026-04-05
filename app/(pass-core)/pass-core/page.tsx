@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Camera, Search, Image as ImageIcon, CreditCard, ChevronRight } from "lucide-react";
+import { ShieldCheck, Camera, Search, Image as ImageIcon, CreditCard, ChevronRight, Building } from "lucide-react";
 
 export const metadata = {
   title: "PASS-CORE — Certifiéz vos œuvres",
@@ -54,6 +54,18 @@ export default function PassCoreHomePage() {
           <div className="flex-1">
             <p className="font-semibold text-white">Mes certificats</p>
             <p className="text-white/30 text-xs">Toutes vos œuvres certifiées</p>
+          </div>
+          <ChevronRight className="size-5 text-white/20" />
+        </Link>
+
+        <Link href="/pass-core/pro/inscription"
+          className="flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-[#D4AF37]/20 active:bg-white/5 transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center shrink-0">
+            <Building className="size-6 text-[#D4AF37]" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-white">Espace Professionnel</p>
+            <p className="text-white/30 text-xs">Marchand, galerie, antiquaire — cahier de police numerique</p>
           </div>
           <ChevronRight className="size-5 text-white/20" />
         </Link>

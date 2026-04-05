@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Camera, Image as ImageIcon, Search, User } from "lucide-react";
+import { Home, Camera, Image as ImageIcon, Search, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -10,7 +10,7 @@ const TABS = [
   { label: "Certifier", icon: Camera, href: "/pass-core/certifier", highlight: true },
   { label: "Verifier", icon: Search, href: "/pass-core/verifier" },
   { label: "Galerie", icon: ImageIcon, href: "/pass-core/gallery" },
-  { label: "Profil", icon: User, href: "/art-core/profile" },
+  { label: "Pro", icon: Building, href: "/pass-core/pro/inscription" },
 ];
 
 export function PassMobileNav() {
