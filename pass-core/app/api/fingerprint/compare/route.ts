@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateFingerprint, compareFingerprints, compareFingerprintsHamming } from "@/lib/fingerprint";
+import { generateFingerprint, FingerprintResult } from "@/lib/fingerprint";
 import { getDb } from "@/lib/db";
 
 /**
  * POST /api/fingerprint/compare
  *
- * Compares two fingerprints and returns similarity score.
+ * Compares two fingerprints using aHash + dHash (Hamming distance).
  *
  * Accepts:
  *   - Two photo files: { photo1: File, photo2: File }
  *   - OR one photo + artwork ID: { photo: File, artwork_id: string }
  *   - OR two raw fingerprint objects: { fp1: FingerprintResult, fp2: FingerprintResult }
  */
+
+function hammingSimilarity(h1: string, h2: string): number {
+  if (!h1 || !h2 || h1.length !== h2.length) return 0;
+  let distance = 0;
+  for (let i = 0; i < h1.length; i++) {
+    const b1 = parseInt(h1[i], 16);
+    const b2 = parseInt(h2[i], 16);
+    let xor = b1 ^ b2;
+    while (xor) { distance += xor & 1; xor >>= 1; }
+  }
+  const maxBits = h1.length * 4;
+  return Math.round((1 - distance / maxBits) * 10000) / 100;
+}
+
+function compareFingerprints(fp1: FingerprintResult, fp2: FingerprintResult) {
+  const ahash = hammingSimilarity(fp1.aHash, fp2.aHash);
+  const dhash = hammingSimilarity(fp1.dHash, fp2.dHash);
+  const score = Math.round((ahash * 0.6 + dhash * 0.4) * 100) / 100;
+  return { score, scores: { ahash, dhash } };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
@@ -49,40 +70,26 @@ export async function POST(req: NextRequest) {
         const buf = Buffer.from(await photo.arrayBuffer());
         const fp = await generateFingerprint(buf);
 
-        const sb = getDb();
-        const { data: art } = await sb
-          .from("artworks")
-          .select("macro_ahash, macro_dhash, macro_phash, macro_radial_hist, macro_texture_lbp")
-          .eq("id", artworkId)
-          .single();
+        const db = getDb();
+        const art = db.prepare(
+          "SELECT macro_ahash, macro_dhash FROM artworks WHERE id = ?"
+        ).get(artworkId) as { macro_ahash?: string; macro_dhash?: string } | undefined;
 
         if (!art || (!art.macro_ahash && !art.macro_dhash)) {
           return NextResponse.json({ error: "Aucun fingerprint stocké pour cette oeuvre" }, { status: 404 });
         }
 
-        let score: number;
-        let scores: Record<string, number>;
-
-        if (art.macro_phash) {
-          const phash = compareFingerprintsHamming(fp.pHash, art.macro_phash);
-          const dhash = compareFingerprintsHamming(fp.dHash, art.macro_dhash);
-          const ahash = compareFingerprintsHamming(fp.aHash, art.macro_ahash);
-          const radial = art.macro_radial_hist ? compareFingerprintsHamming(fp.radialHist, art.macro_radial_hist) : 0;
-          const texture = art.macro_texture_lbp ? compareFingerprintsHamming(fp.textureLBP, art.macro_texture_lbp) : 0;
-          score = Math.round((phash * 0.4 + dhash * 0.25 + ahash * 0.15 + radial * 0.1 + texture * 0.1) * 100) / 100;
-          scores = { phash, dhash, ahash, radial, texture };
-        } else {
-          const ahash = compareFingerprintsHamming(fp.aHash, art.macro_ahash);
-          const dhash = compareFingerprintsHamming(fp.dHash, art.macro_dhash);
-          score = Math.round((ahash * 0.6 + dhash * 0.4) * 100) / 100;
-          scores = { ahash, dhash };
-        }
+        const ahash = art.macro_ahash ? hammingSimilarity(fp.aHash, art.macro_ahash) : 0;
+        const dhash = art.macro_dhash ? hammingSimilarity(fp.dHash, art.macro_dhash) : 0;
+        const score = art.macro_ahash && art.macro_dhash
+          ? Math.round((ahash * 0.6 + dhash * 0.4) * 100) / 100
+          : ahash || dhash;
 
         return NextResponse.json({
           score,
           authentic: score >= 62.5,
           verdict: score >= 62.5 ? "match" : score >= 50 ? "uncertain" : "no_match",
-          scores,
+          scores: { ahash, dhash },
         });
       }
 
@@ -96,15 +103,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "fp1 et fp2 requis" }, { status: 400 });
     }
 
-    const result = compareFingerprints(fp1, fp2);
+    const result = compareFingerprints(fp1 as FingerprintResult, fp2 as FingerprintResult);
     return NextResponse.json({
       score: result.score,
       authentic: result.score >= 62.5,
       verdict: result.score >= 62.5 ? "match" : result.score >= 50 ? "uncertain" : "no_match",
       scores: result.scores,
     });
-  } catch (error: any) {
-    console.error("Fingerprint compare error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Fingerprint compare error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
