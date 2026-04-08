@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken, getDb, awardPoints } from "@/lib/db";
-import { uploadPhoto } from "@/lib/supabase-storage";
+import fs from "fs";
+import path from "path";
+
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
 // GET: list certifications (admin) or user's own
 export async function GET(req: NextRequest) {
@@ -42,17 +45,17 @@ export async function POST(req: NextRequest) {
 
     if (!title) return NextResponse.json({ error: "Titre requis" }, { status: 400 });
 
-    // Upload certification photos → Supabase Storage
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+    // Save certification photos
     const certPhotos: string[] = [];
-    const storageFolder = `cert/${user.id}`;
     const photoKeys = ["photo_full", "photo_detail", "photo_angle", "photo_creation"];
     for (const key of photoKeys) {
       const file = formData.get(key) as File;
       if (file && file.size > 0) {
-        const name = `${Date.now()}_${key}.jpg`;
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const publicUrl = await uploadPhoto(buffer, storageFolder, name);
-        certPhotos.push(publicUrl);
+        const name = `cert_${Date.now()}_${Math.random().toString(36).slice(2, 5)}.jpg`;
+        fs.writeFileSync(path.join(UPLOADS_DIR, name), Buffer.from(await file.arrayBuffer()));
+        certPhotos.push(`/uploads/${name}`);
       }
     }
 

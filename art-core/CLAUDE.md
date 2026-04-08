@@ -1,36 +1,63 @@
 # ART-CORE — Contexte Claude Code
 
-## État du projet
-- Build : 60 routes · 0 erreurs · 0 warnings
-- Déployé sur Vercel : https://art-core-brown.vercel.app
-- Supabase : kmmlwuwsahtzgzztcdaj.supabase.co
+> ⚠️ LIS CE FICHIER EN ENTIER avant de modifier quoi que ce soit.
 
-## Ce qui est fait
-- Pass-Core : 95% (certification SHA-256 + pHash, caméra guidée, partage, messagerie anonyme)
-- Art-Core : 95% (marketplace, fiche œuvre, checkout Stripe, favoris, notifications)
-- Prime-Core : 90% (wallet, leaderboard anonyme, liens affiliation, Pass Magnat)
-- Auth : 98% (login, register, forgot-password, reset-password, onboarding 5 rôles)
-- Admin : 85% (KPIs, users, transactions, export PDF, paramètres)
-- Hub : 100% (navigation 3 apps, compteur live)
+## État du projet — Mis à jour le 8 avril 2026
 
-## Ce qui reste à faire DEMAIN
-1. CRITIQUE — Créer comptes et remplir .env.local :
-   - Stripe : dashboard.stripe.com → API Keys
-     → STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY
-   - Cloudinary : cloudinary.com → Settings → API Keys
-     → CLOUDINARY_CLOUD_NAME + API_KEY + API_SECRET
-   - Supabase DB password → DATABASE_URL complet
-   - Supabase JWT Secret
+- **Build** : ✅ 0 erreur TypeScript, 60+ routes
+- **Production** : ❌ DOWN (Vercel cassé — voir Déploiement)
+- **Supabase** : kmmlwuwsahtzgzztcdaj.supabase.co
+- **Vercel** : art-core-brown.vercel.app
 
-2. Ajouter ces variables sur Vercel :
-   npx vercel env add [NOM] production
+## Avancement par module
 
-3. Exécuter migrations SQL dans Supabase :
-   Supabase Dashboard → SQL Editor →
-   coller supabase/migrations/001_initial_schema.sql
-   → Run (21 tables à créer)
+- Art-Core (marketplace) : 95%
+- Pass-Core (certification) : 95%
+- Prime-Core (paris/wallet) : 90%
+- Auth (login/register/onboarding) : 98%
+- Admin (KPIs/users/transactions) : 85%
+- Hub (navigation 3 apps) : 100%
 
-4. Relancer : npx vercel --prod --yes
+## Pages (22 écrans)
+
+- Hub : page d'accueil, sélection du rôle
+- Art-Core : Dashboard, Boutique, Boutique-Promotion, Certifier, Déposer, FAQ, Favoris, Initié, Messages, Notifications, Nova-Bank, Orders, Profile, Search, Wallet, About
+- Pass-Core : Certifier
+- Prime-Core : Dashboard
+- Auth : Login, Signup
+
+## Ce qui reste à faire (PRIORITÉ)
+
+1. **CRITIQUE** : Déconnecter Git de Vercel (cause des pannes à répétition)
+2. **CRITIQUE** : Redéployer via CLI (`npx vercel --prod`)
+3. **CRITIQUE** : Exécuter les migrations SQL (supabase/migrations/001_initial_schema.sql — 21 tables)
+4. Compléter les placeholders dans .env.local :
+   - `STRIPE_WEBHOOK_SECRET=whsec_REMPLACE` → créer dans dashboard Stripe
+   - `STRIPE_PLATFORM_ACCOUNT_ID=acct_REMPLACE` → ID du compte Stripe Connect
+   - `RESEND_API_KEY=re_REMPLACE` → créer sur resend.com
+5. Ajouter les variables d'env sur Vercel : `npx vercel env add [NOM] production`
+
+## Commandes
+
+```bash
+npm run dev        # Dev sur http://localhost:3000
+npm run build      # Build production
+npm run typecheck  # Vérification TypeScript seule
+npx vercel --prod  # Déployer (CLI uniquement, JAMAIS via Git push)
+```
+
+## Déploiement
+
+- **Projet Vercel** : `prj_XK8uVcpwz84z0STo03QZZ85XXPUy`
+- **Domaines** : art-core.app, pass-core.app, prime-core.app
+- **⚠️ INTERDIT** : ne jamais connecter Git à Vercel, ne jamais faire de deploy auto
+- **⚠️ INTERDIT** : ne jamais créer de nouveau projet Vercel
+
+## Organisation des fichiers
+
+- **SOURCE DE VÉRITÉ** = ce dossier (`art-core-final/`)
+- Le repo Git (`core-ecosystem-git/`) est synchronisé MANUELLEMENT
+- Ne jamais créer de nouveau dossier "copie" ou "test" dans Dev/
 
 ## Philosophie du projet
 - Esthétique : Christie's (dark luxury, or #D4AF37, navy #0A1128)

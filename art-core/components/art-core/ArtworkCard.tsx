@@ -1,6 +1,8 @@
+'use client';
 import Link from "next/link";
 import Image from "next/image";
 import { ShieldCheck, Lock, Star } from "lucide-react";
+import { useState } from "react";
 import { GaugeBar } from "./GaugeBar";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -29,10 +31,12 @@ interface ArtworkCardProps {
 }
 
 export function ArtworkCard({ artwork, priority = false, promoted = false }: ArtworkCardProps) {
+  const [imageError, setImageError] = useState(false);
   const gaugePoints = artwork.gauge_points ?? 0;
   const isCertified = !!artwork.blockchain_hash;
   const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
-  const imageUrl = artwork.photos?.[0] || "/placeholder-art.jpg";
+  const initialUrl = artwork.photos?.[0] || "/placeholder-art.jpg";
+  const imageUrl = imageError ? "/placeholder-art.jpg" : initialUrl;
   const artistName = artwork.artist_name ?? "Artiste";
   const isPromoted = promoted || artwork.boost_active === 1 || artwork.highlight_active === 1;
 
@@ -54,6 +58,7 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
           className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           priority={priority}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          onError={() => setImageError(true)}
         />
 
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">

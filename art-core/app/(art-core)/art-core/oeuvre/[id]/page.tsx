@@ -85,7 +85,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
         </div>
 
         {/* Right — Info panel */}
-        <div className="space-y-6 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
+        <div className="space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
             {isCertified && (

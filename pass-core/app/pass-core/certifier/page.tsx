@@ -49,6 +49,7 @@ export default function CertifierPage() {
   const [qualityScore, setQualityScore] = useState<any>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [returnToReview, setReturnToReview] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -209,19 +210,32 @@ export default function CertifierPage() {
 
   // ── Nav helpers ────────────────────────────────────────
   function NavButtons({ back, next, nextDisabled, nextLabel }: { back?: Step; next?: () => void; nextDisabled?: boolean; nextLabel?: string }) {
+    // If we came from review, show "Retour au résumé" instead of normal navigation
+    const goBackToReview = () => { setReturnToReview(false); setStep("review"); };
+
     return (
       <div className="flex gap-3 mt-8">
-        {back && (
+        {returnToReview ? (
+          <button onClick={goBackToReview}
+            className="flex-1 py-4 rounded-xl border border-[#C9A84C]/30 text-[#C9A84C] font-medium flex items-center justify-center gap-2 active:bg-[#C9A84C]/10">
+            <ChevronLeft className="size-4" /> Retour au resume
+          </button>
+        ) : back ? (
           <button onClick={() => setStep(back)} className="flex-1 py-4 rounded-xl border border-white/10 text-white/50 font-medium flex items-center justify-center gap-2 active:bg-white/5">
             <ChevronLeft className="size-4" /> Retour
           </button>
-        )}
-        {next && (
+        ) : null}
+        {returnToReview ? (
+          <button onClick={goBackToReview} disabled={nextDisabled}
+            className="flex-1 py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold disabled:opacity-30 active:brightness-90 flex items-center justify-center gap-2">
+            Valider <Check className="size-5" />
+          </button>
+        ) : next ? (
           <button onClick={next} disabled={nextDisabled}
             className="flex-1 py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold disabled:opacity-30 active:brightness-90 flex items-center justify-center gap-2">
             {nextLabel || "Continuer"} <ChevronRight className="size-5" />
           </button>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -564,13 +578,30 @@ export default function CertifierPage() {
             ))}
           </div>
 
-          {/* Info recap */}
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 space-y-2 mb-6 text-sm">
-            <div className="flex justify-between"><span className="text-white/30">Titre</span><span className="text-white font-medium">{title}</span></div>
-            <div className="flex justify-between"><span className="text-white/30">Technique</span><span className="text-white/70">{technique}</span></div>
-            <div className="flex justify-between"><span className="text-white/30">Dimensions</span><span className="text-white/70">{dimW} x {dimH} cm</span></div>
-            <div className="flex justify-between"><span className="text-white/30">Annee</span><span className="text-white/70">{year}</span></div>
-            {price && <div className="flex justify-between"><span className="text-white/30">Prix</span><span className="text-[#C9A84C] font-semibold">{price} EUR</span></div>}
+          {/* Info recap — each row is clickable to jump to that step */}
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 space-y-0 mb-6 text-sm">
+            {[
+              { label: "Titre", value: title, target: "f_title" as Step, required: true },
+              { label: "Technique", value: technique, target: "f_technique" as Step, required: true },
+              { label: "Dimensions", value: dimW && dimH ? `${dimW} x ${dimH} cm` : "", target: "f_dimensions" as Step, required: true },
+              { label: "Annee", value: year, target: "f_year" as Step, required: true },
+              { label: "Description", value: description, target: "f_description" as Step, required: false },
+              { label: "Prix", value: price ? `${price} EUR` : "", target: "f_price" as Step, required: false },
+            ].map((field) => (
+              <button key={field.label} onClick={() => { setReturnToReview(true); setStep(field.target); }}
+                className="flex items-center justify-between w-full py-2.5 px-1 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left">
+                <span className="text-white/30">{field.label}</span>
+                {field.value ? (
+                  <span className={field.label === "Prix" ? "text-[#C9A84C] font-semibold" : "text-white/70"}>
+                    {field.value.length > 40 ? field.value.slice(0, 40) + "..." : field.value}
+                  </span>
+                ) : (
+                  <span className={`text-xs px-2 py-0.5 rounded-md ${field.required ? "bg-red-500/10 text-red-400" : "bg-white/5 text-white/20"}`}>
+                    {field.required ? "Requis — Appuyez pour remplir" : "Appuyez pour remplir"}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           <div className="rounded-xl bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-4 flex items-start gap-3 mb-6">
