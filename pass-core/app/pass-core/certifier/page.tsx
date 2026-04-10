@@ -255,15 +255,15 @@ export default function CertifierPage() {
           <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
             <ShieldCheck className="size-10 text-[#C9A84C]" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-white mb-3">Certifiez votre oeuvre en 5 minutes</h1>
+          <h1 className="font-display text-2xl font-semibold text-white mb-3">Certifiez votre œuvre en 5 minutes</h1>
           <p className="text-white/40 text-sm mb-8 leading-relaxed">
-            ART-CORE verifie que votre oeuvre est originale. Ce processus protege votre travail et rassure les acheteurs.
+            ART-CORE vérifie que votre œuvre est originale. Ce processus protège votre travail et rassure les acheteurs.
           </p>
           <div className="space-y-3 text-left mb-10">
             {[
-              { icon: Award, text: "Badge certifie visible sur votre fiche", c: "text-green-400 bg-green-500/10" },
-              { icon: TrendingUp, text: "Les oeuvres certifiees se vendent 40% plus cher", c: "text-[#C9A84C] bg-[#C9A84C]/10" },
-              { icon: Lock, text: "Protection contre la contrefacon", c: "text-blue-400 bg-blue-500/10" },
+              { icon: Award, text: "Badge certifié visible sur votre fiche", c: "text-green-400 bg-green-500/10" },
+              { icon: TrendingUp, text: "Les œuvres certifiées se vendent 40% plus cher", c: "text-[#C9A84C] bg-[#C9A84C]/10" },
+              { icon: Lock, text: "Protection contre la contrefaçon", c: "text-blue-400 bg-blue-500/10" },
             ].map(b => (
               <div key={b.text} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/5">
                 <div className={`w-9 h-9 rounded-lg ${b.c.split(" ")[1]} flex items-center justify-center shrink-0`}>
@@ -279,18 +279,18 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ PHOTO 1 — Vue complete ═══ */}
+      {/* ═══ PHOTO 1 — Vue complète ═══ */}
       {step === "photo1" && (
         <div className="animate-fade-in">
           <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 1 / 3</p>
-          <h2 className="text-xl font-semibold text-white mb-1">Vue complete de face</h2>
-          <p className="text-white/35 text-sm mb-6">Reculez a 1 metre — l&apos;oeuvre doit remplir 80% du cadre</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Vue complète de face</h2>
+          <p className="text-white/35 text-sm mb-6">Reculez à 1 mètre — l&apos;œuvre doit remplir 80% du cadre</p>
 
           {photo1 ? (
             <div className="relative rounded-2xl overflow-hidden mb-4">
               <img src={photo1.url} alt="" className="w-full" />
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
-                <Check className="size-3" /> Capturee
+                <Check className="size-3" /> Capturée
               </div>
               <button onClick={() => capturePhoto(setPhoto1)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
@@ -309,14 +309,14 @@ export default function CertifierPage() {
           {photo1 && qualityScore && (
             <div className={`rounded-xl p-3 mb-4 ${qualityScore.score >= 70 ? "bg-green-500/10 border border-green-500/20" : "bg-yellow-500/10 border border-yellow-500/20"}`}>
               <p className={`text-sm font-medium ${qualityScore.score >= 70 ? "text-green-400" : "text-yellow-400"}`}>
-                Qualite : {qualityScore.score}/100 — {qualityScore.message}
+                Qualité : {qualityScore.score}/100 — {qualityScore.message}
               </p>
             </div>
           )}
 
           {photo1 && !qualityScore && !analyzingPhoto && (
             <button onClick={() => analyzePhoto(photo1.file)} className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white/50 text-sm mb-4">
-              <Eye className="size-4 inline mr-2" />Verifier la qualite
+              <Eye className="size-4 inline mr-2" />Vérifier la qualité
             </button>
           )}
           {analyzingPhoto && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
@@ -329,8 +329,8 @@ export default function CertifierPage() {
       {step === "zone_select" && photo1 && (
         <div className="animate-fade-in">
           <p className="text-xs text-[#C9A84C] font-medium mb-1">ZONE MACRO</p>
-          <h2 className="text-xl font-semibold text-white mb-1">Ou allez-vous prendre le detail ?</h2>
-          <p className="text-white/35 text-sm mb-4">Deplacez le cadre rouge sur la zone que vous allez photographier en gros plan</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Où allez-vous prendre le détail ?</h2>
+          <p className="text-white/35 text-sm mb-4">Déplacez le cadre rouge sur la zone que vous allez photographier en gros plan</p>
 
           <div ref={zoneRef} className="relative rounded-2xl overflow-hidden mb-4 touch-none"
             onTouchMove={handleZoneTouch}>
@@ -342,7 +342,7 @@ export default function CertifierPage() {
                 <Move className="size-5 text-red-400/60" />
               </div>
               <span className="absolute -top-6 left-0 text-[10px] text-red-400 bg-black/70 px-2 py-0.5 rounded font-medium">
-                Zone detail
+                Zone détail
               </span>
             </div>
             {/* Grid overlay */}
@@ -356,7 +356,7 @@ export default function CertifierPage() {
           <div className="rounded-xl bg-white/[0.03] border border-white/5 p-3 mb-4">
             <p className="text-[11px] text-white/35">
               <Fingerprint className="size-3 inline mr-1 text-[#C9A84C]" />
-              Cette zone sera votre empreinte de certification. Elle sera enregistree et visible sur la fiche de l&apos;oeuvre.
+              Cette zone sera votre empreinte de certification. Elle sera enregistrée et visible sur la fiche de l&apos;œuvre.
             </p>
           </div>
 
@@ -364,12 +364,12 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ PHOTO 2 — Detail macro ═══ */}
+      {/* ═══ PHOTO 2 — Détail macro ═══ */}
       {step === "photo2" && (
         <div className="animate-fade-in">
           <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 2 / 3</p>
-          <h2 className="text-xl font-semibold text-white mb-1">Detail en gros plan</h2>
-          <p className="text-white/35 text-sm mb-4">Rapprochez-vous a 5-10cm de la zone selectionnee</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Détail en gros plan</h2>
+          <p className="text-white/35 text-sm mb-4">Rapprochez-vous à 5-10cm de la zone sélectionnée</p>
 
           {/* Reference: miniature photo1 + zone */}
           {photo1 && (
@@ -402,18 +402,18 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ PHOTO 3 — Vue de cote ═══ */}
+      {/* ═══ PHOTO 3 — Vue de côté ═══ */}
       {step === "photo3" && (
         <div className="animate-fade-in">
           <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 3 / 3</p>
-          <h2 className="text-xl font-semibold text-white mb-1">Vue de cote (30-45 degres)</h2>
-          <p className="text-white/35 text-sm mb-6">Photographiez l&apos;oeuvre legerement de cote pour voir l&apos;epaisseur et la texture</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Vue de côté (30-45 degrés)</h2>
+          <p className="text-white/35 text-sm mb-6">Photographiez l&apos;œuvre légèrement de côté pour voir l&apos;épaisseur et la texture</p>
 
           {photo3 ? (
             <div className="relative rounded-2xl overflow-hidden mb-4">
               <img src={photo3.url} alt="" className="w-full" />
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
-                <Check className="size-3" /> Vue laterale
+                <Check className="size-3" /> Vue latérale
               </div>
               <button onClick={() => capturePhoto(setPhoto3)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
@@ -421,7 +421,7 @@ export default function CertifierPage() {
             <button onClick={() => capturePhoto(setPhoto3)}
               className="w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-3 bg-white/[0.02] active:bg-white/5 mb-4">
               <RotateCcw className="size-10 text-white/30" />
-              <p className="text-white/50 font-medium">Vue de cote</p>
+              <p className="text-white/50 font-medium">Vue de côté</p>
             </button>
           )}
 
@@ -457,7 +457,7 @@ export default function CertifierPage() {
       {step === "f_technique" && (
         <div className="animate-fade-in flex flex-col justify-center min-h-[50vh]">
           <h2 className="font-display text-2xl font-semibold text-white mb-2">Quelle technique ?</h2>
-          <p className="text-white/30 text-sm mb-6">Selectionnez la technique principale</p>
+          <p className="text-white/30 text-sm mb-6">Sélectionnez la technique principale</p>
           <div className="grid grid-cols-2 gap-2">
             {TECHNIQUES.map(t => (
               <button key={t} onClick={() => setTechnique(t)}
@@ -474,7 +474,7 @@ export default function CertifierPage() {
       {step === "f_dimensions" && (
         <div className="animate-fade-in flex flex-col justify-center min-h-[50vh]">
           <h2 className="font-display text-2xl font-semibold text-white mb-2">Dimensions ?</h2>
-          <p className="text-white/30 text-sm mb-6">Mesurez le bord exterieur du chassis</p>
+          <p className="text-white/30 text-sm mb-6">Mesurez le bord extérieur du châssis</p>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <label className="text-xs text-white/30 mb-1 block">Largeur</label>
@@ -526,11 +526,11 @@ export default function CertifierPage() {
             </div>
           </div>
           <p className="text-white/30 text-sm mb-4">
-            {isListening ? "Parlez maintenant..." : "150 mots max — decrivez votre oeuvre ou dictez"}
+            {isListening ? "Parlez maintenant..." : "150 mots max — décrivez votre œuvre ou dictez"}
           </p>
           <div className="relative">
             <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 600))} rows={5}
-              placeholder="Decrivez votre oeuvre ou appuyez sur Dicter..."
+              placeholder="Décrivez votre œuvre ou appuyez sur Dicter..."
               className={`w-full rounded-xl bg-white/5 border text-white text-sm p-4 resize-none focus:outline-none ${
                 isListening ? "border-red-500/40 bg-red-500/5" : "border-white/10 focus:border-[#C9A84C]/40"
               }`} />
@@ -607,7 +607,7 @@ export default function CertifierPage() {
           <div className="rounded-xl bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-4 flex items-start gap-3 mb-6">
             <ShieldCheck className="size-5 text-[#C9A84C] shrink-0 mt-0.5" />
             <p className="text-[11px] text-white/40 leading-relaxed">
-              Votre oeuvre sera verifiee par notre equipe sous 24h. Vous recevrez une notification des qu&apos;elle sera certifiee.
+              Votre œuvre sera vérifiée par notre équipe sous 24h. Vous recevrez une notification dès qu&apos;elle sera certifiée.
             </p>
           </div>
 
