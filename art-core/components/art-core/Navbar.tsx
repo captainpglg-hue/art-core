@@ -114,7 +114,7 @@ export function Navbar() {
                       className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#C9A84C] text-black hover:bg-[#C9A84C]/80 transition-colors"
                     >
                       <Plus className="size-3.5" />
-                      DÃ©poser
+                      Déposer
                     </Link>
 
                     <Link
@@ -134,7 +134,7 @@ export function Navbar() {
                       </span>
                       {user.is_initie ? (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9A84C]/15 text-[#C9A84C] font-bold">
-                          INITIÃ‰
+                          INITIÉ
                         </span>
                       ) : null}
                     </Link>
@@ -166,12 +166,12 @@ export function Navbar() {
                         </DropdownMenuItem>
                         {!user.is_initie && (
                           <DropdownMenuItem asChild>
-                            <Link href="/art-core/initie" className="text-[#C9A84C]"><Coins className="size-4 text-[#C9A84C]" />Devenir InitiÃ©</Link>
+                            <Link href="/art-core/initie" className="text-[#C9A84C]"><Coins className="size-4 text-[#C9A84C]" />Devenir Initié</Link>
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                          <LogOut className="size-4" />Se dÃ©connecter
+                          <LogOut className="size-4" />Se déconnecter
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -217,10 +217,10 @@ export function Navbar() {
                   <Coins className="size-4" />{user.points_balance ?? 0} pts
                 </Link>
                 <Link href="/art-core/deposer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">
-                  <Plus className="size-4" />DÃ©poser une oeuvre
+                  <Plus className="size-4" />Déposer une oeuvre
                 </Link>
                 <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
-                  <LogOut className="size-4" />Se dÃ©connecter
+                  <LogOut className="size-4" />Se déconnecter
                 </button>
               </>
             ) : (
@@ -233,4 +233,4 @@ export function Navbar() {
         </div>
       )}
     </>
-  (‹
+  

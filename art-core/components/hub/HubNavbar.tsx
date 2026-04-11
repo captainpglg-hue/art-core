@@ -82,7 +82,7 @@ export function HubNavbar() {
                           <p className="text-xs font-medium text-white leading-tight">{user.name}</p>
                           <p className="text-[10px] text-white/40">
                             {user.points_balance ?? 0} pts
-                            {user.is_initie ? " Â· INITIÃ‰" : ""}
+                            {user.is_initie ? " · INITIÉ" : ""}
                           </p>
                         </div>
                         <ChevronDown className="size-3 text-white/30 hidden lg:block" />
@@ -97,7 +97,7 @@ export function HubNavbar() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                        <LogOut className="size-4" />Se dÃ©connecter
+                        <LogOut className="size-4" />Se déconnecter
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -126,7 +126,7 @@ export function HubNavbar() {
         <div className="fixed inset-0 z-30 pt-16 md:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <nav className="relative bg-[#111111] border-b border-white/8 px-4 py-4 space-y-1">
-            <Link href="/art-core" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white-70 hover:text-white hover:bg-white/5 transition-all" onClick={() => setMobileOpen(false)}>
+            <Link href="/art-core" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all" onClick={() => setMobileOpen(false)}>
               <Palette className="size-4 text-gold/70" />ART-CORE
             </Link>
             <a href={`${PASS_CORE_URL}/pass-core/certifier`} target="_blank" rel="noopener" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all">
@@ -138,7 +138,7 @@ export function HubNavbar() {
             <div className="h-px bg-white/8 my-2" />
             {user ? (
               <button onClick={() => { handleSignOut(); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
-                <LogOut className="size-4" />Se dÃ©connecter
+                <LogOut className="size-4" />Se déconnecter
               </button>
             ) : (
               <>
@@ -150,4 +150,4 @@ export function HubNavbar() {
         </div>
       )}
     <>
-  (‹
+  

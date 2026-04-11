@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS artworks (
   category TEXT DEFAULT 'painting',
   photos TEXT DEFAULT '[]',
   macro_photo TEXT,
+  macro_position TEXT DEFAULT '',
+  macro_quality_score INTEGER DEFAULT 0,
   blockchain_hash TEXT,
   blockchain_tx_id TEXT,
   certification_date TEXT,

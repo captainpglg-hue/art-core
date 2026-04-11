@@ -65,31 +65,34 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Mode 2: photo + artwork_id
+      // Mode 2: photo + artwork_id — fetch stored macro photo and compare
       if (photo && photo.size > 0 && artworkId) {
         const buf = Buffer.from(await photo.arrayBuffer());
         const fp = await generateFingerprint(buf);
 
         const db = getDb();
         const art = db.prepare(
-          "SELECT macro_ahash, macro_dhash FROM artworks WHERE id = ?"
-        ).get(artworkId) as { macro_ahash?: string; macro_dhash?: string } | undefined;
+          "SELECT macro_photo FROM artworks WHERE id = ?"
+        ).get(artworkId) as { macro_photo?: string } | undefined;
 
-        if (!art || (!art.macro_ahash && !art.macro_dhash)) {
-          return NextResponse.json({ error: "Aucun fingerprint stocké pour cette oeuvre" }, { status: 404 });
+        if (!art || !art.macro_photo) {
+          return NextResponse.json({ error: "Aucune photo macro stockée pour cette oeuvre" }, { status: 404 });
         }
 
-        const ahash = art.macro_ahash ? hammingSimilarity(fp.aHash, art.macro_ahash) : 0;
-        const dhash = art.macro_dhash ? hammingSimilarity(fp.dHash, art.macro_dhash) : 0;
-        const score = art.macro_ahash && art.macro_dhash
-          ? Math.round((ahash * 0.6 + dhash * 0.4) * 100) / 100
-          : ahash || dhash;
+        // Fetch the stored macro photo and generate its fingerprint
+        const macroRes = await fetch(art.macro_photo);
+        if (!macroRes.ok) {
+          return NextResponse.json({ error: "Impossible de récupérer la photo macro stockée" }, { status: 502 });
+        }
+        const macroBuf = Buffer.from(await macroRes.arrayBuffer());
+        const fpStored = await generateFingerprint(macroBuf);
 
+        const result = compareFingerprints(fp, fpStored);
         return NextResponse.json({
-          score,
-          authentic: score >= 62.5,
-          verdict: score >= 62.5 ? "match" : score >= 50 ? "uncertain" : "no_match",
-          scores: { ahash, dhash },
+          score: result.score,
+          authentic: result.score >= 62.5,
+          verdict: result.score >= 62.5 ? "match" : result.score >= 50 ? "uncertain" : "no_match",
+          scores: result.scores,
         });
       }
 

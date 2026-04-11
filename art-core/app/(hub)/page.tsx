@@ -15,7 +15,7 @@ const APPS = [
   {
     name: "PASS-CORE",
     tagline: "Authenticate the Real",
-    description: "Certification blockchain. Photo macro â empreinte visuelle â hash.",
+    description: "Certification blockchain. Photo macro → empreinte visuelle → hash.",
     href: `${process.env.NEXT_PUBLIC_PASS_CORE_URL || "https://pass-core.app"}/pass-core/certifier`,
     icon: ShieldCheck,
     color: "#C9A84C",
@@ -26,13 +26,13 @@ const APPS = [
   {
     name: "PRIME-CORE",
     tagline: "Stand the Unique Out",
-    description: "MarchÃ©s prÃ©dictifs. Pariez sur les dÃ©lais de vente et les prix finaux.",
+    description: "Marchés prédictifs. Pariez sur les délais de vente et les prix finaux.",
     href: `${process.env.NEXT_PUBLIC_PRIME_CORE_URL || "https://prime-core.app"}/prime-core/dashboard`,
     icon: TrendingUp,
     color: "#C9A84C",
     bg: "#0D0F14",
     external: true,
-    stats: "PrÃ©dictions",
+    stats: "Prédictions",
   },
 ];
 
@@ -47,7 +47,7 @@ export default function HubPage() {
           Core <span className="text-gold">Ecosystem</span>
         </h1>
         <p className="text-white/40 text-lg max-w-md mx-auto">
-          Trois applications interconnectÃ©es au service de l&apos;art.
+          Trois applications interconnectées au service de l&apos;art.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function HubPage() {
 
       <div className="relative z-10 mt-16 flex gap-8 text-center">
         {[
-          { value: "1", label: "Base partagÃ©e" },
+          { value: "1", label: "Base partagée" },
           { value: "3", label: "Applications" },
           { value: "100%", label: "Local" },
         ].map((s) => (
