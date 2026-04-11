@@ -82,7 +82,7 @@ export function HubNavbar() {
                           <p className="text-xs font-medium text-white leading-tight">{user.name}</p>
                           <p className="text-[10px] text-white/40">
                             {user.points_balance ?? 0} pts
-                            {user.is_initie ? " · INITIÉ" : ""}
+                            {user.is_initie ? " Â· INITIÃ‰" : ""}
                           </p>
                         </div>
                         <ChevronDown className="size-3 text-white/30 hidden lg:block" />
@@ -97,7 +97,7 @@ export function HubNavbar() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                        <LogOut className="size-4" />Se déconnecter
+                        <LogOut className="size-4" />Se dÃ©connecter
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -138,7 +138,7 @@ export function HubNavbar() {
             <div className="h-px bg-white/8 my-2" />
             {user ? (
               <button onClick={() => { handleSignOut(); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
-                <LogOut className="size-4" />Se déconnecter
+                <LogOut className="size-4" />Se dÃ©connecter
               </button>
             ) : (
               <>
@@ -150,4 +150,4 @@ export function HubNavbar() {
         </div>
       )}
     <>
-  (�
+  (‹
