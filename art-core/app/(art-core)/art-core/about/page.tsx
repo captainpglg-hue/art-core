@@ -73,7 +73,7 @@ export default function AboutPage() {
         <Mail className="size-8 text-[#D4AF37] mx-auto mb-3" />
         <h2 className="text-lg font-semibold text-white mb-2">Une question ?</h2>
         <p className="text-white/40 text-sm mb-4">Notre equipe est disponible pour vous accompagner.</p>
-        <p className="text-[#D4AF37] font-medium">contact@art-core.com</p>
+        <p className="text-[#D4AF37] font-medium">contact@art-core.app</p>
       </section>
     </div>
   );

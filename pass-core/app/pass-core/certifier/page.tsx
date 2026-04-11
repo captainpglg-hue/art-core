@@ -659,7 +659,7 @@ export default function CertifierPage() {
           </div>
 
           <div className="space-y-3">
-            <a href={`http://192.168.1.115:3000/art-core/oeuvre/${result.id}`}
+            <a href={`${process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app"}/art-core/oeuvre/${result.id}`}
               className="w-full py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-center block active:brightness-90">
               Voir ma fiche oeuvre
             </a>

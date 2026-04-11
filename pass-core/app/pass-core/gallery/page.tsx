@@ -1,1 +1,46 @@
-aW1wb3J0IHsgZ2V0RGIgfSBmcm9tICJAL2xpYi9kYiI7CmltcG9ydCBMaW5rIGZyb20gIm5leHQvbGluayI7CmltcG9ydCB7IFNoaWVsZENoZWNrIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKCmV4cG9ydCBjb25zdCBkeW5hbWljID0gImZvcmNlLWR5bmFtaWMiOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gR2FsbGVyeVBhZ2UoKSB7CiAgY29uc3QgYXJ0d29ya3MgPSBnZXREYigpLnByZXBhcmUoCiAgICBgU0VMRUNUIGEuaWQsIGEudGl0bGUsIGEucGhvdG9zLCBhLmJsb2NrY2hhaW5faGFzaCwgYS5jZXJ0aWZpY2F0aW9uX2RhdGUsIHUubmFtZSBhcyBhcnRpc3RfbmFtZQogICAgIEZST00gYXJ0d29ya3MgYSBKT0lOIHVzZXJzIHUgT04gYS5hcnRpc3RfaWQgPSB1LmlkCiAgICAgV0hFUkUgYS5ibG9ja2NoYWluX2hhc2ggSVMgTk9UIE5VTEwKICAgICBPUkRFUiBCWSBhLmNlcnRpZmljYXRpb25fZGF0ZSBERVNDYAogICkuYWxsKCkgYXMgYW55W107CgogIHJldHVybiAoCiAgICA8ZGl2IGNsYXNzTmFtZT0ibWF4LXctc2NyZWVuLXhsIG14LWF1dG8gcHgtNCBsZzpweC04IHB5LTgiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItOCI+CiAgICAgICAgPGgxIGNsYXNzTmFtZT0iZm9udC1kaXNwbGF5IHRleHQtM3hsIGZvbnQtc2VtaWJvbGQgdGV4dC13aGl0ZSBtYi0yIj5HYWxlcmllIGNlcnRpZmnDqWU8L2gxPgogICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC13aGl0ZS80MCB0ZXh0LXNtIj57YXJ0d29ya3MubGVuZ3RofSBvZXV2cmVzIGNlcnRpZmnDqWVzIHN1ciBsYSBibG9ja2NoYWluPC9wPgogICAgICA8L2Rpdj4KCiAgICAgIDxkaXYgY2xhc3NOYW1lPSJncmlkIGdyaWQtY29scy0xIHNtOmdyaWQtY29scy0yIGxnOmdyaWQtY29scy0zIHhsOmdyaWQtY29scy00IGdhcC01Ij4KICAgICAgICB7YXJ0d29ya3MubWFwKChhKSA9PiB7CiAgICAgICAgICBjb25zdCBwaG90b3MgPSBKU09OLnBhcnNlKGEucGhvdG9zIHx8ICJbXSIpOwogICAgICAgICAgcmV0dXJuICgKICAgICAgICAgICAgPGEga2V5PXthLmlkfSBocmVmPXtgJHtwcm9jZXNzLmVudi5ORVhUX1BVQkxJQ19BUlRfQ09SRV9VUkwgfHwgImh0dHBzOi8vYXJ0LWNvcmUuYXBwIn0vYXJ0LWNvcmUvb2V1dnJlLyR7YS5pZH1gfSBjbGFzc05hbWU9Imdyb3VwIGJsb2NrIHJvdW5kZWQtMnhsIG92ZXJmbG93LWhpZGRlbiBiZy1uYXZ5LTIwMCBib3JkZXIgYm9yZGVyLXdoaXRlLzUgaG92ZXI6Ym9yZGVyLWdvbGQtREVGQVVMVC8yMCB0cmFuc2l0aW9uLWFsbCI+CiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InJlbGF0aXZlIGFzcGVjdC1bNC8zXSBiZy1uYXZ5LTMwMCI+CiAgICAgICAgICAgICAgICB7cGhvdG9zWzBdICYmIDxpbWcgc3JjPXtwaG90b3NbMF19IGFsdD17YS50aXRsZX0gY2xhc3NOYW1lPSJ3LWZ1bGwgaC1mdWxsIG9iamVjdC1jb3ZlciIgLz59CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYWJzb2x1dGUgdG9wLTMgbGVmdC0zIj4KICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHJvdW5kZWQtZnVsbCBiZy1ibGFjay83MCBiYWNrZHJvcC1ibHVyLXNtIGJvcmRlciBib3JkZXItZ29sZC1ERUZBVUxULzMwIHB4LTIuNSBweS0xIHRleHQtWzExcHhdIHRleHQtZ29sZC1ERUZBVUxUIGZvbnQtbWVkaXVtIj4KICAgICAgICAgICAgICAgICAgICA8U2hpZWxkQ2hlY2sgY2xhc3NOYW1lPSJzaXplLTMiIC8+Q2VydGlmacOpCiAgICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJwLTQiPgogICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtd2hpdGUvMzAgbWItMSI+e2EuYXJ0aXN0X25hbWV9PC9wPgogICAgICAgICAgICAgICAgPGgzIGNsYXNzTmFtZT0idGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtd2hpdGUgZ3JvdXAtaG92ZXI6dGV4dC1nb2xkLURFRkFVTFQgdHJhbnNpdGlvbi1jb2xvcnMgbGluZS1jbGFtcC0xIj57YS50aXRsZX08L2gzPgogICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LW1vbm8gdGV4dC1bOXB4XSB0ZXh0LXdoaXRlLzIwIG10LTIgdHJ1bmNhdGUiPnthLmJsb2NrY2hhaW5faGFzaH08L3A+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDwvYT4KICAgICAgICAgICk7CiAgICAgICAgfSl9CiAgICAgIDwvZGl2PgogICAgPC9kaXY+CiAgKTsKfQo=
+import { getDb } from "@/lib/db";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+
+export const dynamic = "force-dynamic";
+
+export default function GalleryPage() {
+  const artworks = getDb().prepare(
+    `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.name as artist_name
+     FROM artworks a JOIN users u ON a.artist_id = u.id
+     WHERE a.blockchain_hash IS NOT NULL
+     ORDER BY a.certification_date DESC`
+  ).all() as any[];
+
+  return (
+    <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-semibold text-white mb-2">Galerie certifiée</h1>
+        <p className="text-white/40 text-sm">{artworks.length} oeuvres certifiées sur la blockchain</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        {artworks.map((a) => {
+          const photos = JSON.parse(a.photos || "[]");
+          return (
+            <a key={a.id} href={`${process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app"}/art-core/oeuvre/${a.id}`} className="group block rounded-2xl overflow-hidden bg-navy-200 border border-white/5 hover:border-gold-DEFAULT/20 transition-all">
+              <div className="relative aspect-[4/3] bg-navy-300">
+                {photos[0] && <img src={photos[0]} alt={a.title} className="w-full h-full object-cover" />}
+                <div className="absolute top-3 left-3">
+                  <span className="flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-sm border border-gold-DEFAULT/30 px-2.5 py-1 text-[11px] text-gold-DEFAULT font-medium">
+                    <ShieldCheck className="size-3" />Certifié
+                  </span>
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-white/30 mb-1">{a.artist_name}</p>
+                <h3 className="text-sm font-semibold text-white group-hover:text-gold-DEFAULT transition-colors line-clamp-1">{a.title}</h3>
+                <p className="font-mono text-[9px] text-white/20 mt-2 truncate">{a.blockchain_hash}</p>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

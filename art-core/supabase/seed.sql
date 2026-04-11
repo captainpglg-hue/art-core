@@ -17,7 +17,7 @@ INSERT INTO auth.users (
   (
     '00000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000000',
-    'admin@art-core.com',
+    'admin@art-core.app',
     crypt('Test1234!', gen_salt('bf')),
     NOW(), NOW(), NOW(),
     '{"provider":"email","providers":["email"]}',
@@ -73,7 +73,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ── Profils (créés normalement par le trigger handle_new_user) ──
 INSERT INTO public.users (id, email, username, full_name, verified, onboarded)
 VALUES
-  ('00000000-0000-0000-0000-000000000001', 'admin@art-core.com',     'artcore_admin',   'Art-core Admin',  TRUE, TRUE),
+  ('00000000-0000-0000-0000-000000000001', 'admin@art-core.app',     'artcore_admin',   'Art-core Admin',  TRUE, TRUE),
   ('00000000-0000-0000-0000-000000000002', 'artist@test.com',        'sophie_art',      'Sophie Durand',   TRUE, TRUE),
   ('00000000-0000-0000-0000-000000000003', 'collector@test.com',     'marc_collector',  'Marc Leblanc',    TRUE, TRUE),
   ('00000000-0000-0000-0000-000000000004', 'scout@test.com',         'lucas_scout',     'Lucas Martin',    TRUE, TRUE),

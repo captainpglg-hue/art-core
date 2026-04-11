@@ -1,1 +1,35 @@
-InVzZSBjbGllbnQiOwoKaW1wb3J0IExpbmsgZnJvbSAibmV4dC9saW5rIjsKaW1wb3J0IHsgU2hpZWxkQ2hlY2ssIExheW91dEdyaWQsIFRyZW5kaW5nVXAgfSBmcm9tICJsdWNpZGUtcmVhY3QiOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gUGFzc05hdmJhcigpIHsKICByZXR1cm4gKAogICAgPGhlYWRlciBjbGFzc05hbWU9ImZpeGVkIHRvcC0wIGxlZnQtMCByaWdodC0wIHotNDAgaC0xNiBiZy1bIzBBMTEyOF0vOTAgYmFja2Ryb3AtYmx1ci1tZCBib3JkZXItYiBib3JkZXItd2hpdGUvNSI+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYXgtdy1zY3JlZW4tMnhsIG14LWF1dG8gaC1mdWxsIHB4LTQgbGc6cHgtOCBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtNiI+CiAgICAgICAgPExpbmsgaHJlZj0iL3Bhc3MtY29yZS9jZXJ0aWZpZXIiIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIuNSBzaHJpbmstMCI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy03IGgtNyByb3VuZGVkLWxnIGJnLWdvbGQtREVGQVVMVCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciI+CiAgICAgICAgICAgIDxTaGllbGRDaGVjayBjbGFzc05hbWU9InNpemUtNCB0ZXh0LW5hdnktREVGQVVMVCIgLz4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJmb250LWRpc3BsYXkgdGV4dC1sZyBmb250LXNlbWlib2xkIHRleHQtd2hpdGUgdHJhY2tpbmctd2lkZSI+UEFTUy1DT1JFPC9zcGFuPgogICAgICAgIDwvTGluaz4KICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEwcHhdIHVwcGVyY2FzZSB0cmFja2luZy1bMC4yZW1dIHRleHQtZ29sZC1ERUZBVUxULzUwIGhpZGRlbiBzbTpibG9jayI+QXV0aGVudGljYXRlIHRoZSBSZWFsPC9wPgoKICAgICAgICA8bmF2IGNsYXNzTmFtZT0ibWwtYXV0byBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtNCI+CiAgICAgICAgICA8TGluayBocmVmPSIvcGFzcy1jb3JlL2NlcnRpZmllciIgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtd2hpdGUvNTAgaG92ZXI6dGV4dC13aGl0ZSB0cmFuc2l0aW9uLWNvbG9ycyI+Q2VydGlmaWVyPC9MaW5rPgogICAgICAgICAgPExpbmsgaHJlZj0iL3Bhc3MtY29yZS92ZXJpZmllciIgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtd2hpdGUvNTAgaG92ZXI6dGV4dC13aGl0ZSB0cmFuc2l0aW9uLWNvbG9ycyI+VsOpcmlmaWVyPC9MaW5rPgogICAgICAgICAgPExpbmsgaHJlZj0iL3Bhc3MtY29yZS9nYWxsZXJ5IiBjbGFzc05hbWU9InRleHQteHMgdGV4dC13aGl0ZS81MCBob3Zlcjp0ZXh0LXdoaXRlIHRyYW5zaXRpb24tY29sb3JzIj5HYWxlcmllPC9MaW5rPgogICAgICAgICAgPGEgaHJlZj17cHJvY2Vzcy5lbnYuTkVYVF9QVUJMSUNfQVJUX0NPUkVfVVJMIHx8ICJodHRwczovL2FydC1jb3JlLmFwcC9hcnQtY29yZSJ9IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEgdGV4dC14cyB0ZXh0LWdvbGQtREVGQVVMVC82MCBob3Zlcjp0ZXh0LWdvbGQtREVGQVVMVCB0cmFuc2l0aW9uLWNvbG9ycyI+CiAgICAgICAgICAgIDxMYXlvdXRHcmlkIGNsYXNzTmFtZT0ic2l6ZS0zIiAvPkFSVC1DT1JFCiAgICAgICAgICA8L2E+CiAgICAgICAgICA8YSBocmVmPXtgJHtwcm9jZXNzLmVudi5ORVhUX1BVQkxJQ19QUklNRV9DT1JFX1VSTCB8fCAiaHR0cHM6Ly9wcmltZS1jb3JlLmFwcCJ9L3ByaW1lLWNvcmUvZGFzaGJvYXJkYH0gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMSB0ZXh0LXhzIHRleHQtZ29sZC1ERUZBVUxULzYwIGhvdmVyOnRleHQtZ29sZC1ERUZBVUxUIHRyYW5zaXRpb24tY29sb3JzIj4KICAgICAgICAgICAgPFRyZW5kaW5nVXAgY2xhc3NOYW1lPSJzaXplLTMiIC8+UFJJTUUtQ09SRQogICAgICAgICAgPC9hPgogICAgICAgIDwvbmF2PgogICAgICA8L2Rpdj4KICAKICAPKAKL
+"use client";
+
+import Link from "next/link";
+import { ShieldCheck, LayoutGrid, TrendingUp } from "lucide-react";
+
+const ART_CORE_URL = process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app";
+const PRIME_CORE_URL = process.env.NEXT_PUBLIC_PRIME_CORE_URL || "https://prime-core.app";
+
+export default function PassNavbar() {
+  return (
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0A1128]/90 backdrop-blur-md border-b border-white/5">
+      <div className="max-w-screen-2xl mx-auto h-full px-4 lg:px-8 flex items-center gap-6">
+        <Link href="/pass-core" className="flex items-center gap-2.5 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-gold-DEFAULT flex items-center justify-center">
+            <ShieldCheck className="size-4 text-navy-DEFAULT" />
+          </div>
+          <span className="font-display text-lg font-semibold text-white tracking-wide">PASS-CORE</span>
+        </Link>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-gold-DEFAULT/50 hidden sm:block">Authenticate the Real</p>
+
+        <nav className="ml-auto flex items-center gap-4">
+          <Link href="/pass-core/certifier" className="text-xs text-white/50 hover:text-white transition-colors">Certifier</Link>
+          <Link href="/pass-core/verifier" className="text-xs text-white/50 hover:text-white transition-colors">Vérifier</Link>
+          <Link href="/pass-core/gallery" className="text-xs text-white/50 hover:text-white transition-colors">Galerie</Link>
+          <a href={`${ART_CORE_URL}/art-core`} className="flex items-center gap-1 text-xs text-gold-DEFAULT/60 hover:text-gold-DEFAULT transition-colors">
+            <LayoutGrid className="size-3" />ART-CORE
+          </a>
+          <a href={`${PRIME_CORE_URL}/prime-core/dashboard`} className="flex items-center gap-1 text-xs text-gold-DEFAULT/60 hover:text-gold-DEFAULT transition-colors">
+            <TrendingUp className="size-3" />PRIME-CORE
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}

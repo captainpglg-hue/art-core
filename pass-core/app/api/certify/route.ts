@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     ).run(mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue);
 
     const config = getConfig();
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://${req.headers.get("host") || "192.168.1.115:3000"}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get("host") || "art-core.app"}`;
     const artcoreUrl = `${baseUrl}/art-core/oeuvre/${id}`;
     const certDate = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 

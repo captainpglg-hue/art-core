@@ -1,1 +1,236 @@
-InVzZSBjbGllbnQiOwoKaW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gInJlYWN0IjsKaW1wb3J0IExpbmsgZnJvbSAibmV4dC9saW5rIjsKaW1wb3J0IHsgdXNlUm91dGVyLCB1c2VQYXRobmFtZSB9IGZyb20gIm5leHQvbmF2aWdhdGlvbiI7CmltcG9ydCB7CiAgTGF5b3V0R3JpZCwgU2hpZWxkQ2hlY2ssIFRyZW5kaW5nVXAsIExvZ091dCwgVXNlciwgU2V0dGluZ3MsCiAgSGVhcnQsIFBhY2thZ2UsIENoZXZyb25Eb3duLCBDb2lucywgTWVudSwgWCwgTWVzc2FnZVNxdWFyZSwKICBTdG9yZSwgUGx1cywgV2FsbGV0LCBDcmVkaXRDYXJkLAp9IGZyb20gImx1Y2lkZS1yZWFjdCI7CmltcG9ydCB7IEF2YXRhciwgQXZhdGFyRmFsbGJhY2sgfSBmcm9tICJAL2NvbXBvbmVudHMvdWkvYXZhdGFyIjsKaW1wb3J0IHsKICBEcm9wZG93bk1lbnUsIERyb3Bkb3duTWVudUNvbnRlbnQsIERyb3Bkb3duTWVudUl0ZW0sCiAgRHJvcGRvd25NZW51TGFiZWwsIERyb3Bkb3duTWVudVNlcGFyYXRvciwgRHJvcGRvd25NZW51VHJpZ2dlciwKfSBmcm9tICJAL2NvbXBvbmVudHMvdWkvZHJvcGRvd24tbWVudSI7CmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gIkAvY29tcG9uZW50cy91aS9idXR0b24iOwoKdHlwZSBVc2VyUHJvZmlsZSA9IHsKICBpZDogc3RyaW5nOwogIHVzZXJuYW1lOiBzdHJpbmc7CiAgbmFtZTogc3RyaW5nOwogIGF2YXRhcl91cmw6IHN0cmluZyB8IG51bGw7CiAgdG90YWxfZWFybmVkOiBudW1iZXI7CiAgcG9pbnRzX2JhbGFuY2U6IG51bWJlcjsKICBpc19pbml0aWU6IG51bWJlcjsKICByb2xlOiBzdHJpbmc7Cn07Cgpjb25zdCBQQVNTX0NPUkVfVVJMID0gcHJvY2Vzcy5lbnYuTkVYVF9QVUJMSUNfUEFTU19DT1JFX1VSTCB8fCAiaHR0cHM6Ly9wYXNzLWNvcmUuYXBwIjsKY29uc3QgUFJJTUVfQ09SRV9VUkwgPSBwcm9jZXNzLmVudi5ORVhUX1BVQkxJQ19QUklNRV9DT1JFX1VSTCB8fCAiaHR0cHM6Ly9wcmltZS1jb3JlLmFwcCI7Cgpjb25zdCBOQVZfTElOS1MgPSBbCiAgeyBsYWJlbDogIkh1YiIsIGhyZWY6ICIvIiwgaWNvbjogTGF5b3V0R3JpZCB9LAogIHsgbGFiZWw6ICJQYXNzLUNvcmUiLCBocmVmOiBQQVNTX0NPUkVfVVJMLCBpY29uOiBTaGllbGRDaGVjaywgZXh0ZXJuYWw6IHRydWUgfSwKICB7IGxhYmVsOiAiUHJpbWUtQ29yZSIsIGhyZWY6IFBSSU1FX0NPUkVfVVJMLCBpY29uOiBUcmVuZGluZ1VwLCBleHRlcm5hbDogdHJ1ZSB9LApdOwoKZXhwb3J0IGZ1bmN0aW9uIE5hdmJhcigpIHsKICBjb25zdCByb3V0ZXIgPSB1c2VSb3V0ZXIoKTsKICBjb25zdCBwYXRobmFtZSA9IHVzZVBhdGhuYW1lKCk7CiAgY29uc3QgW3VzZXIsIHNldFVzZXJdID0gdXNlU3RhdGU8VXNlclByb2ZpbGUgfCBudWxsPihudWxsKTsKICBjb25zdCBbbG9hZGluZywgc2V0TG9hZGluZ10gPSB1c2VTdGF0ZSh0cnVlKTsKICBjb25zdCBbbW9iaWxlT3Blbiwgc2V0TW9iaWxlT3Blbl0gPSB1c2VTdGF0ZShmYWxzZSk7CgogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBmZXRjaCgiL2FwaS9hdXRoL21lIikKICAgICAgLnRoZW4oKHIpID0+IHIuanNvbigpKQogICAgICAudGhlbigoZGF0YSkgPT4geyBzZXRVc2VyKGRhdGEudXNlcik7IHNldExvYWRpbmcoZmFsc2UpOyB9KQogICAgICAuY2F0Y2goKCkgPT4gc2V0TG9hZGluZyhmYWxzZSkpOwogIH0sIFtwYXRobmFtZV0pOwoKICB1c2VFZmZlY3QoKCkgPT4geyBzZXRNb2JpbGVPcGVuKGZhbHNlKTsgfSwgW3BhdGhuYW1lXSk7CgogIGFzeW5jIGZ1bmN0aW9uIGhhbmRsZVNpZ25PdXQoKSB7CiAgICBhd2FpdCBmZXRjaCgiL2FwaS9hdXRoL2xvZ291dCIsIHsgbWV0aG9kOiAiUE9TVCIgfSk7CiAgICBzZXRVc2VyKG51bGwpOwogICAgcm91dGVyLnB1c2goIi9hdXRoL2xvZ2luIik7CiAgICByb3V0ZXIucmVmcmVzaCgpOwogIH0KCiAgY29uc3QgaW5pdGlhbHMgPSB1c2VyPy5uYW1lCiAgICA/IHVzZXIubmFtZS5zcGxpdCgiICIpLm1hcCgobikgPT4gblswXSkuam9pbigiIikudG9VcHBlckNhc2UoKS5zbGljZSgwLCAyKQogICAgOiAiPyI7CgogIHJldHVybiAoCiAgICA8PgogICAgICA8aGVhZGVyIGNsYXNzTmFtZT0iZml4ZWQgdG9wLTAgbGVmdC0wIHJpZ2h0LTAgei00MCBoLTE2IGJnLVsjMGEwYTBhXS85NSBiYWNrZHJvcC1ibHVyLW1kIGJvcmRlci1iIGJvcmRlci13aGl0ZS81Ij4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWF4LXctc2NyZWVuLTJ4bCBteC1hdXRvIGgtZnVsbCBweC00IGxnOnB4LTggZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTYiPgogICAgICAgICAgPExpbmsgaHJlZj0iL2FydC1jb3JlIiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yLjUgc2hyaW5rLTAiPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy03IGgtNyByb3VuZGVkLWxnIGJnLWdvbGQgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIiPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1ibGFjayBmb250LWJvbGQgdGV4dC14cyI+QUM8L3NwYW4+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZvbnQtZGlzcGxheSB0ZXh0LWxnIGZvbnQtc2VtaWJvbGQgdGV4dC13aGl0ZSB0cmFja2luZy13aWRlIGhpZGRlbiBzbTpibG9jayI+CiAgICAgICAgICAgICAgQVJULUNPUkUKICAgICAgICAgICAgPC9zcGFuPgogICAgICAgICAgPC9MaW5rPgoKICAgICAgICAgIDxuYXYgY2xhc3NOYW1lPSJoaWRkZW4gbWQ6ZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTAuNSBtbC0yIj4KICAgICAgICAgICAge05BVl9MSU5LUy5tYXAoKGxpbmspID0+IHsKICAgICAgICAgICAgICBjb25zdCBJY29uID0gbGluay5pY29uOwogICAgICAgICAgICAgIGNvbnN0IGlzRXh0ZXJuYWwgPSAiZXh0ZXJuYWwiIGluIGxpbmsgJiYgbGluay5leHRlcm5hbDsKICAgICAgICAgICAgICBjb25zdCBUYWcgPSBpc0V4dGVybmFsID8gImEiIDogTGluazsKICAgICAgICAgICAgICBjb25zdCBleHRyYVByb3BzID0gaXNFeHRlcm5hbCA/IHsgdGFyZ2V0OiAiX2JsYW5rIiwgcmVsOiAibm9vcGVuZXIiIGFzIGNvbnN0IH0gOiB7fTsKICAgICAgICAgICAgICByZXR1cm4gKAogICAgICAgICAgICAgICAgPFRhZwogICAgICAgICAgICAgICAgICBrZXk9e2xpbmsuaHJlZn0KICAgICAgICAgICAgICAgICAgaHJlZj17bGluay5ocmVmfQogICAgICAgICAgICAgICAgICB7Li4uKGV4dHJhUHJvcHMgYXMgYW55KX0KICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHB4LTMgcHktMS41IHJvdW5kZWQtbGcgdGV4dC14cyB0ZXh0LXdoaXRlLzQwIGhvdmVyOnRleHQtd2hpdGUvNzAgaG92ZXI6Ymctd2hpdGUvNSB0cmFuc2l0aW9uLWFsbCIKICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAgPEljb24gY2xhc3NOYW1lPSJzaXplLTMuNSIgLz4KICAgICAgICAgICAgICAgICAge2xpbmsubGFiZWx9CiAgICAgICAgICAgICAgICA8L1RhZz4KICAgICAgICAgICAgICApOwogICAgICAgICAgICB9KX0KICAgICAgICAgIDwvbmF2PgoKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtbC1hdXRvIGZsZXggaXRlbXMtY2VudGVyIGdhcC0zIj4KICAgICAgICAgICAgeyFsb2FkaW5nICYmICgKICAgICAgICAgICAgICA8PgogICAgICAgICAgICAgICAge3VzZXIgPyAoCiAgICAgICAgICAgICAgICAgIDw+CiAgICAgICAgICAgICAgICAgICAge3VzZXIucm9sZSA9PT0gImFydGlzdCIgJiYgKAogICAgICAgICAgICAgICAgICAgICAgPExpbmsKICAgICAgICAgICAgICAgICAgICAgICAgaHJlZj0iL2FydC1jb3JlL2NlcnRpZmllciIKICAgICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJoaWRkZW4gbWQ6ZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEuNSBweC0zIHB5LTEuNSByb3VuZGVkLWxnIHRleHQteHMgZm9udC1tZWRpdW0gYm9yZGVyIGJvcmRlci1ncmVlbi01MDAvMzAgdGV4dC1ncmVlbi00MDAgaG92ZXI6YmctZ3JlZW4tNTAwLzEwIHRyYW5zaXRpb24tY29sb3JzIgogICAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgICA8U2hpZWxkQ2hlY2sgY2xhc3NOYW1lPSJzaXplLTMuNSIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgQ2VydGlmaWVyCiAgICAgICAgICAgICAgICAgICAgICA8L0xpbms+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICA8TGluawogICAgICAgICAgICAgICAgICAgICAgaHJlZj0iL2FydC1jb3JlL2RlcG9zZXIiCiAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9ImhpZGRlbiBtZDpmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHB4LTMgcHktMS41IHJvdW5kZWQtbGcgdGV4dC14cyBmb250LW1lZGl1bSBiZy1bI0M5QTg0Q10gdGV4dC1ibGFjayBob3ZlcjpiZy1bI0M5QTg0Q10vODAgdHJhbnNpdGlvbi1jb2xvcnMiCiAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPSJzaXplLTMuNSIgLz4KICAgICAgICAgICAgICAgICAgICAgIETDqXBvc2VyCiAgICAgICAgICAgICAgICAgICAgPC9MaW5rPgoKICAgICAgICAgICAgICAgICAgICA8TGluawogICAgICAgICAgICAgICAgICAgICAgaHJlZj0iL2FydC1jb3JlL21lc3NhZ2VzIgogICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJoaWRkZW4gbWQ6ZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgdy05IGgtOSByb3VuZGVkLWxnIHRleHQtd2hpdGUvNDAgaG92ZXI6dGV4dC13aGl0ZS83MCBob3ZlcjpiZy13aGl0ZS81IHRyYW5zaXRpb24tY29sb3JzIgogICAgICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAgICAgIDxNZXNzYWdlU3F1YXJlIGNsYXNzTmFtZT0ic2l6ZS00IiAvPgogICAgICAgICAgICAgICAgICAgIDwvTGluaz4KCiAgICAgICAgICAgICAgICAgICAgPExpbmsKICAgICAgICAgICAgICAgICAgICAgIGhyZWY9Ii9hcnQtY29yZS93YWxsZXQiCiAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9ImhpZGRlbiBsZzpmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBweC0zIHB5LTEuNSByb3VuZGVkLWxnIGJnLVsjQzlBODRDXS81IGJvcmRlciBib3JkZXItWyNDOUE4NENdLzE1IGhvdmVyOmJvcmRlci1bI0M5QTg0Q10vMzAgdHJhbnNpdGlvbi1jb2xvcnMiCiAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgPENvaW5zIGNsYXNzTmFtZT0ic2l6ZS0zLjUgdGV4dC1bI0M5QTg0Q10iIC8+CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQteHMgdGV4dC1bI0M5QTg0Q10gZm9udC1zZW1pYm9sZCB0YWJ1bGFyLW51bXMiPgogICAgICAgICAgICAgICAgICAgICAgICB7dXNlci5wb2ludHNfYmFsYW5jZSA/PyAwfSBwdHMKICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgIHt1c2VyLmlzX2luaXRpZSA/ICgKICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVs5cHhdIHB4LTEuNSBweS0wLjUgcm91bmRlZCBiZy1bI0M5QTg0Q10vMTUgdGV4dC1bI0M5QTg0Q10gZm9udC1ib2xkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICBJTklUScOJCiAgICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgICkgOiBudWxsfQogICAgICAgICAgICAgICAgICAgIDwvTGluaz4KCiAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudT4KICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVUcmlnZ2VyIGFzQ2hpbGQ+CiAgICAgICAgICAgICAgICAgICAgICAgIDxidXR0b24gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiByb3VuZGVkLXhsIHB4LTIgcHktMSBob3ZlcjpiZy13aGl0ZS81IHRyYW5zaXRpb24tY29sb3JzIG91dGxpbmUtbm9uZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPEF2YXRhciBjbGFzc05hbWU9InNpemUtOCI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8QXZhdGFyRmFsbGJhY2s+e2luaXRpYWxzfTwvQXZhdGFyRmFsbGJhY2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9BdmF0YXI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImhpZGRlbiBsZzpibG9jayB0ZXh0LWxlZnQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXhzIGZvbnQtbWVkaXVtIHRleHQtd2hpdGUgbGVhZGluZy10aWdodCI+e3VzZXIubmFtZX08L3A+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEwcHhdIHRleHQtd2hpdGUvNDAiPkB7dXNlci51c2VybmFtZX08L3A+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPENoZXZyb25Eb3duIGNsYXNzTmFtZT0ic2l6ZS0zIHRleHQtd2hpdGUvMzAgaGlkZGVuIGxnOmJsb2NrIiAvPgogICAgICAgICAgICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICAgICAgICAgIDwvRHJvcGRvd25NZW51VHJpZ2dlcj4KICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVDb250ZW50IGFsaWduPSJlbmQiIGNsYXNzTmFtZT0idy01MiI+CiAgICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVMYWJlbD5Nb24gY29tcHRlPC9Ecm9wZG93bk1lbnVMYWJlbD4KICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudVNlcGFyYXRvciAvPgogICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBhc0NoaWxkPjxMaW5rIGhyZWY9Ii9hcnQtY29yZS9kYXNoYm9hcmQiPjxTZXR0aW5ncyBjbGFzc05hbWU9InNpemUtNCIgLz5EYXNoYm9hcmQ8L0xpbms+PC9Ecm9wZG93bk1lbnVJdGVtPgogICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBhc0NoaWxkPjxMaW5rIGhyZWY9Ii9hcnQtY29yZS9wcm9maWxlIj48VXNlciBjbGFzc05hbWU9InNpemUtNCIgLz5Qcm9maWw8L0xpbms+PC9Ecm9wZG93bk1lbnVJdGVtPgogICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBhc0NoaWxkPjxMaW5rIGhyZWY9Ii9hcnQtY29yZS93YWxsZXQiPjxXYWxsZXQgY2xhc3NOYW1lPSJzaXplLTQiIC8+UG9ydGVmZXVpbGxlPC9MaW5rPjwvRHJvcGRvd25NZW51SXRlbT4KICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudUl0ZW0gYXNDaGlsZD48TGluayBocmVmPSIvYXJ0LWNvcmUvYm91dGlxdWUtcHJvbW90aW9uIj48U3RvcmUgY2xhc3NOYW1lPSJzaXplLTQiIC8+Qm91dGlxdWUgUHJvbW88L0xpbms+PC9Ecm9wZG93bk1lbnVJdGVtPgogICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBhc0NoaWxkPjxMaW5rIGhyZWY9Ii9hcnQtY29yZS9mYXZvcmlzIj48SGVhcnQgY2xhc3NOYW1lPSJzaXplLTQiIC8+RmF2b3JpczwvTGluaz48L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVJdGVtIGFzQ2hpbGQ+PExpbmsgaHJlZj0iL2FydC1jb3JlL29yZGVycyI+PFBhY2thZ2UgY2xhc3NOYW1lPSJzaXplLTQiIC8+TWVzIGFjaGF0czwvTGluaz48L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVJdGVtIGFzQ2hpbGQ+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPExpbmsgaHJlZj0iL2FydC1jb3JlL25vdmEtYmFuayIgY2xhc3NOYW1lPSJ0ZXh0LVsjQzlBODRDXSI+PENyZWRpdENhcmQgY2xhc3NOYW1lPSJzaXplLTQgdGV4dC1bI0M5QTg0Q10iIC8+Tm92YSBCYW5rPC9MaW5rPgogICAgICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgIHshdXNlci5pc19pbml0aWUgJiYgKAogICAgICAgICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVJdGVtIGFzQ2hpbGQ+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8TGluayBocmVmPSIvYXJ0LWNvcmUvaW5pdGllIiBjbGFzc05hbWU9InRleHQtWyNDOUE4NENdIj48Q29pbnMgY2xhc3NOYW1lPSJzaXplLTQgdGV4dC1bI0M5QTg0Q10iIC8+RGV2ZW5pciBJbml0acOpPC9MaW5rPgogICAgICAgICAgICAgICAgICAgICAgICAgIDwvRHJvcGRvd25NZW51SXRlbT4KICAgICAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudVNlcGFyYXRvciAvPgogICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBvbkNsaWNrPXtoYW5kbGVTaWduT3V0fSBjbGFzc05hbWU9InRleHQtZGVzdHJ1Y3RpdmUgZm9jdXM6dGV4dC1kZXN0cnVjdGl2ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPExvZ091dCBjbGFzc05hbWU9InNpemUtNCIgLz5TZSBkw6ljb25uZWN0ZXIKICAgICAgICAgICAgICAgICAgICAgICAgPC9Ecm9wZG93bk1lbnVJdGVtPgogICAgICAgICAgICAgICAgICAgICAgPC9Ecm9wZG93bk1lbnVDb250ZW50PgogICAgICAgICAgICAgICAgICAgIDwvRHJvcGRvd25NZW51PgogICAgICAgICAgICAgICAgICA8Lz4KICAgICAgICAgICAgICAgICkgOiAoCiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoaWRkZW4gbWQ6ZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIiPgogICAgICAgICAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0iZ2hvc3QiIHNpemU9InNtIiBhc0NoaWxkPjxMaW5rIGhyZWY9Ii9hdXRoL2xvZ2luIj5Db25uZXhpb248L0xpbms+PC9CdXR0b24+CiAgICAgICAgICAgICAgICAgICAgPEJ1dHRvbiBzaXplPSJzbSIgYXNDaGlsZD48TGluayBocmVmPSIvYXV0aC9zaWdudXAiPlMmYXBvcztpbnNjcmlyZTwvTGluaz48L0J1dHRvbj4KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgIDwvPgogICAgICAgICAgICApfQoKICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgIGNsYXNzTmFtZT0ibWQ6aGlkZGVuIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHctOSBoLTkgcm91bmRlZC1sZyB0ZXh0LXdoaXRlLzYwIGhvdmVyOnRleHQtd2hpdGUgaG92ZXI6Ymctd2hpdGUvNSB0cmFuc2l0aW9uLWNvbG9ycyIKICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRNb2JpbGVPcGVuKCh2KSA9PiAhdil9CiAgICAgICAgICAgID4KICAgICAgICAgICAgICB7bW9iaWxlT3BlbiA/IDxYIGNsYXNzTmFtZT0ic2l6ZS01IiAvPiA6IDxNZW51IGNsYXNzTmFtZT0ic2l6ZS01IiAvPn0KICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgPC9oZWFkZXI+CgogICAgICB7bW9iaWxlT3BlbiAmJiAoCiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZpeGVkIGluc2V0LTAgei0zMCBwdC0xNiBtZDpoaWRkZW4iPgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImFic29sdXRlIGluc2V0LTAgYmctYmxhY2svNjAiIG9uQ2xpY2s9eygpID0+IHNldE1vYmlsZU9wZW4oZmFsc2UpfSAvPgogICAgICAgICAgPG5hdiBjbGFzc05hbWU9InJlbGF0aXZlIGJnLVsjMTExMTExXSBib3JkZXItYiBib3JkZXItd2hpdGUvOCBweC00IHB5LTQgc3BhY2UteS0xIj4KICAgICAgICAgICAge05BVl9MSU5LUy5tYXAoKGxpbmspID0+IHsKICAgICAgICAgICAgICBjb25zdCBJY29uID0gbGluay5pY29uOwogICAgICAgICAgICAgIGNvbnN0IGlzRXh0ZXJuYWwgPSAiZXh0ZXJuYWwiIGluIGxpbmsgJiYgbGluay5leHRlcm5hbDsKICAgICAgICAgICAgICBjb25zdCBUYWcgPSBpc0V4dGVybmFsID8gImEiIDogTGluazsKICAgICAgICAgICAgICBjb25zdCBleHRyYVByb3BzID0gaXNFeHRlcm5hbCA/IHsgdGFyZ2V0OiAiX2JsYW5rIiwgcmVsOiAibm9vcGVuZXIiIGFzIGNvbnN0IH0gOiB7fTsKICAgICAgICAgICAgICByZXR1cm4gKAogICAgICAgICAgICAgICAgPFRhZyBrZXk9e2xpbmsuaHJlZn0gaHJlZj17bGluay5ocmVmfSB7Li4uKGV4dHJhUHJvcHMgYXMgYW55KX0gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyBweC00IHB5LTMgcm91bmRlZC14bCB0ZXh0LXNtIHRleHQtd2hpdGUvNzAgaG92ZXI6dGV4dC13aGl0ZSBob3ZlcjpiZy13aGl0ZS81IHRyYW5zaXRpb24tYWxsIj4KICAgICAgICAgICAgICAgICAgPEljb24gY2xhc3NOYW1lPSJzaXplLTQgdGV4dC1bI0M5QTg0Q10vNzAiIC8+e2xpbmsubGFiZWx9CiAgICAgICAgICAgICAgICA8L1RhZz4KICAgICAgICAgICAgICApOwogICAgICAgICAgICB9KX0KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImgtcHggYmctd2hpdGUvOCBteS0yIiAvPgogICAgICAgICAgICB7dXNlciA/ICgKICAgICAgICAgICAgICA8PgogICAgICAgICAgICAgICAgPExpbmsgaHJlZj0iL2FydC1jb3JlL3dhbGxldCIgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyBweC00IHB5LTMgcm91bmRlZC14bCB0ZXh0LXNtIHRleHQtWyNDOUE4NENdIGZvbnQtbWVkaXVtIj4KICAgICAgICAgICAgICAgICAgPENvaW5zIGNsYXNzTmFtZT0ic2l6ZS00IiAvPnt1c2VyLnBvaW50c19iYWxhbmNlID8/IDB9IHB0cwogICAgICAgICAgICAgICAgPC9MaW5rPgogICAgICAgICAgICAgICAgPExpbmsgaHJlZj0iL2FydC1jb3JlL2RlcG9zZXIiIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMgcHgtNCBweS0zIHJvdW5kZWQteGwgdGV4dC1zbSB0ZXh0LVsjQzlBODRDXSBmb250LW1lZGl1bSI+CiAgICAgICAgICAgICAgICAgIDxQbHVzIGNsYXNzTmFtZT0ic2l6ZS00IiAvPkTDqXBvc2VyIHVuZSBvZXV2cmUKICAgICAgICAgICAgICAgIDwvTGluaz4KICAgICAgICAgICAgICAgIDxidXR0b24gb25DbGljaz17aGFuZGxlU2lnbk91dH0gY2xhc3NOYW1lPSJ3LWZ1bGwgZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMgcHgtNCBweS0zIHJvdW5kZWQteGwgdGV4dC1zbSB0ZXh0LXJlZC00MDAgaG92ZXI6YmctcmVkLTUwMC8xMCI+CiAgICAgICAgICAgICAgICAgIDxMb2dPdXQgY2xhc3NOYW1lPSJzaXplLTQiIC8+U2UgZMOpY29ubmVjdGVyCiAgICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICA8Lz4KICAgICAgICAgICAgKSA6ICgKICAgICAgICAgICAgICA8PgogICAgICAgICAgICAgICAgPExpbmsgaHJlZj0iL2F1dGgvbG9naW4iIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMgcHgtNCBweS0zIHJvdW5kZWQteGwgdGV4dC1zbSB0ZXh0LXdoaXRlLzcwIj5Db25uZXhpb248L0xpbms+CiAgICAgICAgICAgICAgICA8TGluayBocmVmPSIvYXV0aC9zaWdudXAiIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMgcHgtNCBweS0zIHJvdW5kZWQteGwgdGV4dC1zbSB0ZXh0LVsjQzlBODRDXSBmb250LW1lZGl1bSI+UyZhcG9zO2luc2NyaXJlPC9MaW5rPgogICAgICAgICAgICAgIDwvPgogICAgICAgICAgICApfQogICAgICAgICAgPC9uYXY+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CiAgICA8Lz4KICAPKAKL
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  LayoutGrid, ShieldCheck, TrendingUp, LogOut, User, Settings,
+  Heart, Package, ChevronDown, Coins, Menu, X, MessageSquare,
+  Store, Plus, Wallet, CreditCard,
+} from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+
+type UserProfile = {
+  id: string;
+  username: string;
+  name: string;
+  avatar_url: string | null;
+  total_earned: number;
+  points_balance: number;
+  is_initie: number;
+  role: string;
+};
+
+const PASS_CORE_URL = process.env.NEXT_PUBLIC_PASS_CORE_URL || "https://pass-core.app";
+const PRIME_CORE_URL = process.env.NEXT_PUBLIC_PRIME_CORE_URL || "https://prime-core.app";
+
+const NAV_LINKS = [
+  { label: "Hub", href: "/", icon: LayoutGrid },
+  { label: "Pass-Core", href: PASS_CORE_URL, icon: ShieldCheck, external: true },
+  { label: "Prime-Core", href: PRIME_CORE_URL, icon: TrendingUp, external: true },
+];
+
+export function Navbar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => { setUser(data.user); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [pathname]);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    router.push("/auth/login");
+    router.refresh();
+  }
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+
+  return (
+    <>
+      <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-screen-2xl mx-auto h-full px-4 lg:px-8 flex items-center gap-6">
+          <Link href="/art-core" className="flex items-center gap-2.5 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gold flex items-center justify-center">
+              <span className="text-black font-bold text-xs">AC</span>
+            </div>
+            <span className="font-display text-lg font-semibold text-white tracking-wide hidden sm:block">
+              ART-CORE
+            </span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-0.5 ml-2">
+            {NAV_LINKS.map((link) => {
+              const Icon = link.icon;
+              const isExternal = "external" in link && link.external;
+              const Tag = isExternal ? "a" : Link;
+              const extraProps = isExternal ? { target: "_blank", rel: "noopener" as const } : {};
+              return (
+                <Tag
+                  key={link.href}
+                  href={link.href}
+                  {...(extraProps as any)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                >
+                  <Icon className="size-3.5" />
+                  {link.label}
+                </Tag>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-3">
+            {!loading && (
+              <>
+                {user ? (
+                  <>
+                    {user.role === "artist" && (
+                      <Link
+                        href="/art-core/certifier"
+                        className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
+                      >
+                        <ShieldCheck className="size-3.5" />
+                        Certifier
+                      </Link>
+                    )}
+                    <Link
+                      href="/art-core/deposer"
+                      className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#C9A84C] text-black hover:bg-[#C9A84C]/80 transition-colors"
+                    >
+                      <Plus className="size-3.5" />
+                      Déposer
+                    </Link>
+
+                    <Link
+                      href="/art-core/messages"
+                      className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+                    >
+                      <MessageSquare className="size-4" />
+                    </Link>
+
+                    <Link
+                      href="/art-core/wallet"
+                      className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 hover:border-[#C9A84C]/30 transition-colors"
+                    >
+                      <Coins className="size-3.5 text-[#C9A84C]" />
+                      <span className="text-xs text-[#C9A84C] font-semibold tabular-nums">
+                        {user.points_balance ?? 0} pts
+                      </span>
+                      {user.is_initie ? (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9A84C]/15 text-[#C9A84C] font-bold">
+                          INITIÉ
+                        </span>
+                      ) : null}
+                    </Link>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/5 transition-colors outline-none">
+                          <Avatar className="size-8">
+                            <AvatarFallback>{initials}</AvatarFallback>
+                          </Avatar>
+                          <div className="hidden lg:block text-left">
+                            <p className="text-xs font-medium text-white leading-tight">{user.name}</p>
+                            <p className="text-[10px] text-white/40">@{user.username}</p>
+                          </div>
+                          <ChevronDown className="size-3 text-white/30 hidden lg:block" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild><Link href="/art-core/dashboard"><Settings className="size-4" />Dashboard</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/art-core/profile"><User className="size-4" />Profil</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/art-core/wallet"><Wallet className="size-4" />Portefeuille</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/art-core/boutique-promotion"><Store className="size-4" />Boutique Promo</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/art-core/favoris"><Heart className="size-4" />Favoris</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/art-core/orders"><Package className="size-4" />Mes achats</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/art-core/nova-bank" className="text-[#C9A84C]"><CreditCard className="size-4 text-[#C9A84C]" />Nova Bank</Link>
+                        </DropdownMenuItem>
+                        {!user.is_initie && (
+                          <DropdownMenuItem asChild>
+                            <Link href="/art-core/initie" className="text-[#C9A84C]"><Coins className="size-4 text-[#C9A84C]" />Devenir Initié</Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                          <LogOut className="size-4" />Se déconnecter
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                ) : (
+                  <div className="hidden md:flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild><Link href="/auth/login">Connexion</Link></Button>
+                    <Button size="sm" asChild><Link href="/auth/signup">S&apos;inscrire</Link></Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            <button
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              onClick={() => setMobileOpen((v) => !v)}
+            >
+              {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-30 pt-16 md:hidden">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <nav className="relative bg-[#111111] border-b border-white/8 px-4 py-4 space-y-1">
+            {NAV_LINKS.map((link) => {
+              const Icon = link.icon;
+              const isExternal = "external" in link && link.external;
+              const Tag = isExternal ? "a" : Link;
+              const extraProps = isExternal ? { target: "_blank", rel: "noopener" as const } : {};
+              return (
+                <Tag key={link.href} href={link.href} {...(extraProps as any)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all">
+                  <Icon className="size-4 text-[#C9A84C]/70" />{link.label}
+                </Tag>
+              );
+            })}
+            <div className="h-px bg-white/8 my-2" />
+            {user ? (
+              <>
+                <Link href="/art-core/wallet" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">
+                  <Coins className="size-4" />{user.points_balance ?? 0} pts
+                </Link>
+                <Link href="/art-core/deposer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">
+                  <Plus className="size-4" />Déposer une oeuvre
+                </Link>
+                <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
+                  <LogOut className="size-4" />Se déconnecter
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70">Connexion</Link>
+                <Link href="/auth/signup" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">S&apos;inscrire</Link>
+              </>
+            )}
+          </nav>
+        </div>
+      )}
+    </>
+  (�

@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: process.env.EMAIL_FROM ?? "noreply@art-core.com",
+            from: process.env.EMAIL_FROM ?? "noreply@art-core.app",
             to: user.email,
             subject: `Demande de certification reçue — ${title}`,
             html: `<p>Bonjour,</p><p>Votre demande de certification pour <strong>${title}</strong> a bien été reçue. Notre équipe la traitera sous 24h.</p><p>Référence : ${id}</p>`,

@@ -222,7 +222,7 @@ export default function VerifierPage() {
                   <p className="font-mono text-[11px] text-white/40 break-all">{result.artwork.tx_hash}</p>
                 </div>
               )}
-              <a href={`http://192.168.1.115:3000/art-core/oeuvre/${result.artwork.id}`}
+              <a href={`${process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app"}/art-core/oeuvre/${result.artwork.id}`}
                 className="block w-full py-3 rounded-xl bg-[#C9A84C] text-[#0A1128] font-semibold text-center active:brightness-90 mt-4">
                 Voir sur ART-CORE
               </a>

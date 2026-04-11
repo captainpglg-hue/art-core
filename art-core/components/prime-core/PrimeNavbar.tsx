@@ -1,1 +1,22 @@
-InVzZSBjbGllbnQiOwoKaW1wb3J0IExpbmsgZnJvbSAibmV4dC9saW5rIjsKaW1wb3J0IHsgVHJlbmRpbmdVcCB9IGZyb20gImx1Y2lkZS1yZWFjdCI7CgpleHBvcnQgZnVuY3Rpb24gUHJpbWVOYXZiYXIoKSB7CiAgcmV0dXJuICgKICAgIDxoZWFkZXIgY2xhc3NOYW1lPSJmaXhlZCB0b3AtMCBsZWZ0LTAgcmlnaHQtMCB6LTQwIGgtMTYgYmctWyMwRDBGMTRdLzkwIGJhY2tkcm9wLWJsdXItbWQgYm9yZGVyLWIgYm9yZGVyLXdoaXRlLzUiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0ibWF4LXctc2NyZWVuLTJ4bCBteC1hdXRvIGgtZnVsbCBweC00IGxnOnB4LTggZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTYiPgogICAgICAgIDxMaW5rIGhyZWY9Ii9hcnQtY29yZSIgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMi41IHNocmluay0wIj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJ3LTcgaC03IHJvdW5kZWQtbGcgYmctZ29sZCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciI+CiAgICAgICAgICAgIDxUcmVuZGluZ1VwIGNsYXNzTmFtZT0ic2l6ZS00IHRleHQtYmxhY2siIC8+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZm9udC1kaXNwbGF5IHRleHQtbGcgZm9udC1zZW1pYm9sZCB0ZXh0LXdoaXRlIHRyYWNraW5nLXdpZGUiPlBSSU1FLUNPUkU8L3NwYW4+CiAgICAgICAgPC9MaW5rPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtbC1hdXRvIj4KICAgICAgICAgIDxhIGhyZWY9e2Ake3Byb2Nlc3MuZW52Lk5FWFRfUFVCTElDX1BSSU1FX0NPUkVfVVJMIHx8ICJodHRwczovL3ByaW1lLWNvcmUuYXBwIn0vcHJpbWUtY29yZS9kYXNoYm9hcmRgfSBjbGFzc05hbWU9InRleHQtc20gdGV4dC1nb2xkIGhvdmVyOnVuZGVybGluZSI+T3V2cmlyIFBSSU1FLUNPUkU8L2E+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZGl2PgogICAgPC9oZWFkZXI+CiAgKTsKfQo=
+"use client";
+
+import Link from "next/link";
+import { TrendingUp } from "lucide-react";
+
+export function PrimeNavbar() {
+  return (
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0D0F14]/90 backdrop-blur-md border-b border-white/5">
+      <div className="max-w-screen-2xl mx-auto h-full px-4 lg:px-8 flex items-center gap-6">
+        <Link href="/art-core" className="flex items-center gap-2.5 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-gold flex items-center justify-center">
+            <TrendingUp className="size-4 text-black" />
+          </div>
+          <span className="font-display text-lg font-semibold text-white tracking-wide">PRIME-CORE</span>
+        </Link>
+        <div className="ml-auto">
+          <a href={`${process.env.NEXT_PUBLIC_PRIME_CORE_URL || "https://prime-core.app"}/prime-core/dashboard`} className="text-sm text-gold hover:underline">Ouvrir PRIME-CORE</a>
+        </div>
+      </div>
+    </header>
+  );
+}

@@ -37,7 +37,7 @@ export function SharePassCore({ passCore, artworkTitle, artworkImageUrl }: Share
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const verificationUrl = passCore.verification_url ?? `${typeof window !== "undefined" ? window.location.origin : ""}/verify/${passCore.token_id ?? passCore.id}`;
+  const verificationUrl = passCore.verification_url ?? `${typeof window !== "undefined" ? window.location.origin : ""}/pass-core/verifier?id=${passCore.token_id ?? passCore.id}`;
   const shortHash = passCore.hash.slice(0, 8) + "…" + passCore.hash.slice(-8);
   const tokenId = passCore.token_id ?? passCore.id.slice(0, 12).toUpperCase();
   const certDate = new Date(passCore.created_at).toLocaleDateString("fr-FR", {
@@ -179,7 +179,7 @@ export function SharePassCore({ passCore, artworkTitle, artworkImageUrl }: Share
 
         {/* Footer */}
         <p className="text-[9px] text-white/20 mt-4 text-center">
-          pass-core.art-core.com · Vérifiez sur : {verificationUrl.slice(0, 40)}…
+          pass-core.art-core.app · Vérifiez sur : {verificationUrl.slice(0, 40)}…
         </p>
       </div>
 

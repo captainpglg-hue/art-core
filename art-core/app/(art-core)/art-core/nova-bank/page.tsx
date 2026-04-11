@@ -419,7 +419,7 @@ export default function NovaBankPage() {
                 Commencer sur ART-CORE
               </button>
               {selectedType === "ambassador" && (
-                <a href="http://192.168.1.115:3001/pass-core/certifier"
+                <a href="https://pass-core.app/pass-core/certifier"
                   className="w-full py-4 rounded-xl border border-blue-500/30 text-blue-400 font-medium text-center block active:bg-blue-500/5">
                   Certifier ma première oeuvre
                 </a>
