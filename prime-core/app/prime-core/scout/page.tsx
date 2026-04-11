@@ -100,7 +100,7 @@ export default function ScoutDashboardPage() {
       <div className="rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-5 mb-6">
         <p className="text-xs text-[#C9A84C] font-medium mb-2">Mon lien de parrainage</p>
         <div className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2 mb-3">
-          <code className="text-xs text-white/60 flex-1 truncate">art-core.com/ref/{refCode}</code>
+          <code className="text-xs text-white/60 flex-1 truncate">art-core.app/ref/{refCode}</code>
           <span className="text-[#C9A84C] shrink-0"><Copy className="size-4" /></span>
         </div>
         <div className="grid grid-cols-4 gap-2">
