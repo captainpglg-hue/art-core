@@ -181,7 +181,7 @@ function initVercelDb(db: Database.Database) {
     const artistIdx = ((i - 1) % 10) + 1;
     db.prepare("INSERT INTO transactions (id, artwork_id, buyer_id, seller_id, amount, commission_platform, status) VALUES (?, ?, ?, ?, ?, ?, 'completed')").run(
       `tx_${i}`, `art_${100 + i}`, `usr_gal_${buyerIdx}`, `usr_art_${artistIdx}`,
-      500 + (i * 300), (500 + (i * 300)) * 0.10, "completed"
+      500 + (i * 300), (500 + (i * 300)) * 0.10
     );
   }
 
