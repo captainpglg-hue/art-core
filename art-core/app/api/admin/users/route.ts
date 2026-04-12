@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByToken, getDb } from "@/lib/db";
+import { getAdminSession, getDb } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("core_session")?.value;
+  const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getUserByToken(token);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const user = getAdminSession(token);
+  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   const db = getDb();
   const users = db.prepare(`
@@ -21,10 +21,10 @@ export async function GET(req: NextRequest) {
 
 // PATCH: admin can update user role
 export async function PATCH(req: NextRequest) {
-  const token = req.cookies.get("core_session")?.value;
+  const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getUserByToken(token);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const user = getAdminSession(token);
+  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   const { user_id, role } = await req.json();
   if (!user_id || !role) return NextResponse.json({ error: "user_id et role requis" }, { status: 400 });

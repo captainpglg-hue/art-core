@@ -1,10 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_COOKIE = "core_session";
+const ADMIN_COOKIE = "admin_session";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE)?.value;
+  const adminToken = request.cookies.get(ADMIN_COOKIE)?.value;
+
+  // Admin routes requiring admin session
+  if (pathname === "/art-core/admin" || pathname.startsWith("/art-core/admin/") && !pathname.startsWith("/art-core/admin/login")) {
+    if (!adminToken) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/art-core/admin/login";
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Routes requiring authentication
   const protectedPrefixes = [

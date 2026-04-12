@@ -49,5 +49,6 @@ console.log(`   Artist:  artist@demo.com`);
 console.log(`   Initié:  initie@demo.com`);
 console.log(`   Client:  client@demo.com`);
 console.log(`   Admin:   admin@artcore.com`);
+console.log(`   Admin:   captainpglg@gmail.com (Philippe Gigon Le Grain)`);
 
 db.close();

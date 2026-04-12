@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
+    "tunnel": "npx localtunnel --port 3000 --subdomain artcore-test",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
@@ -62,6 +63,7 @@
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.378.0",
+    "nodemailer": "^7.0.3",
     "next": "14.2.5",
     "next-cloudinary": "^6.9.0",
     "puppeteer": "^24.40.0",
@@ -86,6 +88,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.13.0",
+    "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.18.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.3",

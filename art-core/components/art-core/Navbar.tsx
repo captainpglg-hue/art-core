@@ -169,6 +169,14 @@ export function Navbar() {
                             <Link href="/art-core/initie" className="text-[#C9A84C]"><Coins className="size-4 text-[#C9A84C]" />Devenir Initié</Link>
                           </DropdownMenuItem>
                         )}
+                        {user.role === "admin" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href="/art-core/admin" className="text-red-400"><ShieldCheck className="size-4 text-red-400" />Administration</Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                           <LogOut className="size-4" />Se déconnecter

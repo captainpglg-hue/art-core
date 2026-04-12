@@ -1,14 +1,90 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
-const DB_PATH = path.join(process.cwd(), "..", "core-db", "core.db");
+// Local dev: ../core-db/core.db | Vercel: /tmp/core.db (shared with art-core)
+const LOCAL_DB = path.join(process.cwd(), "..", "core-db", "core.db");
+const VERCEL_DB = "/tmp/core.db";
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_PATH = IS_VERCEL ? VERCEL_DB : LOCAL_DB;
+
 let _db: Database.Database | null = null;
+
+function initVercelDb(db: Database.Database) {
+  // Same schema + seed as art-core (they share the same DB)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+      username TEXT UNIQUE, password_hash TEXT, role TEXT DEFAULT 'client',
+      bio TEXT, avatar_url TEXT, points_balance REAL DEFAULT 0, total_earned REAL DEFAULT 0,
+      is_initie INTEGER DEFAULT 0, phone TEXT, address TEXT, siret TEXT,
+      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token TEXT NOT NULL,
+      expires_at TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS admin_codes (
+      id TEXT PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL, name TEXT,
+      expires_at TEXT NOT NULL, used INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS artworks (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, artist_id TEXT NOT NULL,
+      category TEXT DEFAULT 'painting', status TEXT DEFAULT 'for_sale', price REAL DEFAULT 0,
+      final_sale_price REAL, buyer_id TEXT, photos TEXT DEFAULT '[]',
+      gauge_points INTEGER DEFAULT 0, gauge_locked INTEGER DEFAULT 0,
+      blockchain_hash TEXT, blockchain_tx_id TEXT, blockchain_network TEXT,
+      macro_photo TEXT, macro_position TEXT, macro_quality_score INTEGER,
+      macro_fingerprint TEXT, certification_date TEXT,
+      views_count INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY, artwork_id TEXT, buyer_id TEXT, seller_id TEXT,
+      amount REAL NOT NULL, commission_platform REAL DEFAULT 0, status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  const count = (db.prepare("SELECT COUNT(*) as c FROM users").get() as any).c;
+  if (count > 0) return;
+
+  const h = "placeholder_hash";
+  db.prepare("INSERT INTO users (id,email,name,username,role,password_hash,points_balance) VALUES (?,?,?,?,?,?,?)").run("usr_admin_philippe","captainpglg@gmail.com","Philippe Gigon Le Grain","philippe_admin","admin",h,10000);
+  db.prepare("INSERT INTO users (id,email,name,username,role,password_hash,points_balance) VALUES (?,?,?,?,?,?,?)").run("usr_admin_1","admin@artcore.com","Admin Core","admin_core","admin",h,5000);
+
+  const artists = ["Marie Dubois","Lucas Martin","Sophie Bernard","Antoine Petit","Claire Moreau","Julien Garcia","Emma Leroy","Thomas Roux","Léa Fournier","Hugo Girard"];
+  artists.forEach((name, i) => {
+    const id = `usr_art_${i+1}`;
+    const email = name.toLowerCase().replace(/ /g,".").replace(/[éè]/g,"e") + "@art.fr";
+    const uname = name.toLowerCase().replace(/ /g,"_").replace(/[éè]/g,"e");
+    db.prepare("INSERT INTO users (id,email,name,username,role,password_hash,points_balance) VALUES (?,?,?,?,?,?,?)").run(id,email,name,uname,"artist",h,500);
+  });
+
+  for (let i = 1; i <= 22; i++) {
+    const aIdx = ((i-1)%10)+1;
+    const cats = ["painting","sculpture","photography","digital","mixed"];
+    const hash = `0x${i.toString(16).padStart(64,'0')}`;
+    db.prepare("INSERT INTO artworks (id,title,artist_id,category,status,price,blockchain_hash,blockchain_tx_id,blockchain_network,macro_position,macro_quality_score,certification_date,photos) VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),'[]')").run(
+      `art_${100+i}`,`Oeuvre ${i}`,`usr_art_${aIdx}`,cats[(i-1)%5],i<=12?"for_sale":"sold",500+i*300,hash,`0xTX${hash.slice(4)}`,"polygon","center",85+(i%15)
+    );
+  }
+
+  console.log("✅ PASS-CORE Vercel DB initialized");
+}
 
 export function getDb(): Database.Database {
   if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma("journal_mode = WAL");
-    _db.pragma("foreign_keys = ON");
+    if (IS_VERCEL && !fs.existsSync(VERCEL_DB)) {
+      _db = new Database(VERCEL_DB);
+      _db.pragma("journal_mode = WAL");
+      _db.pragma("foreign_keys = ON");
+      initVercelDb(_db);
+    } else {
+      _db = new Database(DB_PATH);
+      _db.pragma("journal_mode = WAL");
+      _db.pragma("foreign_keys = ON");
+      if (IS_VERCEL) initVercelDb(_db);
+    }
   }
   return _db;
 }
@@ -33,4 +109,37 @@ export function getUserByToken(token: string) {
   const session = getDb().prepare("SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')").get(token) as any;
   if (!session) return null;
   return getDb().prepare("SELECT * FROM users WHERE id = ?").get(session.user_id) as any;
+}
+
+export function getAdminByToken(token: string) {
+  const session = getDb().prepare("SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')").get(token) as any;
+  if (!session) return null;
+  const user = getDb().prepare("SELECT * FROM users WHERE id = ?").get(session.user_id) as any;
+  if (user && user.role === "admin") return user;
+  return null;
+}
+
+export function getAdminUser(coreSessionToken: string | undefined, adminSessionToken: string | undefined) {
+  // Try admin_session first
+  if (adminSessionToken) {
+    const session = getDb().prepare("SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')").get(adminSessionToken) as any;
+    if (session) {
+      const user = getDb().prepare("SELECT * FROM users WHERE id = ?").get(session.user_id) as any;
+      if (user && user.role === "admin") return user;
+    }
+  }
+
+  // Fallback to core_session
+  if (coreSessionToken) {
+    const user = getUserByToken(coreSessionToken);
+    if (user && user.role === "admin") return user;
+  }
+
+  return null;
+}
+
+export function getAdminUserFromTokens(req: { cookies: { get: (name: string) => { value?: string } | undefined } }): any {
+  const adminToken = req.cookies?.get?.("admin_session")?.value;
+  const coreToken = req.cookies?.get?.("core_session")?.value;
+  return getAdminUser(coreToken, adminToken);
 }

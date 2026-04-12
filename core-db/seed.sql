@@ -12,7 +12,8 @@ INSERT OR IGNORE INTO users (id, email, password_hash, name, username, role, bio
 ('usr_initie_1', 'initie@demo.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Sophie Laurent', 'sophie.laurent', 'initiate', 'Passionnée d''art contemporain et collectionneuse avertie.', 45, 280, 1),
 ('usr_initie_2', 'initie2@demo.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Thomas Bernard', 'thomas.bernard', 'initiate', 'Expert en art moderne, je repère les talents de demain.', 60, 450, 1),
 ('usr_client_1', 'client@demo.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Jean Dupont', 'jean.dupont', 'client', 'Collectionneur amateur, à la recherche de pièces uniques.', 0, 0, 0),
-('usr_admin_1', 'admin@artcore.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Admin Core', 'admin', 'admin', 'Administrateur de la plateforme.', 0, 0, 0);
+('usr_admin_1', 'admin@artcore.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Admin Core', 'admin', 'admin', 'Administrateur de la plateforme.', 0, 0, 0),
+('usr_admin_philippe', 'captainpglg@gmail.com', '$2a$10$rQEY2FhLnKEqPV7K1J9OOeZkV2yJz5K8sMzMkR5V6t7W3j4y9O3C6', 'Philippe Gigon Le Grain', 'philippe.glg', 'admin', 'Fondateur et administrateur principal de la plateforme Core Ecosystem.', 0, 0, 0);
 
 -- Promo Shop Items
 INSERT OR IGNORE INTO promo_items (id, name, description, cost_points, type, duration_hours, icon) VALUES

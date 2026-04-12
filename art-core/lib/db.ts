@@ -1,15 +1,216 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
-const DB_PATH = path.join(process.cwd(), "..", "core-db", "core.db");
+// Local dev: ../core-db/core.db | Vercel: /tmp/core.db (auto-created)
+const LOCAL_DB = path.join(process.cwd(), "..", "core-db", "core.db");
+const VERCEL_DB = "/tmp/core.db";
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_PATH = IS_VERCEL ? VERCEL_DB : LOCAL_DB;
 
 let _db: Database.Database | null = null;
 
+function initVercelDb(db: Database.Database) {
+  // Create all tables + seed test data for Vercel deployments
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+      username TEXT UNIQUE, password_hash TEXT, role TEXT DEFAULT 'client',
+      bio TEXT, avatar_url TEXT, points_balance REAL DEFAULT 0, total_earned REAL DEFAULT 0,
+      is_initie INTEGER DEFAULT 0, phone TEXT, address TEXT, siret TEXT,
+      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token TEXT NOT NULL,
+      expires_at TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE TABLE IF NOT EXISTS admin_codes (
+      id TEXT PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL, name TEXT,
+      expires_at TEXT NOT NULL, used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS artworks (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, artist_id TEXT NOT NULL,
+      category TEXT DEFAULT 'painting', status TEXT DEFAULT 'for_sale', price REAL DEFAULT 0,
+      final_sale_price REAL, buyer_id TEXT, photos TEXT DEFAULT '[]',
+      gauge_points INTEGER DEFAULT 0, gauge_locked INTEGER DEFAULT 0, gauge_emptied_at TEXT,
+      blockchain_hash TEXT, blockchain_tx_id TEXT, blockchain_network TEXT,
+      macro_photo TEXT, macro_position TEXT, macro_quality_score INTEGER,
+      macro_fingerprint TEXT, certification_date TEXT,
+      views_count INTEGER DEFAULT 0, listed_at TEXT DEFAULT (datetime('now')),
+      sold_at TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (artist_id) REFERENCES users(id)
+    );
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY, artwork_id TEXT, buyer_id TEXT, seller_id TEXT,
+      amount REAL NOT NULL, commission_platform REAL DEFAULT 0, status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (artwork_id) REFERENCES artworks(id)
+    );
+    CREATE TABLE IF NOT EXISTS gauge_entries (
+      id TEXT PRIMARY KEY, artwork_id TEXT NOT NULL, initiate_id TEXT NOT NULL,
+      points INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (artwork_id) REFERENCES artworks(id)
+    );
+    CREATE TABLE IF NOT EXISTS betting_markets (
+      id TEXT PRIMARY KEY, artwork_id TEXT NOT NULL, market_type TEXT DEFAULT 'time',
+      question TEXT, threshold_days INTEGER, threshold_value REAL,
+      total_yes_amount REAL DEFAULT 0, total_no_amount REAL DEFAULT 0,
+      odds_yes REAL DEFAULT 2.0, odds_no REAL DEFAULT 2.0,
+      status TEXT DEFAULT 'open', resolved_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS bets (
+      id TEXT PRIMARY KEY, market_id TEXT, user_id TEXT, position TEXT,
+      amount REAL, odds_at_bet REAL, potential_payout REAL,
+      result TEXT DEFAULT 'pending', payout REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS point_transactions (
+      id TEXT PRIMARY KEY, user_id TEXT, amount REAL, type TEXT,
+      reference_id TEXT, description TEXT, created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS initiate_commissions (
+      id TEXT PRIMARY KEY, transaction_id TEXT, initiate_id TEXT, artwork_id TEXT,
+      points_invested INTEGER, percentage REAL, commission_amount REAL, paid_as_points REAL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY, user_id TEXT, type TEXT, title TEXT, message TEXT,
+      link TEXT, read INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY, conversation_id TEXT, sender_id TEXT, receiver_id TEXT,
+      artwork_id TEXT, content TEXT, read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY, user_id TEXT, artwork_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS follows (
+      id TEXT PRIMARY KEY, follower_id TEXT, following_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS offers (
+      id TEXT PRIMARY KEY, artwork_id TEXT, buyer_id TEXT, amount REAL,
+      message TEXT, status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS promo_items (
+      id TEXT PRIMARY KEY, name TEXT, type TEXT, tier TEXT, icon TEXT,
+      price_points REAL, duration_days INTEGER, sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS promo_purchases (
+      id TEXT PRIMARY KEY, user_id TEXT, promo_item_id TEXT, artwork_id TEXT,
+      status TEXT DEFAULT 'active', expires_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Check if already seeded
+  const count = (db.prepare("SELECT COUNT(*) as c FROM users").get() as any).c;
+  if (count > 0) return;
+
+  // Seed admin + test users
+  const bcrypt = "placeholder_hash";
+  db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run("usr_admin_philippe", "captainpglg@gmail.com", "Philippe Gigon Le Grain", "philippe_admin", "admin", bcrypt, 10000, 0);
+  db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run("usr_admin_1", "admin@artcore.com", "Admin Core", "admin_core", "admin", bcrypt, 5000, 0);
+
+  // 10 artists
+  const artists = [
+    ["usr_art_1", "marie.dubois@art.fr", "Marie Dubois", "marie_dubois"],
+    ["usr_art_2", "lucas.martin@art.fr", "Lucas Martin", "lucas_martin"],
+    ["usr_art_3", "sophie.bernard@art.fr", "Sophie Bernard", "sophie_bernard"],
+    ["usr_art_4", "antoine.petit@art.fr", "Antoine Petit", "antoine_petit"],
+    ["usr_art_5", "claire.moreau@art.fr", "Claire Moreau", "claire_moreau"],
+    ["usr_art_6", "julien.garcia@art.fr", "Julien Garcia", "julien_garcia"],
+    ["usr_art_7", "emma.leroy@art.fr", "Emma Leroy", "emma_leroy"],
+    ["usr_art_8", "thomas.roux@art.fr", "Thomas Roux", "thomas_roux"],
+    ["usr_art_9", "lea.fournier@art.fr", "Léa Fournier", "lea_fournier"],
+    ["usr_art_10", "hugo.girard@art.fr", "Hugo Girard", "hugo_girard"],
+  ];
+  for (const [id, email, name, username] of artists) {
+    db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance) VALUES (?, ?, ?, ?, 'artist', ?, 500)").run(id, email, name, username, bcrypt);
+  }
+
+  // 5 gallerists + 5 antique dealers
+  const dealers = [
+    ["usr_gal_1", "galerie.lumiere@art.fr", "Galerie Lumière", "galerie_lumiere", "client"],
+    ["usr_gal_2", "espace.art@art.fr", "Espace Art Moderne", "espace_art", "client"],
+    ["usr_gal_3", "galerie.paris@art.fr", "Galerie de Paris", "galerie_paris", "client"],
+    ["usr_gal_4", "art.vivant@art.fr", "Art Vivant Gallery", "art_vivant", "client"],
+    ["usr_gal_5", "galerie.seine@art.fr", "Galerie Seine", "galerie_seine", "client"],
+    ["usr_ant_1", "antiquaire.royal@art.fr", "Antiquités Royales", "antiq_royal", "client"],
+    ["usr_ant_2", "brocante.paris@art.fr", "Brocante de Paris", "brocante_paris", "client"],
+    ["usr_ant_3", "tresor.ancien@art.fr", "Trésors Anciens", "tresor_ancien", "client"],
+    ["usr_ant_4", "patrimoine.art@art.fr", "Patrimoine & Art", "patrimoine_art", "client"],
+    ["usr_ant_5", "belle.epoque@art.fr", "Belle Époque", "belle_epoque", "client"],
+  ];
+  for (const [id, email, name, username, role] of dealers) {
+    db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance) VALUES (?, ?, ?, ?, ?, ?, 1000)").run(id, email, name, username, role, bcrypt);
+  }
+
+  // 2 initiates
+  db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, 'client', ?, 2000, 1)").run("usr_init_1", "initie1@art.fr", "Initié Alpha", "initie_alpha", bcrypt);
+  db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, 'client', ?, 1500, 1)").run("usr_init_2", "initie2@art.fr", "Initié Beta", "initie_beta", bcrypt);
+
+  // 22 artworks with blockchain hashes
+  const categories = ["painting", "sculpture", "photography", "digital", "mixed"];
+  const statuses = ["for_sale", "for_sale", "sold"];
+  for (let i = 1; i <= 22; i++) {
+    const artistIdx = ((i - 1) % 10) + 1;
+    const cat = categories[(i - 1) % 5];
+    const status = i <= 12 ? "for_sale" : "sold";
+    const price = 500 + (i * 300);
+    const hash = `0x${i.toString(16).padStart(64, '0')}`;
+    const txHash = `0xTX${i.toString(16).padStart(62, '0')}`;
+    db.prepare(`INSERT INTO artworks (id, title, description, artist_id, category, status, price, blockchain_hash, blockchain_tx_id, blockchain_network, macro_position, macro_quality_score, macro_fingerprint, certification_date, gauge_points, photos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, '[]')`).run(
+      `art_${100 + i}`, `Oeuvre ${i} - ${cat}`, `Description de l'oeuvre ${i}`,
+      `usr_art_${artistIdx}`, cat, status, price, hash, txHash, "polygon",
+      "center", 85 + (i % 15), `FP_${hash.slice(0, 16)}`,
+      Math.min(i * 5, 100)
+    );
+  }
+
+  // 10 transactions
+  for (let i = 13; i <= 22; i++) {
+    const buyerIdx = ((i - 1) % 5) + 1;
+    const artistIdx = ((i - 1) % 10) + 1;
+    db.prepare("INSERT INTO transactions (id, artwork_id, buyer_id, seller_id, amount, commission_platform, status) VALUES (?, ?, ?, ?, ?, ?, 'completed')").run(
+      `tx_${i}`, `art_${100 + i}`, `usr_gal_${buyerIdx}`, `usr_art_${artistIdx}`,
+      500 + (i * 300), (500 + (i * 300)) * 0.10, "completed"
+    );
+  }
+
+  // Gauge entries
+  for (let i = 1; i <= 12; i++) {
+    db.prepare("INSERT INTO gauge_entries (id, artwork_id, initiate_id, points) VALUES (?, ?, ?, ?)").run(
+      `ge_${i}`, `art_${100 + i}`, i % 2 === 0 ? "usr_init_1" : "usr_init_2", i * 5
+    );
+  }
+
+  console.log("✅ Vercel DB initialized with test data (24 users, 22 artworks, 10 transactions)");
+}
+
 export function getDb(): Database.Database {
   if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma("journal_mode = WAL");
-    _db.pragma("foreign_keys = ON");
+    // On Vercel, auto-create the DB if missing
+    if (IS_VERCEL && !fs.existsSync(VERCEL_DB)) {
+      console.log("📦 Creating Vercel DB at /tmp/core.db...");
+      _db = new Database(VERCEL_DB);
+      _db.pragma("journal_mode = WAL");
+      _db.pragma("foreign_keys = ON");
+      initVercelDb(_db);
+    } else {
+      _db = new Database(DB_PATH);
+      _db.pragma("journal_mode = WAL");
+      _db.pragma("foreign_keys = ON");
+      // Also ensure tables exist locally (idempotent)
+      if (IS_VERCEL) initVercelDb(_db);
+    }
   }
   return _db;
 }
@@ -43,6 +244,17 @@ export function createSession(userId: string, token: string) {
 
 export function deleteSession(token: string) {
   getDb().prepare("DELETE FROM sessions WHERE token = ?").run(token);
+}
+
+// ── Admin session helper ──────────────────────────────────
+export function getAdminSession(token: string) {
+  const session = getDb()
+    .prepare("SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')")
+    .get(token) as any;
+  if (!session) return null;
+  const user = getUserById(session.user_id);
+  if (!user || user.role !== 'admin') return null;
+  return user;
 }
 
 // ── Artwork queries ───────────────────────────────────────

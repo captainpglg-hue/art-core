@@ -222,6 +222,20 @@ CREATE TABLE IF NOT EXISTS point_transactions (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Admin OTP codes (for admin email authentication)
+CREATE TABLE IF NOT EXISTS admin_codes (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  code TEXT NOT NULL,
+  name TEXT,
+  expires_at TEXT NOT NULL,
+  used INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_codes_email ON admin_codes(email);
+CREATE INDEX IF NOT EXISTS idx_admin_codes_code ON admin_codes(code);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_artworks_artist ON artworks(artist_id);
 CREATE INDEX IF NOT EXISTS idx_artworks_status ON artworks(status);

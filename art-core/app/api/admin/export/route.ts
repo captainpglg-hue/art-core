@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByToken, getDb } from "@/lib/db";
+import { getAdminSession, getDb } from "@/lib/db";
 
 // GET: export all data as JSON (admin only)
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("core_session")?.value;
+  const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getUserByToken(token);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const user = getAdminSession(token);
+  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   const db = getDb();
   const type = new URL(req.url).searchParams.get("type") || "all";
