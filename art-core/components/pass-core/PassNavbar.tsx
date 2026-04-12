@@ -18,4 +18,5 @@ export function PassNavbar() {
         </div>
       </div>
     </header>
-  
+  );
+}

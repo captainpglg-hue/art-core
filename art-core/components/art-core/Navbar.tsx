@@ -233,4 +233,5 @@ export function Navbar() {
         </div>
       )}
     </>
-  
+  );
+}

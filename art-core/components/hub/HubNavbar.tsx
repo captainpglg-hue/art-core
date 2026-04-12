@@ -149,5 +149,6 @@ export function HubNavbar() {
           </nav>
         </div>
       )}
-    <>
-  
+    </>
+  );
+}
