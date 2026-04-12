@@ -58,15 +58,16 @@ export async function POST(req: NextRequest) {
       console.error("Email send error:", mailError);
     }
 
-    // In development mode, return the code directly
-    const isDev = process.env.NODE_ENV !== "production";
+    // BETA MODE: Always return the code for testing
+    // TODO: Remove dev_code in final production release when SMTP is configured
+    const isBeta = !process.env.SMTP_HOST || !process.env.SMTP_PASS;
     return NextResponse.json({
       success: true,
-      message: "Code envoyé à votre email",
-      ...(isDev ? {
+      message: isBeta ? "Code généré (mode beta)" : "Code envoyé à votre email",
+      ...(isBeta ? {
         dev_code: code,
         dev_email_url: emailResult?.localUrl || null,
-        dev_notice: "Mode développement : le code est affiché directement. En production, il sera envoyé uniquement par email."
+        dev_notice: "Mode beta : le code est retourné directement. Configurez SMTP pour l'envoi par email."
       } : {}),
     });
   } catch (error: any) {
