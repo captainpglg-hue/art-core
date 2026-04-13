@@ -67,6 +67,17 @@ export async function POST(req: NextRequest) {
       macroQualityScore = parseInt((formData.get("macro_quality_score") as string) || "0");
       recipientEmail = (formData.get("email") as string) || "";
 
+      // Additional macro photos (2 and 3) → Supabase Storage
+      const macroPhotos = formData.getAll("macro_photos") as File[];
+      for (const macro of macroPhotos) {
+        if (macro && macro.size > 0) {
+          const mName = `${Date.now()}_${Math.random().toString(36).slice(2, 5)}_macro.jpg`;
+          const buffer = Buffer.from(await macro.arrayBuffer());
+          const publicUrl = await uploadPhoto(buffer, storageFolder, mName);
+          photos.push(publicUrl);
+        }
+      }
+
       // Additional photos → Supabase Storage
       const extraPhotos = formData.getAll("extra_photos") as File[];
       for (const extra of extraPhotos) {

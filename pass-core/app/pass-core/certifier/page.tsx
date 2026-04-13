@@ -11,7 +11,7 @@ import {
 // ═══════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════
-type Step = "intro" | "photo1" | "zone_select" | "photo2" | "photo3" |
+type Step = "intro" | "photo1" | "zone_select" | "photo2" | "photo2b" | "photo2c" | "photo3" |
             "f_title" | "f_technique" | "f_dimensions" | "f_year" | "f_description" | "f_price" |
             "review" | "submitting" | "done";
 
@@ -26,6 +26,8 @@ export default function CertifierPage() {
   // Photos
   const [photo1, setPhoto1] = useState<{ file: File; url: string } | null>(null);
   const [photo2, setPhoto2] = useState<{ file: File; url: string } | null>(null);
+  const [photo2b, setPhoto2b] = useState<{ file: File; url: string } | null>(null);
+  const [photo2c, setPhoto2c] = useState<{ file: File; url: string } | null>(null);
   const [photo3, setPhoto3] = useState<{ file: File; url: string } | null>(null);
   const [photoCreation, setPhotoCreation] = useState<{ file: File; url: string } | null>(null);
 
@@ -56,7 +58,7 @@ export default function CertifierPage() {
   const zoneRef = useRef<HTMLDivElement>(null);
 
   // Progress
-  const ALL_STEPS: Step[] = ["intro", "photo1", "zone_select", "photo2", "photo3", "f_title", "f_technique", "f_dimensions", "f_year", "f_description", "f_price", "review", "submitting", "done"];
+  const ALL_STEPS: Step[] = ["intro", "photo1", "zone_select", "photo2", "photo2b", "photo2c", "photo3", "f_title", "f_technique", "f_dimensions", "f_year", "f_description", "f_price", "review", "submitting", "done"];
   const stepIdx = ALL_STEPS.indexOf(step);
   const progress = Math.round((stepIdx / (ALL_STEPS.length - 1)) * 100);
 
@@ -194,6 +196,8 @@ export default function CertifierPage() {
       fd.append("macro_quality_score", String(qualityScore?.score || 0));
       if (photo1) fd.append("main_photo", photo1.file);
       if (photo2) fd.append("macro_photo", photo2.file);
+      if (photo2b) fd.append("macro_photos", photo2b.file);
+      if (photo2c) fd.append("macro_photos", photo2c.file);
       if (photo3) fd.append("extra_photos", photo3.file);
       if (photoCreation) fd.append("extra_photos", photoCreation.file);
 
@@ -282,7 +286,7 @@ export default function CertifierPage() {
       {/* ═══ PHOTO 1 — Vue complète ═══ */}
       {step === "photo1" && (
         <div className="animate-fade-in">
-          <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 1 / 3</p>
+          <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 1 / 5</p>
           <h2 className="text-xl font-semibold text-white mb-1">Vue complète de face</h2>
           <p className="text-white/35 text-sm mb-6">Reculez à 1 mètre — l&apos;œuvre doit remplir 80% du cadre</p>
 
@@ -364,12 +368,12 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ PHOTO 2 — Détail macro ═══ */}
+      {/* ═══ PHOTO 2 — Macro 1 : Gros plan frontal ═══ */}
       {step === "photo2" && (
         <div className="animate-fade-in">
-          <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 2 / 3</p>
-          <h2 className="text-xl font-semibold text-white mb-1">Détail en gros plan</h2>
-          <p className="text-white/35 text-sm mb-4">Rapprochez-vous à 5-10cm de la zone sélectionnée</p>
+          <p className="text-xs text-[#C9A84C] font-medium mb-1">MACRO 1 / 3</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Macro — Vue frontale</h2>
+          <p className="text-white/35 text-sm mb-4">Rapprochez-vous à 5-10cm de la zone, bien en face</p>
 
           {/* Reference: miniature photo1 + zone */}
           {photo1 && (
@@ -377,7 +381,7 @@ export default function CertifierPage() {
               <img src={photo1.url} alt="" className="w-full h-full object-cover" />
               <div className="absolute border-2 border-red-500 rounded-sm animate-pulse"
                 style={{ left: `${macroZone.x}%`, top: `${macroZone.y}%`, width: `${macroZone.w}%`, height: `${macroZone.h}%` }} />
-              <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-red-400 text-center py-0.5">Photographiez cette zone</span>
+              <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-red-400 text-center py-0.5">Zone cible</span>
             </div>
           )}
 
@@ -385,7 +389,7 @@ export default function CertifierPage() {
             <div className="relative rounded-2xl overflow-hidden border-2 border-[#C9A84C]/30 mb-4">
               <img src={photo2.url} alt="" className="w-full" />
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
-                <Check className="size-3" /> Detail capture
+                <Check className="size-3" /> Macro frontale
               </div>
               <button onClick={() => capturePhoto(setPhoto2)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
@@ -393,19 +397,95 @@ export default function CertifierPage() {
             <button onClick={() => capturePhoto(setPhoto2)}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
-              <p className="text-[#C9A84C] font-medium">Photo detail / macro</p>
-              <p className="text-white/20 text-xs">5-10cm de la surface</p>
+              <p className="text-[#C9A84C] font-medium">Photo macro frontale</p>
+              <p className="text-white/20 text-xs">5-10cm, bien en face de la zone</p>
             </button>
           )}
 
-          <NavButtons back="zone_select" next={() => setStep("photo3")} nextDisabled={!photo2} />
+          <NavButtons back="zone_select" next={() => setStep("photo2b")} nextDisabled={!photo2} />
+        </div>
+      )}
+
+      {/* ═══ PHOTO 2B — Macro 2 : Angle rasant ═══ */}
+      {step === "photo2b" && (
+        <div className="animate-fade-in">
+          <p className="text-xs text-[#C9A84C] font-medium mb-1">MACRO 2 / 3</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Macro — Lumière rasante</h2>
+          <p className="text-white/35 text-sm mb-4">Même zone, inclinez le téléphone à 30° pour révéler les textures et reliefs</p>
+
+          {/* Reference: miniature photo1 + zone */}
+          {photo1 && (
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden mb-4 border border-white/10">
+              <img src={photo1.url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute border-2 border-red-500 rounded-sm"
+                style={{ left: `${macroZone.x}%`, top: `${macroZone.y}%`, width: `${macroZone.w}%`, height: `${macroZone.h}%` }} />
+              <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-red-400 text-center py-0.5">Même zone</span>
+            </div>
+          )}
+
+          {photo2b ? (
+            <div className="relative rounded-2xl overflow-hidden border-2 border-[#C9A84C]/30 mb-4">
+              <img src={photo2b.url} alt="" className="w-full" />
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
+                <Check className="size-3" /> Lumière rasante
+              </div>
+              <button onClick={() => capturePhoto(setPhoto2b)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+            </div>
+          ) : (
+            <button onClick={() => capturePhoto(setPhoto2b)}
+              className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
+              <ZoomIn className="size-12 text-[#C9A84C]" />
+              <p className="text-[#C9A84C] font-medium">Macro angle rasant</p>
+              <p className="text-white/20 text-xs">Inclinez à 30° pour les reliefs</p>
+            </button>
+          )}
+
+          <NavButtons back="photo2" next={() => setStep("photo2c")} nextDisabled={!photo2b} />
+        </div>
+      )}
+
+      {/* ═══ PHOTO 2C — Macro 3 : Ultra-détail ═══ */}
+      {step === "photo2c" && (
+        <div className="animate-fade-in">
+          <p className="text-xs text-[#C9A84C] font-medium mb-1">MACRO 3 / 3</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Macro — Ultra-détail</h2>
+          <p className="text-white/35 text-sm mb-4">Collez le téléphone à 2-3cm pour capturer les micro-détails (pigments, craquelures, coups de pinceau)</p>
+
+          {/* Reference: miniature photo1 + zone */}
+          {photo1 && (
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden mb-4 border border-white/10">
+              <img src={photo1.url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute border-2 border-red-500 rounded-sm"
+                style={{ left: `${macroZone.x}%`, top: `${macroZone.y}%`, width: `${macroZone.w}%`, height: `${macroZone.h}%` }} />
+              <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-red-400 text-center py-0.5">Même zone</span>
+            </div>
+          )}
+
+          {photo2c ? (
+            <div className="relative rounded-2xl overflow-hidden border-2 border-[#C9A84C]/30 mb-4">
+              <img src={photo2c.url} alt="" className="w-full" />
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
+                <Check className="size-3" /> Ultra-détail
+              </div>
+              <button onClick={() => capturePhoto(setPhoto2c)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+            </div>
+          ) : (
+            <button onClick={() => capturePhoto(setPhoto2c)}
+              className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
+              <ZoomIn className="size-12 text-[#C9A84C]" />
+              <p className="text-[#C9A84C] font-medium">Ultra-détail</p>
+              <p className="text-white/20 text-xs">2-3cm, pigments et micro-textures</p>
+            </button>
+          )}
+
+          <NavButtons back="photo2b" next={() => setStep("photo3")} nextDisabled={!photo2c} />
         </div>
       )}
 
       {/* ═══ PHOTO 3 — Vue de côté ═══ */}
       {step === "photo3" && (
         <div className="animate-fade-in">
-          <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 3 / 3</p>
+          <p className="text-xs text-[#C9A84C] font-medium mb-1">PHOTO 5 / 5</p>
           <h2 className="text-xl font-semibold text-white mb-1">Vue de côté (30-45 degrés)</h2>
           <p className="text-white/35 text-sm mb-6">Photographiez l&apos;œuvre légèrement de côté pour voir l&apos;épaisseur et la texture</p>
 
@@ -566,14 +646,31 @@ export default function CertifierPage() {
           <h2 className="font-display text-2xl font-semibold text-white mb-6">Verification</h2>
 
           {/* Photos recap */}
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            {[photo1, photo2, photo3].filter(Boolean).map((p, i) => (
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {[
+              { p: photo1, label: "Vue complète" },
+              { p: photo2, label: "Macro 1" },
+              { p: photo2b, label: "Macro 2" },
+            ].filter(x => x.p).map((x, i) => (
               <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
-                <img src={p!.url} alt="" className="w-full h-full object-cover" />
+                <img src={x.p!.url} alt="" className="w-full h-full object-cover" />
                 {i === 0 && (
                   <div className="absolute border-2 border-[#C9A84C] rounded-sm"
                     style={{ left: `${macroZone.x}%`, top: `${macroZone.y}%`, width: `${macroZone.w}%`, height: `${macroZone.h}%` }} />
                 )}
+                <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white/70 text-center py-0.5">{x.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {[
+              { p: photo2c, label: "Macro 3" },
+              { p: photo3, label: "Vue côté" },
+              { p: photoCreation, label: "Création" },
+            ].filter(x => x.p).map((x, i) => (
+              <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
+                <img src={x.p!.url} alt="" className="w-full h-full object-cover" />
+                <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white/70 text-center py-0.5">{x.label}</span>
               </div>
             ))}
           </div>
@@ -663,7 +760,7 @@ export default function CertifierPage() {
               className="w-full py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-center block active:brightness-90">
               Voir ma fiche oeuvre
             </a>
-            <button onClick={() => { setStep("intro"); setPhoto1(null); setPhoto2(null); setPhoto3(null); setPhotoCreation(null); setTitle(""); setTechnique(""); setDimW(""); setDimH(""); setYear(""); setDescription(""); setPrice(""); setResult(null); setQualityScore(null); }}
+            <button onClick={() => { setStep("intro"); setPhoto1(null); setPhoto2(null); setPhoto2b(null); setPhoto2c(null); setPhoto3(null); setPhotoCreation(null); setTitle(""); setTechnique(""); setDimW(""); setDimH(""); setYear(""); setDescription(""); setPrice(""); setResult(null); setQualityScore(null); }}
               className="w-full py-4 rounded-xl border border-white/10 text-white/50 font-medium active:bg-white/5">
               Certifier une autre oeuvre
             </button>
