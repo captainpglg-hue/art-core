@@ -7,3 +7,5 @@ node_modules/
 .env.production
 .env.vercel
 .env
+.vercel
+.env*.local

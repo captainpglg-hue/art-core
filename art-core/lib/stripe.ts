@@ -1,17 +1,25 @@
 import Stripe from "stripe";
 import { loadStripe } from "@stripe/stripe-js";
 
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || "";
+const STRIPE_PUB_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+
 // ── Server-side Stripe instance ───────────────────────────────
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-04-10",
-  typescript: true,
-});
+export const stripe = STRIPE_KEY
+  ? new Stripe(STRIPE_KEY, { apiVersion: "2024-04-10", typescript: true })
+  : (null as unknown as Stripe);
+
+export const isStripeConfigured = () => !!STRIPE_KEY;
 
 // ── Client-side Stripe (singleton) ───────────────────────────
 let stripePromise: ReturnType<typeof loadStripe>;
 export const getStripe = () => {
+  if (!STRIPE_PUB_KEY) {
+    console.warn("[Stripe] Non configuré — NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY manquant");
+    return Promise.resolve(null);
+  }
   if (!stripePromise) {
-    stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+    stripePromise = loadStripe(STRIPE_PUB_KEY);
   }
   return stripePromise;
 };
@@ -170,9 +178,9 @@ export const constructWebhookEvent = (
   payload: string | Buffer,
   signature: string
 ) => {
-  return stripe.webhooks.constructEvent(
-    payload,
-    signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
-  );
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret || !stripe) {
+    throw new Error("Stripe non configuré — STRIPE_WEBHOOK_SECRET manquant");
+  }
+  return stripe.webhooks.constructEvent(payload, signature, secret);
 };

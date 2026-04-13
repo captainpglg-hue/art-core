@@ -1,11 +1,19 @@
 import { v2 as cloudinary } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+
+export const isCloudinaryConfigured = () => !!(CLOUD_NAME && API_KEY && API_SECRET);
+
+if (isCloudinaryConfigured()) {
+  cloudinary.config({
+    cloud_name: CLOUD_NAME,
+    api_key: API_KEY,
+    api_secret: API_SECRET,
+    secure: true,
+  });
+}
 
 export { cloudinary };
 
@@ -66,6 +74,10 @@ export const uploadArtwork = async (
 
 // ── Signed upload URL (for client-side direct upload) ─────────
 export const getSignedUploadParams = (artworkId: string) => {
+  if (!isCloudinaryConfigured()) {
+    throw new Error("Cloudinary non configuré — impossible de signer l'upload");
+  }
+
   const timestamp = Math.round(Date.now() / 1000);
   const folder = `${FOLDERS.ARTWORKS}/${artworkId}`;
 
@@ -75,14 +87,14 @@ export const getSignedUploadParams = (artworkId: string) => {
       folder,
       upload_preset: UPLOAD_PRESETS.ARTWORKS,
     },
-    process.env.CLOUDINARY_API_SECRET!
+    API_SECRET
   );
 
   return {
     timestamp,
     signature,
-    apiKey: process.env.CLOUDINARY_API_KEY!,
-    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+    apiKey: API_KEY,
+    cloudName: CLOUD_NAME,
     folder,
   };
 };
