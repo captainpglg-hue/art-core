@@ -30,17 +30,33 @@ function initVercelDb(db: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS artworks (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, artist_id TEXT NOT NULL,
+      technique TEXT, dimensions TEXT, creation_date TEXT,
       category TEXT DEFAULT 'painting', status TEXT DEFAULT 'for_sale', price REAL DEFAULT 0,
       final_sale_price REAL, buyer_id TEXT, photos TEXT DEFAULT '[]',
-      gauge_points INTEGER DEFAULT 0, gauge_locked INTEGER DEFAULT 0,
+      gauge_points INTEGER DEFAULT 0, gauge_locked INTEGER DEFAULT 0, gauge_emptied_at TEXT,
       blockchain_hash TEXT, blockchain_tx_id TEXT, blockchain_network TEXT,
       macro_photo TEXT, macro_position TEXT, macro_quality_score INTEGER,
       macro_fingerprint TEXT, certification_date TEXT,
-      views_count INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+      views_count INTEGER DEFAULT 0, listed_at TEXT DEFAULT (datetime('now')),
+      sold_at TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS transactions (
       id TEXT PRIMARY KEY, artwork_id TEXT, buyer_id TEXT, seller_id TEXT,
       amount REAL NOT NULL, commission_platform REAL DEFAULT 0, status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS betting_markets (
+      id TEXT PRIMARY KEY, artwork_id TEXT NOT NULL, market_type TEXT DEFAULT 'time',
+      question TEXT, threshold_days INTEGER, threshold_value REAL,
+      total_yes_amount REAL DEFAULT 0, total_no_amount REAL DEFAULT 0,
+      odds_yes REAL DEFAULT 2.0, odds_no REAL DEFAULT 2.0,
+      status TEXT DEFAULT 'open', resolved_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS bets (
+      id TEXT PRIMARY KEY, market_id TEXT, user_id TEXT, position TEXT,
+      amount REAL, odds_at_bet REAL, potential_payout REAL,
+      result TEXT DEFAULT 'pending', payout REAL DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
