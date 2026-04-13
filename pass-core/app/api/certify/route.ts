@@ -60,8 +60,15 @@ export async function POST(req: NextRequest) {
         photos.push(publicUrl); // Include macro 1 in photos array for email
 
         // Generate visual fingerprint (in-memory, no disk needed)
-        const fp = await generateFingerprint(macroBuffer);
-        macroFingerprint = fp.combined;
+        try {
+          const fp = await generateFingerprint(macroBuffer);
+          macroFingerprint = fp.combined;
+        } catch (fpErr: any) {
+          console.warn("Fingerprint generation failed (sharp may not be available):", fpErr.message);
+          // Fallback: use a simple hash of the buffer
+          const { createHash } = await import("crypto");
+          macroFingerprint = createHash("sha256").update(macroBuffer).digest("hex");
+        }
       }
 
       macroPosition = (formData.get("macro_position") as string) || "";

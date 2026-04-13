@@ -246,6 +246,7 @@ export default function CertifierPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, technique, dimensions: `${dimW}x${dimH} cm`, year }),
       });
+      if (!res.ok) throw new Error("AI description failed");
       const data = await res.json();
       if (data.description) setDescription(data.description);
     } catch {}
@@ -275,8 +276,12 @@ export default function CertifierPage() {
       if (photoCreation) fd.append("extra_photos", photoCreation.file);
 
       const res = await fetch("/api/certify", { method: "POST", body: fd });
+      if (!res.ok) {
+        let errMsg = `Erreur serveur (${res.status})`;
+        try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch { /* response wasn't JSON */ }
+        throw new Error(errMsg);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       setResult(data);
       setStep("done");
     } catch (err: any) {
