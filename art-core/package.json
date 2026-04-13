@@ -63,7 +63,7 @@
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.378.0",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^8.0.5",
     "next": "14.2.5",
     "next-cloudinary": "^6.9.0",
     "qrcode": "^1.5.4",
