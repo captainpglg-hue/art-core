@@ -32,12 +32,15 @@ function initVercelDb(db: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS artworks (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, artist_id TEXT NOT NULL,
+      technique TEXT DEFAULT '', dimensions TEXT DEFAULT '', creation_date TEXT DEFAULT '',
       category TEXT DEFAULT 'painting', status TEXT DEFAULT 'for_sale', price REAL DEFAULT 0,
       final_sale_price REAL, buyer_id TEXT, photos TEXT DEFAULT '[]',
       gauge_points INTEGER DEFAULT 0, gauge_locked INTEGER DEFAULT 0, gauge_emptied_at TEXT,
       blockchain_hash TEXT, blockchain_tx_id TEXT, blockchain_network TEXT,
       macro_photo TEXT, macro_position TEXT, macro_quality_score INTEGER,
       macro_fingerprint TEXT, certification_date TEXT,
+      community_boosts INTEGER DEFAULT 0, community_highlighted INTEGER DEFAULT 0,
+      certification_status TEXT DEFAULT '', certification_photos TEXT DEFAULT '[]',
       views_count INTEGER DEFAULT 0, listed_at TEXT DEFAULT (datetime('now')),
       sold_at TEXT, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (artist_id) REFERENCES users(id)
@@ -107,6 +110,34 @@ function initVercelDb(db: Database.Database) {
       id TEXT PRIMARY KEY, user_id TEXT, promo_item_id TEXT, artwork_id TEXT,
       status TEXT DEFAULT 'active', expires_at TEXT,
       created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS cahier_police (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      artwork_id TEXT,
+      numero_ordre INTEGER NOT NULL,
+      date_entree TEXT NOT NULL DEFAULT (date('now')),
+      designation TEXT NOT NULL,
+      description_detaillee TEXT DEFAULT '',
+      categorie TEXT DEFAULT '',
+      matiere TEXT DEFAULT '',
+      dimensions TEXT DEFAULT '',
+      etat TEXT DEFAULT 'bon',
+      provenance TEXT DEFAULT '',
+      nom_vendeur TEXT DEFAULT '',
+      adresse_vendeur TEXT DEFAULT '',
+      piece_identite TEXT DEFAULT '',
+      numero_piece TEXT DEFAULT '',
+      prix_achat REAL DEFAULT 0,
+      prix_vente REAL,
+      date_vente TEXT,
+      nom_acheteur TEXT DEFAULT '',
+      observations TEXT DEFAULT '',
+      photos TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (artwork_id) REFERENCES artworks(id)
     );
   `);
 

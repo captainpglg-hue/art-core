@@ -29,8 +29,9 @@ export async function POST(req: NextRequest) {
 
     const user = getUserByToken(token);
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-    if (user.role !== "artist" && user.role !== "admin") {
-      return NextResponse.json({ error: "Seuls les artistes peuvent déposer des oeuvres" }, { status: 403 });
+    const allowedRoles = ["artist", "admin", "antiquaire", "galeriste", "brocanteur", "depot_vente"];
+    if (!allowedRoles.includes(user.role)) {
+      return NextResponse.json({ error: "Votre rôle ne permet pas de déposer des oeuvres" }, { status: 403 });
     }
 
     const body = await req.json();

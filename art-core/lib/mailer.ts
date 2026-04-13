@@ -61,33 +61,42 @@ function saveEmailLocally(filename: string, html: string, metadata: {
   from: string;
   date: string;
 }): string {
-  const emailDir = path.join(process.cwd(), "public", "emails");
-  fs.mkdirSync(emailDir, { recursive: true });
+  // On Vercel, use /tmp (ephemeral but writable). Locally, use public/emails/
+  const IS_VERCEL = !!process.env.VERCEL;
+  const emailDir = IS_VERCEL
+    ? path.join("/tmp", "emails")
+    : path.join(process.cwd(), "public", "emails");
 
-  // Save the HTML email
-  const filepath = path.join(emailDir, filename);
-  fs.writeFileSync(filepath, html, "utf-8");
-
-  // Update the email index
-  const indexPath = path.join(emailDir, "index.json");
-  let index: any[] = [];
   try {
-    if (fs.existsSync(indexPath)) {
-      index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-    }
-  } catch {}
+    fs.mkdirSync(emailDir, { recursive: true });
 
-  index.unshift({
-    filename,
-    ...metadata,
-    mode: _mode,
-  });
+    // Save the HTML email
+    const filepath = path.join(emailDir, filename);
+    fs.writeFileSync(filepath, html, "utf-8");
 
-  // Keep last 100 emails
-  if (index.length > 100) index = index.slice(0, 100);
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf-8");
+    // Update the email index
+    const indexPath = path.join(emailDir, "index.json");
+    let index: any[] = [];
+    try {
+      if (fs.existsSync(indexPath)) {
+        index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+      }
+    } catch {}
 
-  return `/emails/${filename}`;
+    index.unshift({
+      filename,
+      ...metadata,
+      mode: _mode,
+    });
+
+    // Keep last 100 emails
+    if (index.length > 100) index = index.slice(0, 100);
+    fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf-8");
+  } catch (err: any) {
+    console.warn(`Could not save email locally: ${err.message}`);
+  }
+
+  return IS_VERCEL ? `/tmp/emails/${filename}` : `/emails/${filename}`;
 }
 
 export async function sendAdminCode(
@@ -166,4 +175,97 @@ export async function sendAdminCode(
   }
 
   return { success: true, code, localUrl };
+}
+
+// ── Certificate Email ─────────────────────────────────────
+interface CertificateEmailParams {
+  recipientEmail: string;
+  recipientName: string;
+  artworkTitle: string;
+  artworkId: string;
+  blockchainHash: string;
+  txHash: string;
+  explorerUrl: string;
+  network: string;
+  onChain: boolean;
+  macroPosition?: string;
+  macroQualityScore?: number;
+  macroFingerprint?: string;
+  certificationDate: string;
+  artcoreUrl: string;
+  photos?: string[];
+  mainPhoto?: string;
+}
+
+export async function sendCertificateEmail(
+  params: CertificateEmailParams
+): Promise<{ success: boolean; previewUrl?: string }> {
+  const trans = await getTransporter();
+
+  const mainPhotoHtml = params.mainPhoto
+    ? `<div style="margin:20px 0;text-align:center;"><img src="${params.mainPhoto}" alt="${params.artworkTitle}" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #333;" /></div>`
+    : "";
+
+  const chainInfo = params.onChain
+    ? `<a href="${params.explorerUrl}" style="color:#D4AF37;text-decoration:underline;">Voir sur ${params.network}</a>`
+    : `<span style="color:#999;">Simulation (${params.network})</span>`;
+
+  const macroInfo = params.macroFingerprint
+    ? `<div style="margin:15px 0;padding:10px;background:#0a0a0a;border-radius:6px;font-size:12px;color:#999;">
+        <div>Zone macro : ${params.macroPosition || "N/A"}</div>
+        <div>Score qualite : ${params.macroQualityScore || 0}/100</div>
+        <div style="word-break:break-all;">Empreinte : ${params.macroFingerprint.slice(0, 32)}...</div>
+      </div>`
+    : "";
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+    <div style="background:#1a1a1a;border:1px solid #D4AF37;border-radius:12px;padding:40px;text-align:center;">
+      <div style="font-size:28px;font-weight:bold;color:#D4AF37;margin-bottom:5px;">ART-CORE</div>
+      <p style="font-size:14px;color:#999;margin:0 0 30px;">Certificat d'Authenticite</p>
+      ${mainPhotoHtml}
+      <div style="font-size:20px;color:#fff;margin:20px 0;font-weight:600;">${params.artworkTitle}</div>
+      <p style="color:#ccc;">Certifie le ${params.certificationDate}</p>
+      <div style="margin:30px 0;padding:20px;background:#0a0a0a;border-radius:8px;border:1px solid #333;text-align:left;">
+        <div style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Blockchain</div>
+        <div style="font-size:13px;color:#D4AF37;word-break:break-all;margin-bottom:8px;">${params.blockchainHash}</div>
+        <div style="font-size:12px;">${chainInfo}</div>
+      </div>
+      ${macroInfo}
+      <a href="${params.artcoreUrl}" style="display:inline-block;margin-top:20px;padding:12px 30px;background:#D4AF37;color:#0a0a0a;text-decoration:none;border-radius:6px;font-weight:600;">Voir sur ART-CORE</a>
+      <div style="margin-top:30px;padding-top:20px;border-top:1px solid #333;font-size:12px;color:#666;">
+        <p>ART-CORE GROUP LTD — art-core.app</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const filename = `cert_${params.artworkId}.html`;
+  const localUrl = saveEmailLocally(filename, htmlContent, {
+    to: params.recipientEmail,
+    subject: `Certificat ART-CORE : ${params.artworkTitle}`,
+    from: process.env.SMTP_FROM || "noreply@art-core.app",
+    date: new Date().toISOString(),
+  });
+
+  // Try to send via SMTP if configured
+  if (trans) {
+    try {
+      await trans.sendMail({
+        from: process.env.SMTP_FROM || "noreply@art-core.app",
+        to: params.recipientEmail,
+        subject: `Certificat d'authenticite ART-CORE : ${params.artworkTitle}`,
+        html: htmlContent,
+      });
+      console.log(`📧 Certificate email sent to ${params.recipientEmail}`);
+    } catch (error: any) {
+      console.warn(`📧 Certificate email failed (${error.message}), saved locally`);
+    }
+  }
+
+  return { success: true, previewUrl: localUrl };
 }

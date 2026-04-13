@@ -30,6 +30,7 @@ export function middleware(request: NextRequest) {
     "/art-core/wallet",
     "/art-core/boutique",
     "/art-core/initie",
+    "/art-core/cahier-police",
     "/admin",
   ];
 

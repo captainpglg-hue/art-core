@@ -16,7 +16,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ["better-sqlite3"],
+    serverComponentsExternalPackages: ["better-sqlite3", "sharp"],
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version ?? "0.1.0",
