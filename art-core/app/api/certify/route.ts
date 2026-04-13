@@ -1,157 +1,218 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { getDb, getUserByToken } from "@/lib/db";
+import { certifyOnChain, getConfig } from "@/lib/blockchain";
+import { generateFingerprint } from "@/lib/fingerprint";
+import { sendCertificateEmail } from "@/lib/mailer";
 import { uploadPhoto } from "@/lib/supabase-storage";
+import path from "path";
 
-/**
- * POST /api/certify
- *
- * Accepts multipart form data from the certifier page:
- *   - main_photo   : File  (vue de face)
- *   - macro_photo  : File  (gros plan)
- *   - extra_photos : File  (vue de côté + optionnel création)
- *   - title, technique, dimensions, year, description, price
- *   - macro_zone, macro_position, macro_quality_score
- *
- * Stores photos in Supabase Storage (bucket: artworks).
- * Inserts artwork row in Supabase DB with certification_status = 'pending'.
- * Does NOT require SQLite / filesystem access → works on Vercel.
- */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const token = req.cookies.get("core_session")?.value;
+    let artistId = "usr_artist_1";
 
-    // ── Auth ────────────────────────────────────────────────────
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    // For unauthenticated submissions (MVP), use a guest artist ID
-    const artistId = user?.id ?? "guest";
+    if (token) {
+      const user = getUserByToken(token);
+      if (user && (user.role === "artist" || user.role === "admin")) artistId = user.id;
+    }
 
-    // ── Parse form ──────────────────────────────────────────────
-    const form = await req.formData();
+    const contentType = req.headers.get("content-type") || "";
 
-    const title       = (form.get("title") as string)?.trim();
-    const technique   = (form.get("technique") as string) ?? "";
-    const dimensions  = (form.get("dimensions") as string) ?? "";
-    const year        = (form.get("year") as string) ?? "";
-    const description = (form.get("description") as string) ?? "";
-    const price       = parseFloat(form.get("price") as string || "0");
-    const macroZone   = (form.get("macro_zone") as string) ?? "";
-    const macroPos    = (form.get("macro_position") as string) ?? "";
-    const qualityScore = parseFloat(form.get("macro_quality_score") as string || "0");
+    let title = "", description = "", technique = "", dimensions = "";
+    let creation_date = "", category = "painting", price = 0;
+    let photos: string[] = [];
+    let macroFingerprint = "";
+    let macroPhotoPath = "";
+    let macroPosition = "";
+    let macroQualityScore = 0;
+    let recipientEmail = "";
+
+    if (contentType.includes("multipart/form-data")) {
+      // ── Handle file upload from mobile camera ───────────
+      const formData = await req.formData();
+      title = (formData.get("title") as string) || "";
+      description = (formData.get("description") as string) || "";
+      technique = (formData.get("technique") as string) || "";
+      dimensions = (formData.get("dimensions") as string) || "";
+      creation_date = (formData.get("creation_date") as string) || "";
+      category = (formData.get("category") as string) || "painting";
+      price = parseFloat((formData.get("price") as string) || "0");
+
+      // Upload folder: cert/<artistId>
+      const storageFolder = `cert/${artistId}`;
+
+      // Save main photo → Supabase Storage
+      const mainPhoto = formData.get("main_photo") as File;
+      if (mainPhoto && mainPhoto.size > 0) {
+        const photoName = `${Date.now()}_photo_full.jpg`;
+        const buffer = Buffer.from(await mainPhoto.arrayBuffer());
+        const publicUrl = await uploadPhoto(buffer, storageFolder, photoName);
+        photos.push(publicUrl);
+      }
+
+      // Save & process macro photo 1 (fingerprint) → Supabase Storage
+      const macroPhoto = formData.get("macro_photo") as File;
+      if (macroPhoto && macroPhoto.size > 0) {
+        const macroBuffer = Buffer.from(await macroPhoto.arrayBuffer());
+        const macroName = `${Date.now()}_macro_1.jpg`;
+        const publicUrl = await uploadPhoto(macroBuffer, storageFolder, macroName);
+        macroPhotoPath = publicUrl;
+        photos.push(publicUrl); // Include macro 1 in photos array for email
+
+        // Generate visual fingerprint (in-memory, no disk needed)
+        try {
+          const fp = await generateFingerprint(macroBuffer);
+          macroFingerprint = fp.combined;
+        } catch (fpErr: any) {
+          console.warn("Fingerprint generation failed (sharp may not be available):", fpErr.message);
+          // Fallback: use a simple hash of the buffer
+          const { createHash } = await import("crypto");
+          macroFingerprint = createHash("sha256").update(macroBuffer).digest("hex");
+        }
+      }
+
+      macroPosition = (formData.get("macro_position") as string) || "";
+      macroQualityScore = parseInt((formData.get("macro_quality_score") as string) || "0");
+      recipientEmail = (formData.get("email") as string) || "";
+
+      // Additional macro photos (2 and 3) → Supabase Storage
+      const macroPhotos = formData.getAll("macro_photos") as File[];
+      for (const macro of macroPhotos) {
+        if (macro && macro.size > 0) {
+          const mName = `${Date.now()}_${Math.random().toString(36).slice(2, 5)}_macro.jpg`;
+          const buffer = Buffer.from(await macro.arrayBuffer());
+          const publicUrl = await uploadPhoto(buffer, storageFolder, mName);
+          photos.push(publicUrl);
+        }
+      }
+
+      // Additional photos → Supabase Storage
+      const extraPhotos = formData.getAll("extra_photos") as File[];
+      for (const extra of extraPhotos) {
+        if (extra && extra.size > 0) {
+          const eName = `${Date.now()}_${Math.random().toString(36).slice(2, 5)}_extra.jpg`;
+          const buffer = Buffer.from(await extra.arrayBuffer());
+          const publicUrl = await uploadPhoto(buffer, storageFolder, eName);
+          photos.push(publicUrl);
+        }
+      }
+    } else {
+      // ── Handle JSON (for demo/desktop) ──────────────────
+      const body = await req.json();
+      title = body.title || "";
+      description = body.description || "";
+      technique = body.technique || "";
+      dimensions = body.dimensions || "";
+      creation_date = body.creation_date || "";
+      category = body.category || "painting";
+      price = body.price || 0;
+      photos = body.photos || [];
+      macroPhotoPath = body.macro_photo || "";
+    }
 
     if (!title) {
       return NextResponse.json({ error: "Titre requis" }, { status: 400 });
     }
 
-    // ── Upload photos to Supabase Storage ───────────────────────
-    const photoUrls: string[] = [];
-    const folder = `cert/${artistId}/${Date.now()}`;
-
-    const photoFields = [
-      { key: "main_photo",   name: "main.jpg"  },
-      { key: "macro_photo",  name: "macro.jpg" },
-    ];
-
-    for (const { key, name } of photoFields) {
-      const file = form.get(key) as File | null;
-      if (file && file.size > 0) {
-        try {
-          const buf = Buffer.from(await file.arrayBuffer());
-          const url = await uploadPhoto(buf, folder, name);
-          photoUrls.push(url);
-        } catch (uploadErr) {
-          console.error(`Upload failed for ${key}:`, uploadErr);
-          // Non-blocking: continue without this photo
-        }
-      }
-    }
-
-    // Handle multiple extra_photos entries
-    const extraPhotos = form.getAll("extra_photos") as File[];
-    for (let i = 0; i < extraPhotos.length; i++) {
-      const file = extraPhotos[i];
-      if (file && file.size > 0) {
-        try {
-          const buf = Buffer.from(await file.arrayBuffer());
-          const url = await uploadPhoto(buf, folder, `extra_${i}.jpg`);
-          photoUrls.push(url);
-        } catch {
-          // Non-blocking
-        }
-      }
-    }
-
-    // ── Insert into Supabase DB ─────────────────────────────────
     const id = `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const { error: insertErr } = await supabase
-      .from("artworks")
-      .insert({
-        id,
-        title,
-        artist_id: artistId,
-        description,
-        technique,
-        dimensions,
-        creation_date: year,
-        category: "painting",
-        photos: JSON.stringify(photoUrls),
-        status: "pending",
-        price,
-        certification_status: "pending",
-        certification_photos: JSON.stringify(photoUrls),
-        macro_position: macroPos,
-        macro_quality_score: qualityScore,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    // ── Blockchain certification ──────────────────────────
+    const chainResult = await certifyOnChain({
+      artworkId: id,
+      title,
+      artistId,
+      macroPhoto: macroFingerprint ? `${macroFingerprint}|pos:${macroPosition}` : macroPhotoPath,
+    });
 
-    if (insertErr) {
-      console.error("Supabase insert error:", insertErr);
-      // Return success anyway so the certifier UX doesn't break —
-      // photos are uploaded, only DB row failed
-      return NextResponse.json({
-        id,
-        success: true,
-        photos_count: photoUrls.length,
-        email_sent: false,
-        warning: "Photos sauvegardées mais enregistrement DB incomplet. Contactez le support.",
-      });
-    }
+    // ── Save to local DB ──────────────────────────────────
+    const db = getDb();
+    const photosJson = JSON.stringify(photos);
 
-    // ── Email notification (Resend) — graceful if missing ───────
-    let emailSent = false;
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey && !resendKey.includes("REMPLACE") && user?.email) {
-      try {
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: process.env.EMAIL_FROM ?? "noreply@art-core.app",
-            to: user.email,
-            subject: `Demande de certification reçue — ${title}`,
-            html: `<p>Bonjour,</p><p>Votre demande de certification pour <strong>${title}</strong> a bien été reçue. Notre équipe la traitera sous 24h.</p><p>Référence : ${id}</p>`,
-          }),
-        });
-        emailSent = emailRes.ok;
-      } catch {
-        // Email failure is non-blocking
-      }
+    db.prepare(
+      `INSERT INTO artworks (id, title, artist_id, description, technique, dimensions, creation_date, category, photos, macro_photo, blockchain_hash, blockchain_tx_id, certification_date, status, price, listed_at, macro_position, macro_quality_score)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 'for_sale', ?, datetime('now'), ?, ?)`
+    ).run(
+      id, title, artistId, description, technique, dimensions,
+      creation_date, category, photosJson, macroPhotoPath,
+      chainResult.blockchainHash, chainResult.txHash, price,
+      macroPosition, macroQualityScore
+    );
+
+    // ── Create betting markets ────────────────────────────
+    const mktTime = `mkt_${Date.now()}_time`;
+    db.prepare(
+      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_days, status) VALUES (?, ?, 'time', ?, 30, 'open')`
+    ).run(mktTime, id, `"${title}" sera-t-elle vendue en moins de 30 jours ?`);
+
+    const mktValue = `mkt_${Date.now()}_value`;
+    const thresholdValue = (price || 1000) * 1.2;
+    db.prepare(
+      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_value, status) VALUES (?, ?, 'value', ?, ?, 'open')`
+    ).run(mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue);
+
+    const config = getConfig();
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get("host") || "art-core.app"}`;
+    const artcoreUrl = `${baseUrl}/art-core/oeuvre/${id}`;
+    const certDate = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    // Photos are already absolute Supabase URLs — use directly for email
+    const photoUrls = photos;
+    const mainPhotoUrl = photoUrls.length > 0 ? photoUrls[0] : undefined;
+
+    // ── Send certificate email ────────────────────────────
+    let emailResult = null;
+    const emailTo = recipientEmail || (token ? getUserByToken(token)?.email : null);
+    if (emailTo) {
+      const artistUser = token ? getUserByToken(token) : null;
+      emailResult = await sendCertificateEmail({
+        recipientEmail: emailTo,
+        recipientName: artistUser?.name || "Artiste",
+        artworkTitle: title,
+        artworkId: id,
+        blockchainHash: chainResult.blockchainHash,
+        txHash: chainResult.txHash,
+        explorerUrl: chainResult.explorerUrl,
+        network: chainResult.network,
+        onChain: chainResult.onChain,
+        macroPosition: macroPosition || undefined,
+        macroQualityScore: macroQualityScore || undefined,
+        macroFingerprint: macroFingerprint || undefined,
+        certificationDate: certDate,
+        artcoreUrl,
+        photos: photoUrls.length > 0 ? photoUrls : undefined,
+        mainPhoto: mainPhotoUrl,
+      });
     }
 
     return NextResponse.json({
       id,
+      blockchain_hash: chainResult.blockchainHash,
+      macro_fingerprint: macroFingerprint || null,
+      macro_position: macroPosition || null,
+      macro_quality_score: macroQualityScore,
+      tx_hash: chainResult.txHash,
+      explorer_url: chainResult.explorerUrl,
+      network: chainResult.network,
+      on_chain: chainResult.onChain,
+      block_number: chainResult.blockNumber?.toString() || null,
+      photos,
+      macro_photo: macroPhotoPath,
+      blockchain_config: {
+        network: config.network,
+        chain: config.chain,
+        configured: config.isConfigured,
+        simulation: config.isSimulation,
+      },
+      email: emailResult ? {
+        sent: emailResult.success,
+        preview_url: emailResult.previewUrl || null,
+        local_copy: `/emails/cert_${id}.html`,
+        to: emailTo,
+      } : null,
       success: true,
-      photos_count: photoUrls.length,
-      email_sent: emailSent,
     });
-
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("Certify error:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+  } catch (error: any) {
+    console.error("Certification error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

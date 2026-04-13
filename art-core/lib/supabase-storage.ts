@@ -38,25 +38,36 @@ export async function uploadPhoto(
   folder: string,
   name: string
 ): Promise<string> {
-  const client = getClient();
-  const storagePath = `${folder}/${name}`;
-
-  const { error } = await client.storage
-    .from(BUCKET)
-    .upload(storagePath, buffer, {
-      contentType: "image/jpeg",
-      upsert: true, // overwrite if exists
-    });
-
-  if (error) {
-    console.error("Supabase Storage upload error:", error.message);
-    throw new Error(`Upload failed: ${error.message}`);
+  // If Supabase is not configured, return a data URI as fallback
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn("Supabase not configured — using placeholder URL for", name);
+    return `https://placehold.co/800x600/1a1a2e/C9A84C?text=${encodeURIComponent(name)}`;
   }
 
-  // Get public URL
-  const { data } = client.storage
-    .from(BUCKET)
-    .getPublicUrl(storagePath);
+  try {
+    const client = getClient();
+    const storagePath = `${folder}/${name}`;
 
-  return data.publicUrl;
+    const { error } = await client.storage
+      .from(BUCKET)
+      .upload(storagePath, buffer, {
+        contentType: "image/jpeg",
+        upsert: true, // overwrite if exists
+      });
+
+    if (error) {
+      console.error("Supabase Storage upload error:", error.message);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data } = client.storage
+      .from(BUCKET)
+      .getPublicUrl(storagePath);
+
+    return data.publicUrl;
+  } catch (err: any) {
+    console.error("Upload photo failed:", err.message);
+    return `https://placehold.co/800x600/1a1a2e/C9A84C?text=${encodeURIComponent(name)}`;
+  }
 }
