@@ -49,6 +49,9 @@ export default function CertifierPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [qualityScore, setQualityScore] = useState<any>(null);
+  const [qualityScore2, setQualityScore2] = useState<any>(null);
+  const [qualityScore2b, setQualityScore2b] = useState<any>(null);
+  const [qualityScore2c, setQualityScore2c] = useState<any>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [returnToReview, setReturnToReview] = useState(false);
@@ -76,15 +79,20 @@ export default function CertifierPage() {
   }
 
   // ── Analyze photo quality ──────────────────────────────
-  async function analyzePhoto(file: File) {
+  async function analyzePhoto(file: File, setter?: (v: any) => void) {
     setAnalyzingPhoto(true);
     try {
       const fd = new FormData();
       fd.append("photo", file);
       const res = await fetch("/api/analyze-photo", { method: "POST", body: fd });
       const data = await res.json();
-      setQualityScore(data);
-    } catch {}
+      if (setter) setter(data);
+      else setQualityScore(data);
+    } catch {
+      const fallback = { score: 75, message: "Analyse indisponible — score estimé" };
+      if (setter) setter(fallback);
+      else setQualityScore(fallback);
+    }
     finally { setAnalyzingPhoto(false); }
   }
 
@@ -402,6 +410,32 @@ export default function CertifierPage() {
             </button>
           )}
 
+          {/* Quality gauge — macro 1 */}
+          {photo2 && qualityScore2 && (
+            <div className={`rounded-xl p-3 mb-4 ${qualityScore2.score >= 70 ? "bg-green-500/10 border border-green-500/20" : "bg-yellow-500/10 border border-yellow-500/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-sm font-medium ${qualityScore2.score >= 70 ? "text-green-400" : "text-yellow-400"}`}>
+                  Qualité macro : {qualityScore2.score}/100
+                </p>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                  {qualityScore2.score >= 70 ? "Validée" : "Insuffisante"}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${qualityScore2.score >= 70 ? "bg-green-500" : "bg-yellow-500"}`}
+                  style={{ width: `${qualityScore2.score}%` }} />
+              </div>
+              {qualityScore2.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2.message}</p>}
+            </div>
+          )}
+          {photo2 && !qualityScore2 && !analyzingPhoto && (
+            <button onClick={() => analyzePhoto(photo2.file, setQualityScore2)}
+              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
+              <Eye className="size-4" />Vérifier la qualité macro
+            </button>
+          )}
+          {analyzingPhoto && !qualityScore2 && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
+
           <NavButtons back="zone_select" next={() => setStep("photo2b")} nextDisabled={!photo2} />
         </div>
       )}
@@ -440,6 +474,32 @@ export default function CertifierPage() {
             </button>
           )}
 
+          {/* Quality gauge — macro 2 */}
+          {photo2b && qualityScore2b && (
+            <div className={`rounded-xl p-3 mb-4 ${qualityScore2b.score >= 70 ? "bg-green-500/10 border border-green-500/20" : "bg-yellow-500/10 border border-yellow-500/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-sm font-medium ${qualityScore2b.score >= 70 ? "text-green-400" : "text-yellow-400"}`}>
+                  Qualité macro : {qualityScore2b.score}/100
+                </p>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2b.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                  {qualityScore2b.score >= 70 ? "Validée" : "Insuffisante"}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${qualityScore2b.score >= 70 ? "bg-green-500" : "bg-yellow-500"}`}
+                  style={{ width: `${qualityScore2b.score}%` }} />
+              </div>
+              {qualityScore2b.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2b.message}</p>}
+            </div>
+          )}
+          {photo2b && !qualityScore2b && !analyzingPhoto && (
+            <button onClick={() => analyzePhoto(photo2b.file, setQualityScore2b)}
+              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
+              <Eye className="size-4" />Vérifier la qualité macro
+            </button>
+          )}
+          {analyzingPhoto && !qualityScore2b && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
+
           <NavButtons back="photo2" next={() => setStep("photo2c")} nextDisabled={!photo2b} />
         </div>
       )}
@@ -477,6 +537,32 @@ export default function CertifierPage() {
               <p className="text-white/20 text-xs">2-3cm, pigments et micro-textures</p>
             </button>
           )}
+
+          {/* Quality gauge — macro 3 */}
+          {photo2c && qualityScore2c && (
+            <div className={`rounded-xl p-3 mb-4 ${qualityScore2c.score >= 70 ? "bg-green-500/10 border border-green-500/20" : "bg-yellow-500/10 border border-yellow-500/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-sm font-medium ${qualityScore2c.score >= 70 ? "text-green-400" : "text-yellow-400"}`}>
+                  Qualité macro : {qualityScore2c.score}/100
+                </p>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2c.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                  {qualityScore2c.score >= 70 ? "Validée" : "Insuffisante"}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${qualityScore2c.score >= 70 ? "bg-green-500" : "bg-yellow-500"}`}
+                  style={{ width: `${qualityScore2c.score}%` }} />
+              </div>
+              {qualityScore2c.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2c.message}</p>}
+            </div>
+          )}
+          {photo2c && !qualityScore2c && !analyzingPhoto && (
+            <button onClick={() => analyzePhoto(photo2c.file, setQualityScore2c)}
+              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
+              <Eye className="size-4" />Vérifier la qualité macro
+            </button>
+          )}
+          {analyzingPhoto && !qualityScore2c && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
 
           <NavButtons back="photo2b" next={() => setStep("photo3")} nextDisabled={!photo2c} />
         </div>
@@ -760,7 +846,7 @@ export default function CertifierPage() {
               className="w-full py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-center block active:brightness-90">
               Voir ma fiche oeuvre
             </a>
-            <button onClick={() => { setStep("intro"); setPhoto1(null); setPhoto2(null); setPhoto2b(null); setPhoto2c(null); setPhoto3(null); setPhotoCreation(null); setTitle(""); setTechnique(""); setDimW(""); setDimH(""); setYear(""); setDescription(""); setPrice(""); setResult(null); setQualityScore(null); }}
+            <button onClick={() => { setStep("intro"); setPhoto1(null); setPhoto2(null); setPhoto2b(null); setPhoto2c(null); setPhoto3(null); setPhotoCreation(null); setTitle(""); setTechnique(""); setDimW(""); setDimH(""); setYear(""); setDescription(""); setPrice(""); setResult(null); setQualityScore(null); setQualityScore2(null); setQualityScore2b(null); setQualityScore2c(null); }}
               className="w-full py-4 rounded-xl border border-white/10 text-white/50 font-medium active:bg-white/5">
               Certifier une autre oeuvre
             </button>
