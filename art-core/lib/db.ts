@@ -157,9 +157,47 @@ function initVercelDb(db: Database.Database) {
   db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, 'client', ?, 2000, 1)").run("usr_init_1", "initie1@art.fr", "Initié Alpha", "initie_alpha", bcrypt);
   db.prepare("INSERT INTO users (id, email, name, username, role, password_hash, points_balance, is_initie) VALUES (?, ?, ?, ?, 'client', ?, 1500, 1)").run("usr_init_2", "initie2@art.fr", "Initié Beta", "initie_beta", bcrypt);
 
-  // 22 artworks with blockchain hashes
+  // 22 artworks with blockchain hashes and real images
   const categories = ["painting", "sculpture", "photography", "digital", "mixed"];
   const statuses = ["for_sale", "for_sale", "sold"];
+  // Unsplash images by category (free, no auth needed)
+  const artImages: Record<string, string[]> = {
+    painting: [
+      "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1549490349-8643362247b5?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1578926288207-a90a5366759d?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1560421683-6856ea585c78?w=600&h=400&fit=crop",
+    ],
+    sculpture: [
+      "https://images.unsplash.com/photo-1544413660-299165566b1d?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1561839561-b13bcfe95249?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1503602642458-232111445657?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=400&fit=crop",
+    ],
+    photography: [
+      "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1493863641943-9b68992a8d07?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1500051638674-ff996a0ec29e?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=400&fit=crop",
+    ],
+    digital: [
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=600&h=400&fit=crop",
+    ],
+    mixed: [
+      "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1482160549825-59d1b23cb208?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1531913764164-f85c3e01b2aa?w=600&h=400&fit=crop",
+    ],
+  };
   for (let i = 1; i <= 22; i++) {
     const artistIdx = ((i - 1) % 10) + 1;
     const cat = categories[(i - 1) % 5];
@@ -167,11 +205,14 @@ function initVercelDb(db: Database.Database) {
     const price = 500 + (i * 300);
     const hash = `0x${i.toString(16).padStart(64, '0')}`;
     const txHash = `0xTX${i.toString(16).padStart(62, '0')}`;
-    db.prepare(`INSERT INTO artworks (id, title, description, artist_id, category, status, price, blockchain_hash, blockchain_tx_id, blockchain_network, macro_position, macro_quality_score, macro_fingerprint, certification_date, gauge_points, photos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, '[]')`).run(
+    const catImages = artImages[cat];
+    const imgUrl = catImages[(i - 1) % catImages.length];
+    const photosJson = JSON.stringify([imgUrl]);
+    db.prepare(`INSERT INTO artworks (id, title, description, artist_id, category, status, price, blockchain_hash, blockchain_tx_id, blockchain_network, macro_position, macro_quality_score, macro_fingerprint, certification_date, gauge_points, photos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)`).run(
       `art_${100 + i}`, `Oeuvre ${i} - ${cat}`, `Description de l'oeuvre ${i}`,
       `usr_art_${artistIdx}`, cat, status, price, hash, txHash, "polygon",
       "center", 85 + (i % 15), `FP_${hash.slice(0, 16)}`,
-      Math.min(i * 5, 100)
+      Math.min(i * 5, 100), photosJson
     );
   }
 

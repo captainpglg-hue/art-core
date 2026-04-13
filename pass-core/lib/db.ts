@@ -60,12 +60,40 @@ function initVercelDb(db: Database.Database) {
     db.prepare("INSERT INTO users (id,email,name,username,role,password_hash,points_balance) VALUES (?,?,?,?,?,?,?)").run(id,email,name,uname,"artist",h,500);
   });
 
+  // Unsplash demo images per category
+  const demoImages: Record<string, string[]> = {
+    painting: [
+      "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1549490349-8643362247b5?w=600&h=400&fit=crop",
+    ],
+    sculpture: [
+      "https://images.unsplash.com/photo-1544413660-299165566b1d?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1561839561-b13bcfe95249?w=600&h=400&fit=crop",
+    ],
+    photography: [
+      "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1493863641943-9b68992a8d07?w=600&h=400&fit=crop",
+    ],
+    digital: [
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop",
+    ],
+    mixed: [
+      "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=400&fit=crop",
+    ],
+  };
   for (let i = 1; i <= 22; i++) {
     const aIdx = ((i-1)%10)+1;
     const cats = ["painting","sculpture","photography","digital","mixed"];
+    const cat = cats[(i-1)%5];
     const hash = `0x${i.toString(16).padStart(64,'0')}`;
-    db.prepare("INSERT INTO artworks (id,title,artist_id,category,status,price,blockchain_hash,blockchain_tx_id,blockchain_network,macro_position,macro_quality_score,certification_date,photos) VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),'[]')").run(
-      `art_${100+i}`,`Oeuvre ${i}`,`usr_art_${aIdx}`,cats[(i-1)%5],i<=12?"for_sale":"sold",500+i*300,hash,`0xTX${hash.slice(4)}`,"polygon","center",85+(i%15)
+    const catImgs = demoImages[cat];
+    const imgUrl = catImgs[(i-1) % catImgs.length];
+    const photosJson = JSON.stringify([imgUrl]);
+    db.prepare("INSERT INTO artworks (id,title,artist_id,category,status,price,blockchain_hash,blockchain_tx_id,blockchain_network,macro_position,macro_quality_score,certification_date,photos) VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?)").run(
+      `art_${100+i}`,`Oeuvre ${i}`,`usr_art_${aIdx}`,cat,i<=12?"for_sale":"sold",500+i*300,hash,`0xTX${hash.slice(4)}`,"polygon","center",85+(i%15),photosJson
     );
   }
 
