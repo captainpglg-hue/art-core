@@ -25,7 +25,7 @@ export async function generateFingerprint(
   let perceptual = "";
 
   try {
-    // Try to use sharp for perceptual hashing
+    // Try to use sharp for perceptual hashing (resize → grayscale → hash)
     const sharp = (await import("sharp")).default;
     const resized = await sharp(buffer)
       .resize(16, 16, { fit: "fill" })
@@ -44,12 +44,12 @@ export async function generateFingerprint(
       perceptual += parseInt(bits.substring(i, i + 4), 2).toString(16);
     }
   } catch {
-    // sharp not available - use a secondary hash with different algorithm
+    // sharp not available — use a secondary hash with different algorithm
     perceptual = createHash("md5").update(buffer).digest("hex");
   }
 
   return {
-    combined: sha256.slice(0, 16) + "-" + perceptual.slice(0, 16),
+    combined: `${sha256.slice(0, 16)}-${perceptual.slice(0, 16)}`,
     sha256,
     perceptual,
   };
