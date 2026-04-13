@@ -65,33 +65,98 @@ export default function CertifierPage() {
   const stepIdx = ALL_STEPS.indexOf(step);
   const progress = Math.round((stepIdx / (ALL_STEPS.length - 1)) * 100);
 
+  // ── Instant quality score (synchronous, from file.size only) ─
+  function instantQuality(file: File) {
+    const sizeMB = file.size / (1024 * 1024);
+    // Heuristic: macro photos from a good phone camera are typically 2-8 MB
+    // < 0.5 MB = low quality/compressed, 1-3 MB = good, > 3 MB = excellent
+    const sizeScore = Math.min(100, Math.round(sizeMB * 30));
+    // Assume decent resolution from a modern phone (will refine async)
+    const score = Math.min(100, Math.max(10, Math.round(sizeScore * 0.6 + 50 * 0.4)));
+    let status: string, message: string;
+    if (score >= 75) { status = "excellent"; message = "Bonne qualité — détails suffisants"; }
+    else if (score >= 50) { status = "acceptable"; message = "Qualité correcte — rapprochez-vous si possible"; }
+    else { status = "insufficient"; message = "Qualité insuffisante — rapprochez-vous et stabilisez"; }
+    return { score, status, message, details: { resolution: { score: sizeScore, value: "...", megapixels: "..." } } };
+  }
+
   // ── Photo capture ──────────────────────────────────────
-  function capturePhoto(setter: (v: { file: File; url: string }) => void) {
+  function capturePhoto(setter: (v: { file: File; url: string }) => void, qualitySetter?: (v: any) => void) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.capture = "environment";
     input.onchange = (e: any) => {
       const file = e.target.files?.[0];
-      if (file) setter({ file, url: URL.createObjectURL(file) });
+      if (file) {
+        setter({ file, url: URL.createObjectURL(file) });
+        if (qualitySetter) {
+          // ★ INSTANT: set quality gauge synchronously from file.size — visible immediately
+          qualitySetter(instantQuality(file));
+          // Then refine in background with full analysis (Image dimensions + API)
+          refineQuality(file, qualitySetter);
+        }
+      }
     };
     input.click();
   }
 
-  // ── Analyze photo quality ──────────────────────────────
+  // ── Refined quality (async — updates gauge after initial instant display) ─
+  async function refineQuality(file: File, setter: (v: any) => void) {
+    try {
+      // Step 1: quick client-side with Image dimensions
+      const clientResult = await new Promise<any>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const w = img.naturalWidth, h = img.naturalHeight;
+          const mp = (w * h) / 1_000_000;
+          const resScore = Math.min(100, Math.round((mp / 2) * 100));
+          const sizeMB = file.size / (1024 * 1024);
+          const sizeScore = Math.min(100, Math.round(sizeMB * 40));
+          const ratio = w / h;
+          const ratioScore = (ratio > 0.5 && ratio < 2) ? 85 : 50;
+          const score = Math.round(resScore * 0.4 + sizeScore * 0.35 + ratioScore * 0.25);
+          let message: string, status: string;
+          if (score >= 75) { status = "excellent"; message = "Bonne qualité — détails suffisants"; }
+          else if (score >= 50) { status = "acceptable"; message = "Qualité correcte — rapprochez-vous si possible"; }
+          else { status = "insufficient"; message = "Qualité insuffisante — rapprochez-vous et stabilisez"; }
+          resolve({ score: Math.min(100, Math.max(10, score)), status, message, details: { resolution: { score: resScore, value: `${w}x${h}`, megapixels: mp.toFixed(1) } } });
+        };
+        img.onerror = () => reject();
+        img.src = URL.createObjectURL(file);
+      });
+      setter(clientResult); // Update gauge with better estimate
+
+      // Step 2: try server API for even better analysis (non-blocking)
+      try {
+        const fd = new FormData();
+        fd.append("photo", file);
+        const res = await fetch("/api/analyze-photo", { method: "POST", body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.score !== undefined) setter(data);
+        }
+      } catch { /* keep client result */ }
+    } catch { /* keep instant result */ }
+  }
+
+  // ── Analyze photo quality (for main photo — non-macro) ──
   async function analyzePhoto(file: File, setter?: (v: any) => void) {
+    const target = setter || setQualityScore;
     setAnalyzingPhoto(true);
     try {
       const fd = new FormData();
       fd.append("photo", file);
       const res = await fetch("/api/analyze-photo", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("API error");
       const data = await res.json();
-      if (setter) setter(data);
-      else setQualityScore(data);
+      if (data.score !== undefined) { target(data); } else { throw new Error("Invalid"); }
     } catch {
-      const fallback = { score: 75, message: "Analyse indisponible — score estimé" };
-      if (setter) setter(fallback);
-      else setQualityScore(fallback);
+      try {
+        target(instantQuality(file));
+      } catch {
+        target({ score: 70, status: "acceptable", message: "Analyse estimée" });
+      }
     }
     finally { setAnalyzingPhoto(false); }
   }
@@ -399,10 +464,10 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Macro frontale
               </div>
-              <button onClick={() => capturePhoto(setPhoto2)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2(null); capturePhoto(setPhoto2, setQualityScore2); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2)}
+            <button onClick={() => capturePhoto(setPhoto2, setQualityScore2)}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Photo macro frontale</p>
@@ -428,13 +493,11 @@ export default function CertifierPage() {
               {qualityScore2.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2.message}</p>}
             </div>
           )}
-          {photo2 && !qualityScore2 && !analyzingPhoto && (
-            <button onClick={() => analyzePhoto(photo2.file, setQualityScore2)}
-              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
-              <Eye className="size-4" />Vérifier la qualité macro
-            </button>
+          {photo2 && !qualityScore2 && (
+            <div className="flex items-center justify-center gap-2 py-3 mb-4 text-white/30 text-sm">
+              <Loader2 className="size-4 animate-spin text-[#C9A84C]" />Analyse qualité en cours...
+            </div>
           )}
-          {analyzingPhoto && !qualityScore2 && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
 
           <NavButtons back="zone_select" next={() => setStep("photo2b")} nextDisabled={!photo2} />
         </div>
@@ -463,10 +526,10 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Lumière rasante
               </div>
-              <button onClick={() => capturePhoto(setPhoto2b)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2b(null); capturePhoto(setPhoto2b, setQualityScore2b); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2b)}
+            <button onClick={() => capturePhoto(setPhoto2b, setQualityScore2b)}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Macro angle rasant</p>
@@ -492,13 +555,11 @@ export default function CertifierPage() {
               {qualityScore2b.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2b.message}</p>}
             </div>
           )}
-          {photo2b && !qualityScore2b && !analyzingPhoto && (
-            <button onClick={() => analyzePhoto(photo2b.file, setQualityScore2b)}
-              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
-              <Eye className="size-4" />Vérifier la qualité macro
-            </button>
+          {photo2b && !qualityScore2b && (
+            <div className="flex items-center justify-center gap-2 py-3 mb-4 text-white/30 text-sm">
+              <Loader2 className="size-4 animate-spin text-[#C9A84C]" />Analyse qualité en cours...
+            </div>
           )}
-          {analyzingPhoto && !qualityScore2b && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
 
           <NavButtons back="photo2" next={() => setStep("photo2c")} nextDisabled={!photo2b} />
         </div>
@@ -527,10 +588,10 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Ultra-détail
               </div>
-              <button onClick={() => capturePhoto(setPhoto2c)} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2c(null); capturePhoto(setPhoto2c, setQualityScore2c); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2c)}
+            <button onClick={() => capturePhoto(setPhoto2c, setQualityScore2c)}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Ultra-détail</p>
@@ -556,13 +617,10 @@ export default function CertifierPage() {
               {qualityScore2c.message && <p className="text-[11px] text-white/30 mt-1">{qualityScore2c.message}</p>}
             </div>
           )}
-          {photo2c && !qualityScore2c && !analyzingPhoto && (
-            <button onClick={() => analyzePhoto(photo2c.file, setQualityScore2c)}
-              className="w-full py-3 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] text-sm mb-4 flex items-center justify-center gap-2">
-              <Eye className="size-4" />Vérifier la qualité macro
-            </button>
+          {photo2c && !qualityScore2c && (
+            <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>
           )}
-          {analyzingPhoto && !qualityScore2c && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
+          {/* Quality gauge appears instantly via instantQuality() — no manual button needed */}
 
           <NavButtons back="photo2b" next={() => setStep("photo3")} nextDisabled={!photo2c} />
         </div>
