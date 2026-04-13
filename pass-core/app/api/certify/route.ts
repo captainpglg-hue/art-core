@@ -50,13 +50,14 @@ export async function POST(req: NextRequest) {
         photos.push(publicUrl);
       }
 
-      // Save & process macro photo (fingerprint) → Supabase Storage
+      // Save & process macro photo 1 (fingerprint) → Supabase Storage
       const macroPhoto = formData.get("macro_photo") as File;
       if (macroPhoto && macroPhoto.size > 0) {
         const macroBuffer = Buffer.from(await macroPhoto.arrayBuffer());
-        const macroName = `${Date.now()}_macro.jpg`;
+        const macroName = `${Date.now()}_macro_1.jpg`;
         const publicUrl = await uploadPhoto(macroBuffer, storageFolder, macroName);
         macroPhotoPath = publicUrl;
+        photos.push(publicUrl); // Include macro 1 in photos array for email
 
         // Generate visual fingerprint (in-memory, no disk needed)
         const fp = await generateFingerprint(macroBuffer);

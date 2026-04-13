@@ -220,7 +220,16 @@ export async function sendCertificateEmail(data: CertificateEmailData): Promise<
       ${data.photos && data.photos.length > 0 ? `
       <div style="margin-bottom:20px;text-align:center;">
         ${data.mainPhoto || data.photos[0] ? `
-        <img src="${data.mainPhoto || data.photos[0]}" alt="${data.artworkTitle}" style="max-width:100%;height:auto;border-radius:12px;border:1px solid rgba(201,168,76,0.2);margin-bottom:12px;" />
+        <p style="color:rgba(255,255,255,0.3);font-size:10px;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px;">Vue principale</p>
+        <img src="${data.mainPhoto || data.photos[0]}" alt="${data.artworkTitle}" style="max-width:100%;height:auto;border-radius:12px;border:1px solid rgba(201,168,76,0.2);margin-bottom:16px;" />
+        ` : ''}
+        ${data.photos.length > 1 ? `
+        <p style="color:rgba(255,255,255,0.3);font-size:10px;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px;">Photos macro (${data.photos.length - 1})</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
+          ${data.photos.slice(1).map((url: string, i: number) => `
+          <img src="${url}" alt="Macro ${i + 1}" style="width:30%;min-width:120px;height:auto;border-radius:8px;border:1px solid rgba(201,168,76,0.15);" />
+          `).join('')}
+        </div>
         ` : ''}
       </div>
       ` : ''}
