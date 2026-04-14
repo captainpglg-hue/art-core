@@ -80,21 +80,28 @@ function convertPlaceholders(text: string): string {
 // ----------------------------------------------------------------------------
 
 export async function getUserByEmail(email: string) {
-  return queryOne("SELECT * FROM users WHERE email = ?", [email]);
+  const row = await queryOne<any>(
+    "SELECT *, full_name AS name FROM users WHERE email = ?",
+    [email]
+  );
+  return row;
 }
 
 export async function getUserById(id: string) {
-  return queryOne("SELECT * FROM users WHERE id = ?", [id]);
+  const row = await queryOne<any>(
+    "SELECT *, full_name AS name FROM users WHERE id = ?",
+    [id]
+  );
+  return row;
 }
 
 export async function createSession(userId: string, token: string) {
-  const id = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  await query(
-    "INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
-    [id, userId, token, expiresAt]
+  const row = await queryOne<any>(
+    "INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?) RETURNING id",
+    [userId, token, expiresAt]
   );
-  return { id, token, expires_at: expiresAt };
+  return { id: row?.id, token, expires_at: expiresAt };
 }
 
 export async function getSessionByToken(token: string) {
@@ -109,17 +116,49 @@ export async function deleteSession(token: string) {
 }
 
 export async function getUserByToken(token: string) {
-  return queryOne(
-    `SELECT u.* FROM users u
+  return queryOne<any>(
+    `SELECT u.*, u.full_name AS name FROM users u
      JOIN sessions s ON s.user_id = u.id
      WHERE s.token = ? AND s.expires_at > NOW()`,
     [token]
   );
 }
 
-// Compat : stub sync getDb() pour anciens call-sites, mais on DOIT migrer
-export function getDb() {
-  throw new Error(
-    "[db] getDb() n'existe plus — utilise query / queryOne / queryAll (async)"
+export async function getArtworkById(id: string) {
+  return queryOne<any>(
+    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+     FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
+    [id]
   );
+}
+
+export async function getArtworks(opts: { artistId?: string; limit?: number } = {}) {
+  const { artistId, limit = 50 } = opts;
+  if (artistId) {
+    return queryAll<any>(
+      `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+       FROM artworks a JOIN users u ON a.artist_id = u.id
+       WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`,
+      [artistId, limit]
+    );
+  }
+  return queryAll<any>(
+    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+     FROM artworks a JOIN users u ON a.artist_id = u.id
+     ORDER BY a.created_at DESC LIMIT ?`,
+    [limit]
+  );
+}
+
+export async function getGaugeEntries(artworkId: string) {
+  return queryAll<any>(
+    `SELECT g.*, u.name as initiate_name, u.username as initiate_username
+     FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
+     WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
+    [artworkId]
+  );
+}
+
+export function getDb(): never {
+  throw new Error("[db] getDb() n'existe plus — utilise query / queryOne / queryAll (async)");
 }

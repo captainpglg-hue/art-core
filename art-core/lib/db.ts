@@ -80,21 +80,28 @@ function convertPlaceholders(text: string): string {
 // ----------------------------------------------------------------------------
 
 export async function getUserByEmail(email: string) {
-  return queryOne("SELECT * FROM users WHERE email = ?", [email]);
+  const row = await queryOne<any>(
+    "SELECT *, full_name AS name FROM users WHERE email = ?",
+    [email]
+  );
+  return row;
 }
 
 export async function getUserById(id: string) {
-  return queryOne("SELECT * FROM users WHERE id = ?", [id]);
+  const row = await queryOne<any>(
+    "SELECT *, full_name AS name FROM users WHERE id = ?",
+    [id]
+  );
+  return row;
 }
 
 export async function createSession(userId: string, token: string) {
-  const id = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  await query(
-    "INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
-    [id, userId, token, expiresAt]
+  const row = await queryOne<any>(
+    "INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?) RETURNING id",
+    [userId, token, expiresAt]
   );
-  return { id, token, expires_at: expiresAt };
+  return { id: row?.id, token, expires_at: expiresAt };
 }
 
 export async function getSessionByToken(token: string) {
@@ -109,8 +116,8 @@ export async function deleteSession(token: string) {
 }
 
 export async function getUserByToken(token: string) {
-  return queryOne(
-    `SELECT u.* FROM users u
+  return queryOne<any>(
+    `SELECT u.*, u.full_name AS name FROM users u
      JOIN sessions s ON s.user_id = u.id
      WHERE s.token = ? AND s.expires_at > NOW()`,
     [token]

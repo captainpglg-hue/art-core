@@ -1,4 +1,3 @@
-// Destination : art-core/app/api/auth/signup/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -26,23 +25,15 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const userId = crypto.randomUUID();
     const userRole = role || "client";
-    const isInitie = userRole === "initiate" ? 1 : 0;
+    const isInitie = userRole === "initiate";
     const initialPoints = isInitie ? 15 : 0;
 
     await query(
-      "INSERT INTO users (id, email, password_hash, name, username, role, is_initie, points_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (id, email, password_hash, full_name, username, role, is_initie, points_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [userId, email, passwordHash, name, username, userRole, isInitie, initialPoints]
     );
-
-    if (isInitie) {
-      const ptId = `pt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      await query(
-        "INSERT INTO point_transactions (id, user_id, amount, type, description) VALUES (?, ?, 15, 'signup_bonus', 'Bonus de bienvenue initié')",
-        [ptId, userId]
-      );
-    }
 
     const token = crypto.randomBytes(32).toString("hex");
     await createSession(userId, token);
@@ -69,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
+    console.error("[signup] error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
