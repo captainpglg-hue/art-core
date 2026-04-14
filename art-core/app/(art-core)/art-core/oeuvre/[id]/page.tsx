@@ -6,7 +6,7 @@ import {
   ChevronRight, ShoppingCart, Share2, Heart, Eye, Ruler, Tag,
   User2, Calendar, Lock, MessageSquare, ShieldCheck,
 } from "lucide-react";
-import { getArtworkById, getGaugeEntries, getDb } from "@/lib/db";
+import { getArtworkById, getGaugeEntries, query, queryAll } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const artwork = getArtworkById(id);
+  const artwork = await getArtworkById(id);
   return {
     title: artwork?.title ?? "Oeuvre",
     description: `Découvrez "${artwork?.title}" sur ART-CORE.`,
@@ -31,18 +31,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArtworkDetailPage({ params }: Props) {
   const { id } = await params;
-  const artwork = getArtworkById(id);
+  const artwork = await getArtworkById(id);
   if (!artwork) notFound();
 
   const photos = typeof artwork.photos === "string" ? JSON.parse(artwork.photos) : artwork.photos;
-  const gaugeEntries = getGaugeEntries(id);
+  const gaugeEntries = await getGaugeEntries(id);
   const currentUser = await getSessionUser();
 
-  // Increment views
-  try { getDb().prepare("UPDATE artworks SET views_count = views_count + 1 WHERE id = ?").run(id); } catch {}
+  try { await query("UPDATE artworks SET views_count = views_count + 1 WHERE id = ?", [id]); } catch {}
 
-  // Get markets
-  const markets = getDb().prepare("SELECT * FROM betting_markets WHERE artwork_id = ?").all(id) as any[];
+  const markets = await queryAll<any>("SELECT * FROM betting_markets WHERE artwork_id = ?", [id]);
 
   const isLocked = artwork.gauge_locked === 1 || artwork.gauge_points >= 100;
   const isArtist = currentUser?.id === artwork.artist_id;

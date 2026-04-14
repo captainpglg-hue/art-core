@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { queryOne, queryAll } from "@/lib/db";
 import { formatPrice } from "@/lib/utils";
 import { Package, Coins, Eye, TrendingUp, Image as ImageIcon } from "lucide-react";
 
@@ -11,14 +11,11 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/auth/login");
 
-  const db = getDb();
-
-  // Stats
-  const myArtworks = db.prepare("SELECT COUNT(*) as count FROM artworks WHERE artist_id = ?").get(user.id) as any;
-  const totalSales = db.prepare("SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?").get(user.id) as any;
-  const totalViews = db.prepare("SELECT COALESCE(SUM(views_count), 0) as total FROM artworks WHERE artist_id = ?").get(user.id) as any;
-  const myOrders = db.prepare("SELECT COUNT(*) as count FROM transactions WHERE buyer_id = ?").get(user.id) as any;
-  const recentArtworks = db.prepare("SELECT id, title, price, gauge_points, status, photos FROM artworks WHERE artist_id = ? ORDER BY created_at DESC LIMIT 5").all(user.id) as any[];
+  const myArtworks = await queryOne<any>("SELECT COUNT(*)::int as count FROM artworks WHERE artist_id = ?", [user.id]);
+  const totalSales = await queryOne<any>("SELECT COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?", [user.id]);
+  const totalViews = await queryOne<any>("SELECT COALESCE(SUM(views_count), 0) as total FROM artworks WHERE artist_id = ?", [user.id]);
+  const myOrders = await queryOne<any>("SELECT COUNT(*)::int as count FROM transactions WHERE buyer_id = ?", [user.id]);
+  const recentArtworks = await queryAll<any>("SELECT id, title, price, gauge_points, status, photos FROM artworks WHERE artist_id = ? ORDER BY created_at DESC LIMIT 5", [user.id]);
 
   const stats = [
     { label: "Oeuvres", value: myArtworks.count, icon: ImageIcon },

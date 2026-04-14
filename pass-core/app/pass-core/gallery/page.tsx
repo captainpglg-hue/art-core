@@ -1,16 +1,16 @@
-import { getDb } from "@/lib/db";
+import { queryAll } from "@/lib/db";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default function GalleryPage() {
-  const artworks = getDb().prepare(
+export default async function GalleryPage() {
+  const artworks = await queryAll<any>(
     `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.name as artist_name
      FROM artworks a JOIN users u ON a.artist_id = u.id
      WHERE a.blockchain_hash IS NOT NULL
      ORDER BY a.certification_date DESC`
-  ).all() as any[];
+  );
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">

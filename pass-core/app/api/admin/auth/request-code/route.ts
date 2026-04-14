@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getUserByEmail, query } from "@/lib/db";
 import { sendAdminCode } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
@@ -13,42 +13,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const db = getDb();
-
-    // Ensure admin_codes table exists
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_codes (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL,
-        code TEXT NOT NULL,
-        name TEXT,
-        expires_at TEXT NOT NULL,
-        used INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now'))
-      )
-    `);
-
-    // Check if email exists and is admin
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
+    // Check if user exists and is an admin
+    const user = await getUserByEmail(email);
     if (!user || user.role !== "admin") {
       return NextResponse.json(
-        { error: "Email non trouvé ou permissions insuffisantes" },
-        { status: 403 }
+        { error: "Cet email n'est pas associé à un compte administrateur" },
+        { status: 401 }
       );
     }
 
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const codeId = `adm_code_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+    // TODO: Create admin_codes table should be in migration/initialization
+    // For now, assume it exists
 
     // Delete old codes for this email
-    db.prepare("DELETE FROM admin_codes WHERE email = ? AND used = 0").run(email);
+    await query("DELETE FROM admin_codes WHERE email = ?", [email]);
 
-    // Insert new code
-    db.prepare(
-      `INSERT INTO admin_codes (id, email, code, name, expires_at, used) VALUES (?, ?, ?, ?, ?, 0)`
-    ).run(codeId, email, code, name, expiresAt);
+    // Insert new code with 10-minute expiry
+    const codeId = `adm_code_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await query(
+      `INSERT INTO admin_codes (id, email, code, name, expires_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [codeId, email, code, name, expiresAt]
+    );
 
     // Send email + save locally
     let emailResult: any = { success: false };
@@ -72,6 +62,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Request code error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

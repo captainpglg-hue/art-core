@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArtworkById, getGaugeEntries, getDb, getUserByToken } from "@/lib/db";
+import { query, queryOne, queryAll, getUserByToken } from "@/lib/db";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const artwork = getArtworkById(id);
+  const artwork = await queryOne(
+    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar, u.bio as artist_bio
+     FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
+    [id]
+  ) as any;
+
   if (!artwork) {
     return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
   }
 
-  const gaugeEntries = getGaugeEntries(id);
+  const gaugeEntries = await queryAll(
+    `SELECT ge.*, u.name as initiate_name, u.username as initiate_username
+     FROM gauge_entries ge JOIN users u ON ge.initiate_id = u.id
+     WHERE ge.artwork_id = ? ORDER BY ge.created_at DESC`,
+    [id]
+  ) as any[];
+
   const photos = JSON.parse(artwork.photos || "[]");
 
   // Get offers
-  const offers = getDb()
-    .prepare(
-      `SELECT o.*, u.name as buyer_name FROM offers o JOIN users u ON o.buyer_id = u.id
-       WHERE o.artwork_id = ? ORDER BY o.created_at DESC`
-    )
-    .all(id) as any[];
+  const offers = await queryAll(
+    `SELECT o.*, u.name as buyer_name FROM offers o JOIN users u ON o.buyer_id = u.id
+     WHERE o.artwork_id = ? ORDER BY o.created_at DESC`,
+    [id]
+  ) as any[];
 
   // Get betting markets
-  const markets = getDb()
-    .prepare("SELECT * FROM betting_markets WHERE artwork_id = ? ORDER BY created_at DESC")
-    .all(id) as any[];
+  const markets = await queryAll(
+    "SELECT * FROM betting_markets WHERE artwork_id = ? ORDER BY created_at DESC",
+    [id]
+  ) as any[];
 
   return NextResponse.json({
     artwork: { ...artwork, photos },
@@ -37,13 +48,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const token = req.cookies.get("core_session")?.value;
     if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-    const user = getUserByToken(token);
+    const user = await getUserByToken(token);
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
     const { id } = await params;
     const body = await req.json();
-    const db = getDb();
-    const artwork = db.prepare("SELECT * FROM artworks WHERE id = ?").get(id) as any;
+    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [id]) as any;
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
 
     const updates: string[] = [];
@@ -57,9 +67,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (updates.length === 0) return NextResponse.json({ error: "Rien à modifier" }, { status: 400 });
 
-    updates.push("updated_at = datetime('now')");
+    updates.push("updated_at = NOW()");
     values.push(id);
-    db.prepare(`UPDATE artworks SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+    await query(`UPDATE artworks SET ${updates.join(", ")} WHERE id = ?`, values);
 
     return NextResponse.json({ success: true, updated: Object.keys(body) });
   } catch (error: any) {
@@ -72,21 +82,20 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const token = req.cookies.get("core_session")?.value;
     if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-    const user = getUserByToken(token);
+    const user = await getUserByToken(token);
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
     const { id } = await params;
-    const db = getDb();
-    const artwork = db.prepare("SELECT * FROM artworks WHERE id = ?").get(id) as any;
+    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [id]) as any;
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
 
     // Delete related data first
-    db.prepare("DELETE FROM gauge_entries WHERE artwork_id = ?").run(id);
-    db.prepare("DELETE FROM offers WHERE artwork_id = ?").run(id);
-    db.prepare("DELETE FROM favorites WHERE artwork_id = ?").run(id);
-    db.prepare("DELETE FROM betting_markets WHERE artwork_id = ?").run(id);
-    db.prepare("DELETE FROM bets WHERE market_id IN (SELECT id FROM betting_markets WHERE artwork_id = ?)").run(id);
-    db.prepare("DELETE FROM artworks WHERE id = ?").run(id);
+    await query("DELETE FROM gauge_entries WHERE artwork_id = ?", [id]);
+    await query("DELETE FROM offers WHERE artwork_id = ?", [id]);
+    await query("DELETE FROM favorites WHERE artwork_id = ?", [id]);
+    await query("DELETE FROM betting_markets WHERE artwork_id = ?", [id]);
+    await query("DELETE FROM bets WHERE market_id IN (SELECT id FROM betting_markets WHERE artwork_id = ?)", [id]);
+    await query("DELETE FROM artworks WHERE id = ?", [id]);
 
     return NextResponse.json({ success: true, deleted: id, title: artwork.title });
   } catch (error: any) {

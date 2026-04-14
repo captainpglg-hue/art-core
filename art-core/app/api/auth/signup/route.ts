@@ -1,7 +1,8 @@
+// Destination : art-core/app/api/auth/signup/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { getUserByEmail, createSession, getDb } from "@/lib/db";
+import { getUserByEmail, createSession, query, queryOne } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,13 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tous les champs sont requis" }, { status: 400 });
     }
 
-    const existing = getUserByEmail(email);
+    const existing = await getUserByEmail(email);
     if (existing) {
       return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
     }
 
-    const db = getDb();
-    const existingUsername = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+    const existingUsername = await queryOne(
+      "SELECT id FROM users WHERE username = ?",
+      [username]
+    );
     if (existingUsername) {
       return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
     }
@@ -28,20 +31,21 @@ export async function POST(req: NextRequest) {
     const isInitie = userRole === "initiate" ? 1 : 0;
     const initialPoints = isInitie ? 15 : 0;
 
-    db.prepare(
-      "INSERT INTO users (id, email, password_hash, name, username, role, is_initie, points_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    ).run(userId, email, passwordHash, name, username, userRole, isInitie, initialPoints);
+    await query(
+      "INSERT INTO users (id, email, password_hash, name, username, role, is_initie, points_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [userId, email, passwordHash, name, username, userRole, isInitie, initialPoints]
+    );
 
-    // Signup bonus for initiates
     if (isInitie) {
       const ptId = `pt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      db.prepare(
-        "INSERT INTO point_transactions (id, user_id, amount, type, description) VALUES (?, ?, 15, 'signup_bonus', 'Bonus de bienvenue initié')"
-      ).run(ptId, userId);
+      await query(
+        "INSERT INTO point_transactions (id, user_id, amount, type, description) VALUES (?, ?, 15, 'signup_bonus', 'Bonus de bienvenue initié')",
+        [ptId, userId]
+      );
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    createSession(userId, token);
+    await createSession(userId, token);
 
     const response = NextResponse.json({
       user: {

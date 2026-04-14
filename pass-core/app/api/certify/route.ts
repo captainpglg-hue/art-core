@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, getUserByToken } from "@/lib/db";
+import { query, getUserByToken } from "@/lib/db";
 import { certifyOnChain, getConfig } from "@/lib/blockchain";
 import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     let artistId = "usr_artist_1";
 
     if (token) {
-      const user = getUserByToken(token);
+      const user = await getUserByToken(token);
       if (user && (user.role === "artist" || user.role === "admin")) artistId = user.id;
     }
 
@@ -125,30 +125,32 @@ export async function POST(req: NextRequest) {
     });
 
     // ── Save to local DB ──────────────────────────────────
-    const db = getDb();
     const photosJson = JSON.stringify(photos);
 
-    db.prepare(
+    await query(
       `INSERT INTO artworks (id, title, artist_id, description, technique, dimensions, creation_date, category, photos, macro_photo, blockchain_hash, blockchain_tx_id, certification_date, status, price, listed_at, macro_position, macro_quality_score)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 'for_sale', ?, datetime('now'), ?, ?)`
-    ).run(
-      id, title, artistId, description, technique, dimensions,
-      creation_date, category, photosJson, macroPhotoPath,
-      chainResult.blockchainHash, chainResult.txHash, price,
-      macroPosition, macroQualityScore
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'for_sale', ?, NOW(), ?, ?)`,
+      [
+        id, title, artistId, description, technique, dimensions,
+        creation_date, category, photosJson, macroPhotoPath,
+        chainResult.blockchainHash, chainResult.txHash, price,
+        macroPosition, macroQualityScore
+      ]
     );
 
     // ── Create betting markets ────────────────────────────
     const mktTime = `mkt_${Date.now()}_time`;
-    db.prepare(
-      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_days, status) VALUES (?, ?, 'time', ?, 30, 'open')`
-    ).run(mktTime, id, `"${title}" sera-t-elle vendue en moins de 30 jours ?`);
+    await query(
+      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_days, status) VALUES (?, ?, 'time', ?, 30, 'open')`,
+      [mktTime, id, `"${title}" sera-t-elle vendue en moins de 30 jours ?`]
+    );
 
     const mktValue = `mkt_${Date.now()}_value`;
     const thresholdValue = (price || 1000) * 1.2;
-    db.prepare(
-      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_value, status) VALUES (?, ?, 'value', ?, ?, 'open')`
-    ).run(mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue);
+    await query(
+      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_value, status) VALUES (?, ?, 'value', ?, ?, 'open')`,
+      [mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue]
+    );
 
     const config = getConfig();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get("host") || "art-core.app"}`;
@@ -161,9 +163,9 @@ export async function POST(req: NextRequest) {
 
     // ── Send certificate email ────────────────────────────
     let emailResult = null;
-    const emailTo = recipientEmail || (token ? getUserByToken(token)?.email : null);
+    const emailTo = recipientEmail || (token ? (await getUserByToken(token))?.email : null);
     if (emailTo) {
-      const artistUser = token ? getUserByToken(token) : null;
+      const artistUser = token ? await getUserByToken(token) : null;
       emailResult = await sendCertificateEmail({
         recipientEmail: emailTo,
         recipientName: artistUser?.name || "Artiste",

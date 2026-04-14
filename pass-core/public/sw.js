@@ -1,4 +1,4 @@
-const CACHE_NAME = "passcore-v1";
+const CACHE_NAME = "passcore-v2";
 const STATIC_ASSETS = [
   "/pass-core/certifier",
   "/icons/icon-192x192.png",

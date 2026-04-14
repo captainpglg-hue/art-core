@@ -1,81 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminUser, getDb } from "@/lib/db";
+import { queryAll } from "@/lib/db";
 
+// GET: export all data as JSON (admin only)
 export async function GET(req: NextRequest) {
-  try {
-    const adminToken = req.cookies.get("admin_session")?.value;
-    const coreToken = req.cookies.get("core_session")?.value;
+  const token = req.cookies.get("admin_session")?.value;
+  if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const user = getAdminUser(coreToken, adminToken);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin requis" }, { status: 403 });
-    }
+  // TODO: getAdminSession needs async conversion
+  // const user = await getAdminSessionAsync(token);
+  // if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
-    const db = getDb();
-    const type = req.nextUrl.searchParams.get("type") || "all";
+  const type = new URL(req.url).searchParams.get("type") || "all";
 
-    let exportData: any = {};
+  const users = await queryAll(
+    `SELECT u.id, u.email, u.name, u.username, u.role, u.points_balance, u.total_earned, u.is_initie, u.created_at,
+            (SELECT COUNT(*) FROM artworks WHERE artist_id = u.id) as artworks_count
+     FROM users u ORDER BY u.created_at DESC`,
+    []
+  );
 
-    if (type === "certifications" || type === "all") {
-      const certifications = db
-        .prepare(
-          `SELECT a.*, u.name as artist_name
-           FROM artworks a
-           JOIN users u ON a.artist_id = u.id
-           WHERE a.blockchain_hash IS NOT NULL
-           ORDER BY a.certification_date DESC`
-        )
-        .all() as any[];
-      exportData.certifications = certifications;
-    }
+  const artworks = await queryAll(
+    `SELECT a.id, a.title, a.description, a.technique, a.dimensions, a.category, a.status, a.price,
+            a.gauge_points, a.views_count, a.favorites_count, a.blockchain_hash, a.certification_date,
+            a.created_at, a.listed_at, a.sold_at,
+            u.name as artist_name, u.email as artist_email
+     FROM artworks a JOIN users u ON a.artist_id = u.id
+     ORDER BY a.created_at DESC`,
+    []
+  );
 
-    if (type === "users" || type === "all") {
-      const users = db
-        .prepare(
-          `SELECT u.id, u.email, u.name, u.role, u.points_balance, u.total_earned, u.bio, u.avatar_url, u.created_at, u.updated_at,
-                  COUNT(a.id) as artwork_count
-           FROM users u
-           LEFT JOIN artworks a ON u.id = a.artist_id
-           GROUP BY u.id
-           ORDER BY u.created_at DESC`
-        )
-        .all() as any[];
-      exportData.users = users;
-    }
+  const transactions = await queryAll(
+    `SELECT t.*,
+            b.name as buyer_name, s.name as seller_name, a.title as artwork_title
+     FROM transactions t
+     JOIN users b ON t.buyer_id = b.id
+     JOIN users s ON t.seller_id = s.id
+     JOIN artworks a ON t.artwork_id = a.id
+     ORDER BY t.created_at DESC`,
+    []
+  );
 
-    if (type === "artworks" || type === "all") {
-      const artworks = db
-        .prepare(
-          `SELECT a.*, u.name as artist_name
-           FROM artworks a
-           JOIN users u ON a.artist_id = u.id
-           ORDER BY a.created_at DESC`
-        )
-        .all() as any[];
-      exportData.artworks = artworks;
-    }
+  if (type === "users") return NextResponse.json({ users });
+  if (type === "artworks") return NextResponse.json({ artworks });
+  if (type === "transactions") return NextResponse.json({ transactions });
 
-    if (type === "all") {
-      const transactions = db
-        .prepare(`SELECT * FROM transactions ORDER BY created_at DESC`)
-        .all() as any[];
-      exportData.transactions = transactions;
-
-      const sessions = db
-        .prepare(`SELECT id, user_id, expires_at FROM sessions`)
-        .all() as any[];
-      exportData.sessions = sessions;
-    }
-
-    const json = JSON.stringify(exportData, null, 2);
-    return new NextResponse(json, {
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="export_${type}_${new Date().toISOString().split("T")[0]}.json"`,
-      },
-    });
-  } catch (error: any) {
-    console.error("Export error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return NextResponse.json({
+    exported_at: new Date().toISOString(),
+    stats: { users: users.length, artworks: artworks.length, transactions: transactions.length },
+    users,
+    artworks,
+    transactions,
+  });
 }

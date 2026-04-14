@@ -1,15 +1,14 @@
+// Destination : art-core/app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("core_session")?.value;
-  if (!token) {
-    return NextResponse.json({ user: null });
-  }
-  const user = getUserByToken(token);
-  if (!user) {
-    return NextResponse.json({ user: null });
-  }
+  if (!token) return NextResponse.json({ user: null });
+
+  const user: any = await getUserByToken(token);
+  if (!user) return NextResponse.json({ user: null });
+
   return NextResponse.json({
     user: {
       id: user.id,

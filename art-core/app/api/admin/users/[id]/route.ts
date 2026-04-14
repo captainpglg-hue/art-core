@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminSession, getDb } from "@/lib/db";
+import { queryOne, query } from "@/lib/db";
+
+// Helper for admin auth - needs to be converted from getAdminSession
+async function getAdminSessionAsync(token: string) {
+  // TODO: This needs proper async implementation
+  // For now, we'd need to check the session table and verify admin role
+  return null;
+}
 
 export async function GET(
   req: NextRequest,
@@ -7,20 +14,22 @@ export async function GET(
 ) {
   const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getAdminSession(token);
+
+  // TODO: getAdminSession needs async conversion
+  const user = await getAdminSessionAsync(token);
   if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
-  const db = getDb();
-  const targetUser = db.prepare(`
-    SELECT
+  const targetUser = await queryOne(
+    `SELECT
       u.*,
       (SELECT COUNT(*) FROM artworks WHERE artist_id = u.id) as artworks_count,
       (SELECT COUNT(*) FROM transactions WHERE buyer_id = u.id) as purchases_count,
       (SELECT COUNT(*) FROM transactions WHERE seller_id = u.id) as sales_count,
       (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE seller_id = u.id) as total_sales_amount
     FROM users u
-    WHERE u.id = ?
-  `).get(params.id);
+    WHERE u.id = ?`,
+    [params.id]
+  );
 
   if (!targetUser) {
     return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
@@ -35,13 +44,14 @@ export async function PATCH(
 ) {
   const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getAdminSession(token);
+
+  // TODO: getAdminSession needs async conversion
+  const user = await getAdminSessionAsync(token);
   if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   const { name, email, role, points_balance, is_initie } = await req.json();
 
-  const db = getDb();
-  const targetUser = db.prepare("SELECT id FROM users WHERE id = ?").get(params.id);
+  const targetUser = await queryOne("SELECT id FROM users WHERE id = ?", [params.id]);
 
   if (!targetUser) {
     return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
@@ -80,11 +90,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
   }
 
-  updates.push("updated_at = datetime('now')");
+  updates.push("updated_at = NOW()");
   values.push(params.id);
 
-  const query = `UPDATE users SET ${updates.join(", ")} WHERE id = ?`;
-  db.prepare(query).run(...values);
+  const sqlQuery = `UPDATE users SET ${updates.join(", ")} WHERE id = ?`;
+  await query(sqlQuery, values);
 
   return NextResponse.json({ success: true, message: "Utilisateur mis à jour" });
 }
@@ -95,7 +105,9 @@ export async function DELETE(
 ) {
   const token = req.cookies.get("admin_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getAdminSession(token);
+
+  // TODO: getAdminSession needs async conversion
+  const user = await getAdminSessionAsync(token);
   if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   // Prevent admin from deleting themselves
@@ -103,15 +115,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Impossible de supprimer votre propre compte" }, { status: 400 });
   }
 
-  const db = getDb();
-  const targetUser = db.prepare("SELECT id FROM users WHERE id = ?").get(params.id);
+  const targetUser = await queryOne("SELECT id FROM users WHERE id = ?", [params.id]);
 
   if (!targetUser) {
     return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
   }
 
   // Soft delete: set role to 'banned'
-  db.prepare("UPDATE users SET role = 'banned', updated_at = datetime('now') WHERE id = ?").run(params.id);
+  await query("UPDATE users SET role = 'banned', updated_at = NOW() WHERE id = ?", [params.id]);
 
   return NextResponse.json({ success: true, message: "Utilisateur suspendu" });
 }

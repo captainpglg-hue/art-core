@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getUserByEmail, getDb } from "@/lib/db";
+import { getUserByEmail, query, queryOne } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,13 +13,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const db = getDb();
-
     // Look up code in admin_codes
-    const codeRecord = db.prepare(
+    const codeRecord = await queryOne(
       `SELECT * FROM admin_codes
-       WHERE email = ? AND code = ? AND used = 0 AND expires_at > datetime('now')`
-    ).get(email, code) as any;
+       WHERE email = ? AND code = ? AND used = 0 AND expires_at > NOW()`,
+      [email, code]
+    ) as any;
 
     if (!codeRecord) {
       return NextResponse.json(
@@ -29,10 +28,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark code as used
-    db.prepare("UPDATE admin_codes SET used = 1 WHERE id = ?").run(codeRecord.id);
+    await query("UPDATE admin_codes SET used = 1 WHERE id = ?", [codeRecord.id]);
 
     // Get user
-    const user = getUserByEmail(email);
+    const user = await getUserByEmail(email);
     if (!user) {
       return NextResponse.json(
         { error: "Utilisateur non trouvé" },
@@ -43,12 +42,14 @@ export async function POST(req: NextRequest) {
     // Create admin session
     const sessionToken = crypto.randomBytes(32).toString("hex");
     const sessionId = `adm_sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // Create sessions table entry with admin marker
-    db.prepare(
+    await query(
       `INSERT INTO sessions (id, user_id, token, expires_at)
-       VALUES (?, ?, ?, datetime('now', '+24 hours'))`
-    ).run(sessionId, user.id, sessionToken);
+       VALUES (?, ?, ?, ?)`,
+      [sessionId, user.id, sessionToken, expiresAt]
+    );
 
     const response = NextResponse.json({
       success: true,

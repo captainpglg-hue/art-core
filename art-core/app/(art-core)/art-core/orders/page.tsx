@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { queryAll } from "@/lib/db";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { Package } from "lucide-react";
 
@@ -11,14 +11,15 @@ export default async function OrdersPage() {
   const user = await getSessionUser();
   if (!user) redirect("/auth/login");
 
-  const orders = getDb().prepare(
+  const orders = await queryAll<any>(
     `SELECT t.*, a.title, a.photos, u.name as seller_name
      FROM transactions t
      JOIN artworks a ON t.artwork_id = a.id
      JOIN users u ON t.seller_id = u.id
      WHERE t.buyer_id = ?
-     ORDER BY t.created_at DESC`
-  ).all(user.id) as any[];
+     ORDER BY t.created_at DESC`,
+    [user.id]
+  );
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

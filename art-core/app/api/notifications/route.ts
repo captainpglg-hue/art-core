@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByToken, getDb } from "@/lib/db";
+import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("core_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const notifications = getDb().prepare(
-    "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
-  ).all(user.id);
+  const notifications = await queryAll(
+    "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
+    [user.id]
+  );
 
-  const unreadCount = (getDb().prepare(
-    "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0"
-  ).get(user.id) as any).count;
+  const unreadRow = await queryOne(
+    "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0",
+    [user.id]
+  ) as any;
+  const unreadCount = unreadRow?.count || 0;
 
   return NextResponse.json({ notifications, unreadCount });
 }
@@ -21,9 +24,9 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const token = req.cookies.get("core_session")?.value;
   if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  getDb().prepare("UPDATE notifications SET read = 1 WHERE user_id = ?").run(user.id);
+  await query("UPDATE notifications SET read = 1 WHERE user_id = ?", [user.id]);
   return NextResponse.json({ success: true });
 }

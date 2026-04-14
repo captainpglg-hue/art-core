@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateFingerprint, compareFingerprintsHamming } from "@/lib/fingerprint";
-import { getDb } from "@/lib/db";
+import { generateFingerprint } from "@/lib/fingerprint";
+import { queryOne, queryAll } from "@/lib/db";
 
-// POST: Generate fingerprint from uploaded macro photo
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -16,16 +15,13 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fingerprint = await generateFingerprint(buffer);
 
-    // If compare_hash provided, check similarity against existing artwork
     let comparison = null;
     if (compareHash) {
-      const artwork = getDb().prepare(
-        "SELECT id, title, blockchain_hash FROM artworks WHERE blockchain_hash = ?"
-      ).get(compareHash) as any;
-
+      const artwork = await queryOne<any>(
+        "SELECT id, title, blockchain_hash FROM artworks WHERE blockchain_hash = ?",
+        [compareHash]
+      );
       if (artwork) {
-        // For now we compare the similarity_hash stored in the artwork
-        // In production, we'd store the aHash separately
         comparison = {
           found: true,
           artwork_id: artwork.id,
@@ -34,15 +30,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check if this fingerprint already exists (duplicate detection)
-    const db = getDb();
-    const allArtworks = db.prepare(
+    await queryAll(
       "SELECT id, title, macro_photo, blockchain_hash FROM artworks WHERE macro_photo IS NOT NULL AND macro_photo != ''"
-    ).all() as any[];
-
-    let duplicateWarning = null;
-    // Store the similarity hash as macro_photo metadata for future comparisons
-    // (In production, store the full aHash in a separate column)
+    );
 
     return NextResponse.json({
       fingerprint: {
@@ -53,7 +43,7 @@ export async function POST(req: NextRequest) {
       },
       image_stats: fingerprint.image_stats,
       comparison,
-      duplicate_warning: duplicateWarning,
+      duplicate_warning: null,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

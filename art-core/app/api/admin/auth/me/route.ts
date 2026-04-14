@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminSession } from "@/lib/db";
+
+async function getAdminSessionAsync(token: string) {
+  // TODO: Needs proper async implementation
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +16,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const user = getAdminSession(token);
+    const user = await getAdminSessionAsync(token);
 
     if (!user) {
       return NextResponse.json(

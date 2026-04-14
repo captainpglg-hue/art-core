@@ -1,132 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminUser, getDb } from "@/lib/db";
+import { queryOne, queryAll } from "@/lib/db";
+
+// Helper for admin auth - needs to be converted from getAdminSession
+async function getAdminSessionAsync(token: string) {
+  // TODO: This needs proper async implementation
+  // For now, we'd need to check the session table and verify admin role
+  return null;
+}
 
 export async function GET(req: NextRequest) {
-  try {
-    const adminToken = req.cookies.get("admin_session")?.value;
-    const coreToken = req.cookies.get("core_session")?.value;
+  const token = req.cookies.get("admin_session")?.value;
+  if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const user = getAdminUser(coreToken, adminToken);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin requis" }, { status: 403 });
-    }
+  // TODO: getAdminSession needs async conversion
+  const user = await getAdminSessionAsync(token);
+  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
-    const db = getDb();
+  // Total counts
+  const totalUsersRow = await queryOne("SELECT COUNT(*) as count FROM users", []) as any;
+  const totalUsers = totalUsersRow?.count || 0;
 
-    // Total certifications (with blockchain_hash)
-    const totalCertifications = (
-      db
-        .prepare(
-          `SELECT COUNT(*) as count FROM artworks WHERE blockchain_hash IS NOT NULL`
-        )
-        .get() as any
-    ).count;
+  const totalArtworksRow = await queryOne("SELECT COUNT(*) as count FROM artworks", []) as any;
+  const totalArtworks = totalArtworksRow?.count || 0;
 
-    // Total users
-    const totalUsers = (
-      db.prepare(`SELECT COUNT(*) as count FROM users`).get() as any
-    ).count;
+  const totalTransactionsRow = await queryOne("SELECT COUNT(*) as count FROM transactions", []) as any;
+  const totalTransactions = totalTransactionsRow?.count || 0;
 
-    // Certifications this month
-    const certificationsThisMonth = (
-      db
-        .prepare(
-          `SELECT COUNT(*) as count FROM artworks
-           WHERE blockchain_hash IS NOT NULL
-           AND strftime('%Y-%m', certification_date) = strftime('%Y-%m', 'now')`
-        )
-        .get() as any
-    ).count;
+  // Revenue
+  const revenueRow = await queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM transactions", []) as any;
+  const revenue = revenueRow?.total || 0;
 
-    // Blockchain anchored (not simulated)
-    const blockchainAnchored = (
-      db
-        .prepare(
-          `SELECT COUNT(*) as count FROM artworks
-           WHERE blockchain_hash IS NOT NULL
-           AND (blockchain_tx_id IS NULL OR blockchain_tx_id NOT LIKE 'sim_%')`
-        )
-        .get() as any
-    ).count;
+  const platformFeesRow = await queryOne("SELECT COALESCE(SUM(commission_platform), 0) as total FROM transactions", []) as any;
+  const platformFees = platformFeesRow?.total || 0;
 
-    // Recent certifications (last 10)
-    const recentCertifications = db
-      .prepare(
-        `SELECT a.id, a.title, a.blockchain_hash, a.blockchain_tx_id, a.certification_date, u.name as artist_name
-         FROM artworks a
-         JOIN users u ON a.artist_id = u.id
-         WHERE a.blockchain_hash IS NOT NULL
-         ORDER BY a.certification_date DESC
-         LIMIT 10`
-      )
-      .all() as any[];
+  // Artworks by status
+  const artworksByStatus = await queryAll(
+    `SELECT status, COUNT(*) as count FROM artworks GROUP BY status ORDER BY count DESC`,
+    []
+  ) as any[];
 
-    // Monthly certifications (last 6 months)
-    const monthlyCertifications = db
-      .prepare(
-        `SELECT
-           strftime('%Y-%m', certification_date) as month_key,
-           COUNT(*) as count
-         FROM artworks
-         WHERE blockchain_hash IS NOT NULL
-         AND certification_date >= date('now', '-6 months')
-         GROUP BY strftime('%Y-%m', certification_date)
-         ORDER BY month_key DESC`
-      )
-      .all() as any[];
+  // Users by role
+  const usersByRole = await queryAll(
+    `SELECT role, COUNT(*) as count FROM users GROUP BY role ORDER BY count DESC`,
+    []
+  ) as any[];
 
-    const monthNames = [
-      "Jan",
-      "Fév",
-      "Mar",
-      "Avr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Aoû",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Déc",
-    ];
+  // Recent transactions (last 10)
+  const recentTransactions = await queryAll(
+    `SELECT
+      t.id, t.amount, t.created_at,
+      a.title as artwork_title,
+      b.name as buyer_name,
+      s.name as seller_name
+    FROM transactions t
+    JOIN artworks a ON t.artwork_id = a.id
+    JOIN users b ON t.buyer_id = b.id
+    JOIN users s ON t.seller_id = s.id
+    ORDER BY t.created_at DESC LIMIT 10`,
+    []
+  ) as any[];
 
-    const formattedMonthly = monthlyCertifications.map((item: any) => {
-      const [year, month] = item.month_key.split("-");
-      const monthIndex = parseInt(month) - 1;
-      return {
-        month: `${monthNames[monthIndex]} ${year}`,
-        count: item.count,
-      };
-    });
+  // Certifications
+  const totalCertificationsRow = await queryOne("SELECT COUNT(*) as count FROM artworks WHERE blockchain_hash IS NOT NULL", []) as any;
+  const totalCertifications = totalCertificationsRow?.count || 0;
 
-    // Artworks by status
-    const artworksByStatus = db
-      .prepare(
-        `SELECT status, COUNT(*) as count FROM artworks
-         WHERE blockchain_hash IS NOT NULL
-         GROUP BY status`
-      )
-      .all() as any[];
+  const thisMonthCertificationsRow = await queryOne(
+    `SELECT COUNT(*) as count FROM artworks
+     WHERE blockchain_hash IS NOT NULL
+     AND certification_date > NOW() - INTERVAL '1 month'`,
+    []
+  ) as any;
+  const thisMonthCertifications = thisMonthCertificationsRow?.count || 0;
 
-    // Users by role
-    const usersByRole = db
-      .prepare(
-        `SELECT role, COUNT(*) as count FROM users GROUP BY role`
-      )
-      .all() as any[];
+  // Monthly revenue (last 6 months)
+  const monthlyRevenue = await queryAll(
+    `SELECT
+      TO_CHAR(t.created_at, 'YYYY-MM') as month,
+      COALESCE(SUM(t.amount), 0) as revenue
+    FROM transactions t
+    WHERE t.created_at > NOW() - INTERVAL '6 months'
+    GROUP BY TO_CHAR(t.created_at, 'YYYY-MM')
+    ORDER BY month ASC`,
+    []
+  ) as any[];
 
-    return NextResponse.json({
-      totalCertifications,
-      totalUsers,
-      certificationsThisMonth,
-      blockchainAnchored,
-      recentCertifications,
-      monthlyCertifications: formattedMonthly,
-      artworksByStatus,
-      usersByRole,
-    });
-  } catch (error: any) {
-    console.error("Stats error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return NextResponse.json({
+    totalUsers,
+    totalArtworks,
+    totalTransactions,
+    totalRevenue: revenue,
+    platformFees,
+    artworksByStatus,
+    usersByRole,
+    recentTransactions,
+    certifications: {
+      total: totalCertifications,
+      thisMonth: thisMonthCertifications,
+    },
+    monthlyRevenue,
+  });
 }

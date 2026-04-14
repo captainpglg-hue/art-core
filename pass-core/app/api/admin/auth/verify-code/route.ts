@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import crypto from "crypto";
+import { getUserByEmail, query, queryOne } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,39 +13,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const db = getDb();
-
-    // Ensure admin_codes table exists
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_codes (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL,
-        code TEXT NOT NULL,
-        name TEXT,
-        expires_at TEXT NOT NULL,
-        used INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now'))
-      )
-    `);
-
-    // Ensure sessions table exists (if it doesn't)
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        token TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    `);
-
-    // Look up code
-    const codeRecord = db
-      .prepare(
-        `SELECT * FROM admin_codes WHERE email = ? AND code = ? AND used = 0 AND expires_at > datetime('now')`
-      )
-      .get(email, code) as any;
+    // Look up code in admin_codes
+    const codeRecord = await queryOne(
+      `SELECT * FROM admin_codes
+       WHERE email = ? AND code = ? AND used = 0 AND expires_at > NOW()`,
+      [email, code]
+    ) as any;
 
     if (!codeRecord) {
       return NextResponse.json(
@@ -54,27 +28,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark code as used
-    db.prepare("UPDATE admin_codes SET used = 1 WHERE id = ?").run(codeRecord.id);
+    await query("UPDATE admin_codes SET used = 1 WHERE id = ?", [codeRecord.id]);
 
     // Get user
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
-    if (!user || user.role !== "admin") {
+    const user = await getUserByEmail(email);
+    if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé ou permissions insuffisantes" },
-        { status: 403 }
+        { error: "Utilisateur non trouvé" },
+        { status: 404 }
       );
     }
 
-    // Create session
-    const sessionId = `adm_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const sessionToken = `adm_token_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+    // Create admin session
+    const sessionToken = crypto.randomBytes(32).toString("hex");
+    const sessionId = `adm_sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    db.prepare(
-      `INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)`
-    ).run(sessionId, user.id, sessionToken, expiresAt);
+    // Create sessions table entry with admin marker
+    await query(
+      `INSERT INTO sessions (id, user_id, token, expires_at)
+       VALUES (?, ?, ?, ?)`,
+      [sessionId, user.id, sessionToken, expiresAt]
+    );
 
-    // Create response
     const response = NextResponse.json({
       success: true,
       user: {
@@ -85,18 +61,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Set admin_session cookie
+    // Set admin_session cookie (httpOnly, 24h expiry)
     response.cookies.set("admin_session", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 86400, // 24 hours
+      maxAge: 24 * 60 * 60, // 24 hours
       path: "/",
     });
 
     return response;
   } catch (error: any) {
     console.error("Verify code error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

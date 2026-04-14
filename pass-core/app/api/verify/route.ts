@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 import { verifyOnChain, getConfig, getExplorerUrl } from "@/lib/blockchain";
 
 export async function POST(req: NextRequest) {
@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Check local DB
-    const artwork = getDb().prepare(
-      `SELECT a.*, u.name as artist_name FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.blockchain_hash = ?`
-    ).get(hash) as any;
+    const artwork = await queryOne<any>(
+      `SELECT a.*, u.name as artist_name FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.blockchain_hash = ?`,
+      [hash]
+    );
 
     // 2. Check on-chain (if configured)
     let onChainResult = null;

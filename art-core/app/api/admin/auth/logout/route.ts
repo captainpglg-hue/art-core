@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { query } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
     if (token) {
       // Delete session from database
-      getDb().prepare("DELETE FROM sessions WHERE token = ?").run(token);
+      await query("DELETE FROM sessions WHERE token = ?", [token]);
     }
 
     const response = NextResponse.json({

@@ -1,4 +1,4 @@
-const CACHE_NAME = "artcore-v1";
+const CACHE_NAME = "artcore-v2";
 const STATIC_ASSETS = [
   "/art-core",
   "/icons/icon-192x192.png",

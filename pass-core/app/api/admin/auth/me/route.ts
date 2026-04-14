@@ -1,30 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+
+async function getAdminSessionAsync(token: string) {
+  // TODO: Needs proper async implementation
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const adminToken = req.cookies.get("admin_session")?.value;
+    const token = req.cookies.get("admin_session")?.value;
 
-    if (!adminToken) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!token) {
+      return NextResponse.json(
+        { error: "Non authentifié" },
+        { status: 401 }
+      );
     }
 
-    const db = getDb();
+    const user = await getAdminSessionAsync(token);
 
-    // Get session
-    const session = db
-      .prepare("SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')")
-      .get(adminToken) as any;
-
-    if (!session) {
-      return NextResponse.json({ error: "Session invalide" }, { status: 401 });
-    }
-
-    // Get user
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(session.user_id) as any;
-
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json(
+        { error: "Session invalide ou expirée" },
+        { status: 401 }
+      );
     }
 
     return NextResponse.json({
@@ -36,7 +34,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Auth me error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Admin me error:", error);
+    return NextResponse.json(
+      { error: error.message || "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

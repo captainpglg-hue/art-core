@@ -1,3 +1,4 @@
+// Destination : art-core/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 });
     }
 
-    const user = getUserByEmail(email);
+    const user: any = await getUserByEmail(email);
     if (!user) {
       return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
     }
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    createSession(user.id, token);
+    await createSession(user.id, token);
 
     const response = NextResponse.json({
       user: {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
       path: "/",
     });
 

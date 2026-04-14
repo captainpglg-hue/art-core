@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { queryOne, queryAll } from "@/lib/db";
 
 // Haversine distance in km
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(p.get("limit") || "40");
   const offset = parseInt(p.get("offset") || "0");
 
-  const db = getDb();
   const conditions: string[] = ["a.status IN ('for_sale', 'certified')"];
   const params: any[] = [];
 
@@ -54,10 +53,10 @@ export async function GET(req: NextRequest) {
   if (priceMin > 0) { conditions.push("a.price >= ?"); params.push(priceMin); }
   if (priceMax < 999999) { conditions.push("a.price <= ?"); params.push(priceMax); }
 
-  // Format (based on dimensions text)
-  if (format === "small") conditions.push("CAST(SUBSTR(a.dimensions, 1, INSTR(a.dimensions, 'x') - 1) AS INTEGER) < 30");
-  else if (format === "medium") conditions.push("CAST(SUBSTR(a.dimensions, 1, INSTR(a.dimensions, 'x') - 1) AS INTEGER) BETWEEN 30 AND 100");
-  else if (format === "large") conditions.push("CAST(SUBSTR(a.dimensions, 1, INSTR(a.dimensions, 'x') - 1) AS INTEGER) > 100");
+  // Format (based on dimensions text) - Using Postgres substring functions
+  if (format === "small") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) < 30");
+  else if (format === "medium") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) BETWEEN 30 AND 100");
+  else if (format === "large") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) > 100");
 
   // Gauge
   if (gauge === "empty") conditions.push("a.gauge_points = 0");
@@ -82,18 +81,18 @@ export async function GET(req: NextRequest) {
   else if (sort === "gauge") orderBy = "ORDER BY a.gauge_points DESC";
   else if (sort === "popular") orderBy = "ORDER BY a.views_count DESC";
 
-  const countRow = db.prepare(`SELECT COUNT(*) as c FROM artworks a JOIN users u ON a.artist_id = u.id ${where}`).get(...params) as any;
+  const countRow = await queryOne(`SELECT COUNT(*) as c FROM artworks a JOIN users u ON a.artist_id = u.id ${where}`, params) as any;
 
   const sql = `SELECT a.*, u.name as artist_name, u.username as artist_username
     FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ${orderBy} LIMIT ? OFFSET ?`;
-  params.push(limit, offset);
+  const queryParams = [...params, limit, offset];
 
-  let artworks = db.prepare(sql).all(...params) as any[];
+  let artworks = await queryAll(sql, queryParams) as any[];
 
   // Parse photos
   artworks = artworks.map(a => ({ ...a, photos: JSON.parse(a.photos || "[]") }));
 
-  // Geo filter (post-query since SQLite can't do Haversine natively)
+  // Geo filter (post-query since we'll do it in app)
   if (lat && lon && radius > 0) {
     artworks = artworks.filter(a => {
       if (!a.latitude || !a.longitude) return false;
@@ -113,7 +112,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     artworks,
-    total: countRow.c,
+    total: countRow?.c || 0,
     limit,
     offset,
     filters: { q, category, technique, style, priceMin, priceMax, format, gauge, certified, sort, city, radius, pickup },

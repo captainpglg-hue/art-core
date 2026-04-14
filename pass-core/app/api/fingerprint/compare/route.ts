@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFingerprint, FingerprintResult } from "@/lib/fingerprint";
-import { getDb } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 
 /**
  * POST /api/fingerprint/compare
@@ -70,10 +70,10 @@ export async function POST(req: NextRequest) {
         const buf = Buffer.from(await photo.arrayBuffer());
         const fp = await generateFingerprint(buf);
 
-        const db = getDb();
-        const art = db.prepare(
-          "SELECT macro_photo FROM artworks WHERE id = ?"
-        ).get(artworkId) as { macro_photo?: string } | undefined;
+        const art = await queryOne<{ macro_photo?: string }>(
+          "SELECT macro_photo FROM artworks WHERE id = ?",
+          [artworkId]
+        );
 
         if (!art || !art.macro_photo) {
           return NextResponse.json({ error: "Aucune photo macro stockée pour cette oeuvre" }, { status: 404 });
