@@ -2,7 +2,9 @@
 
 ## Résumé exécutif
 
-Migration SQLite → Supabase Postgres **commit + push effectués**, mais **avec une adaptation critique en cours de route**. Signup/login devraient fonctionner après redéploiement Vercel. Le reste de l'app (admin, artworks, cahier de police, etc.) est **cassé** par un mismatch de schéma détecté en prod et nécessite un travail de suivi.
+Migration SQLite → Supabase Postgres **commit + push + deploy effectués**. Signup 500 actuellement à cause d'un **blocage Supabase pooler** (voir §3). Le reste de l'app (admin, artworks, cahier de police, etc.) est en plus **cassé** par un mismatch de schéma détecté en prod et nécessite un travail de suivi.
+
+**Status final** : ❌ Signup ne fonctionne pas. Action manuelle requise dans le dashboard Supabase (activer Supavisor OU ajouter l'IPv4 add-on).
 
 ## Ce qui a été fait en autonomie
 
@@ -85,6 +87,36 @@ Routes **non corrigées** (qui 500-eront encore après déploiement) : toutes le
 - `/api/cahier-police` (table absente)
 - `/api/admin/*` (colonnes différentes)
 - `/api/gauge/*`, `/api/certify`, `/api/certification`, `/api/boost`, etc.
+
+### 3. 🚨 BLOCAGE PROD — Supabase pooler refuse le tenant
+
+Deploy art-core-final (`https://art-core-final-fnexey8dh-…vercel.app` → `art-core.app`) réussi via `npx vercel --prod --scope captainpglg-hues-projects` depuis le repo root après avoir copié `art-core/.vercel/project.json` vers `.vercel/project.json`.
+
+**Curl test signup** → `500 {"error":"write CONNECT_TIMEOUT undefined:undefined"}` puis après passage au pooler → `500 {"error":"Tenant or user not found"}`.
+
+Tests exhaustifs depuis ma box :
+
+| URL tentée | Résultat |
+|---|---|
+| Direct IPv6 `[2a05:d018:…]:5432` (valeur d'origine sur Vercel) | CONNECT_TIMEOUT — Vercel ne sort pas en IPv6 |
+| `postgres.kmmlwuwsahtzgzztcdaj@aws-0-eu-west-3.pooler.supabase.com:6543` | **Tenant or user not found** |
+| `postgres.kmmlwuwsahtzgzztcdaj@aws-0-eu-west-3.pooler.supabase.com:5432` (session mode) | **Tenant or user not found** |
+| Idem sur `eu-central-1`, `eu-west-1`, `us-east-1`, `us-west-1`, `ap-south-1`, `ap-southeast-1` | **Tenant or user not found** partout |
+| Direct IPv4 via `db.kmmlwuwsahtzgzztcdaj.supabase.co:5432` | Pas d'IPv4 (hostname résout en IPv6 uniquement) |
+
+**Interprétation** : le projet Supabase `kmmlwuwsahtzgzztcdaj` est sur l'ancienne infra Postgres directe (sans Supavisor/PgBouncer activé). Vercel serverless n'a pas d'egress IPv6 par défaut → connexion directe au DB IPv6 impossible. C'est pour ça que les anciens deploys « Ready » d'il y a 20h avaient probablement le même bug latent.
+
+### Actions manuelles à faire dans le dashboard Supabase
+
+1. Ouvre `https://supabase.com/dashboard/project/kmmlwuwsahtzgzztcdaj/settings/database`
+2. Section **Connection pooling** → activer Supavisor si disponible (bouton "Enable" / "Reset pooler credentials").
+3. OU section **Add-ons** → activer **IPv4 Address** (~$4/mois) pour rendre la connexion directe accessible depuis Vercel.
+4. Récupérer la *Connection string — Transaction mode* fournie par le dashboard (elle contient le bon hostname + éventuellement un mot de passe pooler différent).
+5. La coller dans Vercel : `cd art-core && printf "%s" "<URL>" | npx vercel env add DATABASE_URL production --force --scope captainpglg-hues-projects`
+6. Redéployer : `cd .. && npx vercel --prod --yes --scope captainpglg-hues-projects`
+7. Relancer le curl signup.
+
+Password DB actuel (valide pour connexion directe, confirmé via `vercel env pull`) : `PhilippeGLG19021970!!!` — stocké sur Vercel URL-encodé en `%21%21%21`.
 
 ## Étapes restantes (à faire manuellement quand tu rentres)
 
