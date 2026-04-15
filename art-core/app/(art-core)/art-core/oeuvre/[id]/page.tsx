@@ -42,7 +42,8 @@ export default async function ArtworkDetailPage({ params }: Props) {
 
   const markets = await queryAll<any>("SELECT * FROM betting_markets WHERE artwork_id = ?", [id]);
 
-  const isLocked = artwork.gauge_locked === 1 || artwork.gauge_points >= 100;
+  const gaugePoints = Number(artwork.gauge_points ?? 0);
+  const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
   const isArtist = currentUser?.id === artwork.artist_id;
   const isCertified = !!artwork.blockchain_hash;
   const mainImage = photos[0] || "/placeholder-art.jpg";
@@ -143,7 +144,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
           <div className="rounded-xl border border-white/8 bg-[#1E1E1E] p-5 space-y-4">
             <p className="text-xs uppercase tracking-widest text-white/25">Jauge de Points</p>
             <GaugeBar
-              value={artwork.gauge_points}
+              value={gaugePoints}
               locked={isLocked}
               entries={gaugeEntries.map((e: any) => ({
                 id: e.id,
@@ -170,7 +171,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
               artworkId={id}
               artworkTitle={artwork.title}
               artworkPrice={artwork.price}
-              gaugePoints={artwork.gauge_points}
+              gaugePoints={gaugePoints}
               gaugeLocked={isLocked}
               artworkStatus={artwork.status}
               communityBoosts={artwork.community_boosts || 0}

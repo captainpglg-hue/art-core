@@ -10,7 +10,7 @@ interface GaugeEntry {
 }
 
 interface GaugeBarProps {
-  value: number; // 0-100
+  value: number | null | undefined; // 0-100 (tolérant aux null/undefined)
   status?: "open" | "locked" | "emptied" | "sold";
   locked?: boolean;
   entries?: GaugeEntry[];
@@ -28,7 +28,11 @@ export function GaugeBar({
   className,
   compact = false,
 }: GaugeBarProps) {
-  const clamped = Math.max(0, Math.min(100, value));
+  // Coercion defensive : si la colonne gauge_points est absente
+  // en DB (schéma incomplet), value peut être undefined/null → on retombe sur 0
+  // au lieu de générer un NaN qui rendrait la barre invisible.
+  const safeValue = typeof value === "number" && !Number.isNaN(value) ? value : 0;
+  const clamped = Math.max(0, Math.min(100, safeValue));
   const isLocked = locked || status === "locked" || clamped >= 100;
   const isSold = status === "sold";
   const isEmptied = status === "emptied";

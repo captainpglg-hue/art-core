@@ -124,14 +124,14 @@ export async function PUT(req: NextRequest) {
       const nId = `notif_${Date.now()}`;
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Certification refusee', ?, ?)",
-        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Photos insuffisantes."}`, `/art-core/certifier`]
+        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Photos insuffisantes."}`, `https://pass-core.app/pass-core/certifier`]
       );
     } else if (action === "revision") {
       await query("UPDATE artworks SET certification_status = ? WHERE id = ?", ["revision", artwork_id]);
       const nId = `notif_${Date.now()}`;
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Retouche demandee', ?, ?)",
-        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Merci de reprendre les photos."}`, `/art-core/certifier`]
+        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Merci de reprendre les photos."}`, `https://pass-core.app/pass-core/certifier`]
       );
     }
 

@@ -101,13 +101,15 @@ export function Navbar() {
                 {user ? (
                   <>
                     {user.role === "artist" && (
-                      <Link
-                        href="/art-core/certifier"
+                      <a
+                        href={`${PASS_CORE_URL}/pass-core/certifier`}
+                        target="_blank"
+                        rel="noopener"
                         className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
                       >
                         <ShieldCheck className="size-3.5" />
                         Certifier
-                      </Link>
+                      </a>
                     )}
                     <Link
                       href="/art-core/deposer"
