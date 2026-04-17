@@ -192,14 +192,35 @@ export async function getUserByToken(token: string) {
   );
 }
 
-/** Ping DB — utilisé par /api/health pour vérifier la connectivité. */
-export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+/**
+ * Ping DB — tente postgres-js direct, puis fallback Supabase REST API
+ * (via SUPABASE_SERVICE_ROLE_KEY) si direct postgres échoue.
+ */
+export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; via?: string; error?: string; details?: any }> {
   const t0 = Date.now();
+  // 1. Tente postgres-js direct
   try {
     await sql`SELECT 1 AS ok`;
-    return { ok: true, latencyMs: Date.now() - t0 };
-  } catch (err: any) {
-    return { ok: false, latencyMs: Date.now() - t0, error: err?.message ?? String(err) };
+    return { ok: true, latencyMs: Date.now() - t0, via: "postgres-js" };
+  } catch (pgErr: any) {
+    // 2. Fallback : Supabase REST API avec service_role_key
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceKey) {
+      try {
+        const r = await fetch(`${supabaseUrl}/rest/v1/artworks?select=count`, {
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Prefer: "count=exact" }
+        });
+        if (r.ok) {
+          const range = r.headers.get("content-range") || "?/?";
+          return { ok: true, latencyMs: Date.now() - t0, via: "supabase-rest", details: { artworks_range: range } };
+        }
+        return { ok: false, latencyMs: Date.now() - t0, via: "supabase-rest", error: `REST ${r.status}`, details: { pg_error: pgErr?.message } };
+      } catch (restErr: any) {
+        return { ok: false, latencyMs: Date.now() - t0, error: `both_failed`, details: { pg_error: pgErr?.message, rest_error: restErr?.message } };
+      }
+    }
+    return { ok: false, latencyMs: Date.now() - t0, via: "postgres-js", error: pgErr?.message ?? String(pgErr) };
   }
 }
 
