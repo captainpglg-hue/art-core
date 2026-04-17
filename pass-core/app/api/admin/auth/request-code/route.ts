@@ -54,4 +54,83 @@ export async function POST(req: NextRequest) {
 
     // ── Rate limit : un code non-utilisé récent bloque une nouvelle demande ─
     // NB : on passe la borne temporelle comme paramètre plutôt que d'injecter
-    // la constante dans le SQL, mê
+    // la constante dans le SQL, même si la const est hardcodée ici. Deux
+    // raisons : (1) robustesse si la constante devient dynamique un jour,
+    // (2) postgres-js compare proprement les timestamps paramétrés.
+    const cutoff = new Date(
+      Date.now() - RATE_LIMIT_WINDOW_SECONDS * 1000
+    ).toISOString();
+    const recentCode = await queryOne<{ created_at: string }>(
+      `SELECT created_at FROM admin_codes
+       WHERE email = ? AND used = 0 AND created_at > ?
+       ORDER BY created_at DESC LIMIT 1`,
+      [email, cutoff]
+    );
+
+    if (recentCode) {
+      return NextResponse.json(
+        {
+          error: `Un code a déjà été envoyé récemment. Patiente ${RATE_LIMIT_WINDOW_SECONDS} secondes avant de réessayer.`,
+          retry_after_seconds: RATE_LIMIT_WINDOW_SECONDS,
+        },
+        { status: 429, headers: { "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS) } }
+      );
+    }
+
+    // Génère un code à 6 chiffres
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Purge les codes expirés/non-utilisés pour cet email
+    await query("DELETE FROM admin_codes WHERE email = ?", [email]);
+
+    // Insère le nouveau code (expire après 10 minutes)
+    const codeId = `adm_code_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await query(
+      `INSERT INTO admin_codes (id, email, code, name, expires_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [codeId, email, code, name, expiresAt]
+    );
+
+    // Tentative d'envoi par email (SMTP ou équivalent)
+    let emailResult: any = { success: false };
+    try {
+      emailResult = await sendAdminCode(email, name, code);
+    } catch (mailError: any) {
+      console.error("[admin/request-code] email send error:", mailError);
+    }
+
+    // Toujours écrit le code dans les runtime logs Vercel.
+    // Ces logs ne sont accessibles qu'au propriétaire du projet Vercel.
+    // N'utilise pas console.log car Vercel l'aggrège à un niveau "info" qui
+    // peut être filtré ; console.warn reste visible avec Log level = warn.
+    console.warn(
+      `[admin/request-code] code généré pour ${email} : ${code} ` +
+      `(expire à ${expiresAt}, email_sent=${emailResult?.success === true})`
+    );
+
+    // Construction de la réponse : dev_code UNIQUEMENT si escape hatch actif
+    const exposeDevCode = shouldReturnDevCode();
+    const payload: Record<string, any> = {
+      success: true,
+      message: emailResult?.success
+        ? "Code envoyé à votre email"
+        : "Code généré. Consulte les logs Vercel ou contacte l'administrateur.",
+    };
+    if (exposeDevCode) {
+      payload.dev_code = code;
+      payload.dev_email_url = emailResult?.localUrl || null;
+      payload.dev_notice =
+        "dev_code exposé car ADMIN_DEV_CODE_ENABLED=1 ou VERCEL_ENV != production. " +
+        "Ne mets JAMAIS ADMIN_DEV_CODE_ENABLED sur le scope Production.";
+    }
+
+    return NextResponse.json(payload);
+  } catch (error: any) {
+    console.error("[admin/request-code] error:", error);
+    return NextResponse.json(
+      { error: error.message || "Erreur serveur" },
+      { status: 500 }
+    );
+  }
+}
