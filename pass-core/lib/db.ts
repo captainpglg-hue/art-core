@@ -174,4 +174,70 @@ export async function createSession(userId: string, token: string) {
 
 export async function getSessionByToken(token: string) {
   return queryOne(
-    "SELECT * FROM sessions WHERE token = ? AND expire
+    "SELECT * FROM sessions WHERE token = ? AND expires_at > NOW()",
+    [token]
+  );
+}
+
+export async function deleteSession(token: string) {
+  await query("DELETE FROM sessions WHERE token = ?", [token]);
+}
+
+export async function getUserByToken(token: string) {
+  return queryOne<any>(
+    `SELECT u.* FROM users u
+     JOIN sessions s ON s.user_id = u.id
+     WHERE s.token = ? AND s.expires_at > NOW()`,
+    [token]
+  );
+}
+
+/** Ping DB — utilisé par /api/health pour vérifier la connectivité. */
+export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+  const t0 = Date.now();
+  try {
+    await sql`SELECT 1 AS ok`;
+    return { ok: true, latencyMs: Date.now() - t0 };
+  } catch (err: any) {
+    return { ok: false, latencyMs: Date.now() - t0, error: err?.message ?? String(err) };
+  }
+}
+
+export async function getArtworkById(id: string) {
+  return queryOne<any>(
+    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+     FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
+    [id]
+  );
+}
+
+export async function getArtworks(opts: { artistId?: string; limit?: number } = {}) {
+  const { artistId, limit = 50 } = opts;
+  if (artistId) {
+    return queryAll<any>(
+      `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+       FROM artworks a JOIN users u ON a.artist_id = u.id
+       WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`,
+      [artistId, limit]
+    );
+  }
+  return queryAll<any>(
+    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+     FROM artworks a JOIN users u ON a.artist_id = u.id
+     ORDER BY a.created_at DESC LIMIT ?`,
+    [limit]
+  );
+}
+
+export async function getGaugeEntries(artworkId: string) {
+  return queryAll<any>(
+    `SELECT g.*, u.name as initiate_name, u.username as initiate_username
+     FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
+     WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
+    [artworkId]
+  );
+}
+
+export function getDb(): never {
+  throw new Error("[db] getDb() n'existe plus — utilise query / queryOne / queryAll (async)");
+}
