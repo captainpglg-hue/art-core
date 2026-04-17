@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, getUserByToken } from "@/lib/db";
+import { query, getUserByToken, sql } from "@/lib/db";
 import { certifyOnChain, getConfig } from "@/lib/blockchain";
 import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
@@ -127,30 +127,61 @@ export async function POST(req: NextRequest) {
     // ── Save to local DB ──────────────────────────────────
     const photosJson = JSON.stringify(photos);
 
-    await query(
-      `INSERT INTO artworks (id, title, artist_id, description, technique, dimensions, creation_date, category, photos, macro_photo, blockchain_hash, blockchain_tx_id, certification_date, status, price, listed_at, macro_position, macro_quality_score)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'for_sale', ?, NOW(), ?, ?)`,
-      [
-        id, title, artistId, description, technique, dimensions,
-        creation_date, category, photosJson, macroPhotoPath,
-        chainResult.blockchainHash, chainResult.txHash, price,
-        macroPosition, macroQualityScore
-      ]
-    );
+    // Pre-build params explicitly — using postgres-js tagged template syntax
+    // to avoid any `?` → `$N` conversion ambiguity. Each value is bound directly.
+    try {
+      await sql`
+        INSERT INTO artworks (
+          id, title, artist_id, description, technique, dimensions,
+          creation_date, category, photos, macro_photo,
+          blockchain_hash, blockchain_tx_id, certification_date,
+          status, price, listed_at, macro_position, macro_quality_score
+        ) VALUES (
+          ${id}, ${title}, ${artistId}, ${description ?? ""},
+          ${technique ?? ""}, ${dimensions ?? ""},
+          ${creation_date ?? ""}, ${category ?? "painting"},
+          ${photosJson}, ${macroPhotoPath ?? ""},
+          ${chainResult.blockchainHash}, ${chainResult.txHash},
+          NOW(), 'for_sale', ${price ?? 0}, NOW(),
+          ${macroPosition ?? ""}, ${macroQualityScore ?? 0}
+        )
+      `;
+    } catch (dbErr: any) {
+      console.error("[certify] artworks INSERT failed:", dbErr.message, dbErr.code);
+      throw new Error(`DB insert artwork failed: ${dbErr.message} (code=${dbErr.code ?? "n/a"})`);
+    }
 
     // ── Create betting markets ────────────────────────────
     const mktTime = `mkt_${Date.now()}_time`;
-    await query(
-      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_days, status) VALUES (?, ?, 'time', ?, 30, 'open')`,
-      [mktTime, id, `"${title}" sera-t-elle vendue en moins de 30 jours ?`]
-    );
+    const questionTime = `"${title}" sera-t-elle vendue en moins de 30 jours ?`;
+    try {
+      await sql`
+        INSERT INTO betting_markets (
+          id, artwork_id, market_type, question, threshold_days, status
+        ) VALUES (
+          ${mktTime}, ${id}, 'time', ${questionTime}, 30, 'open'
+        )
+      `;
+    } catch (dbErr: any) {
+      console.error("[certify] betting_markets time INSERT failed:", dbErr.message, dbErr.code);
+      // Non-fatal: continue even if betting markets fail
+    }
 
     const mktValue = `mkt_${Date.now()}_value`;
     const thresholdValue = (price || 1000) * 1.2;
-    await query(
-      `INSERT INTO betting_markets (id, artwork_id, market_type, question, threshold_value, status) VALUES (?, ?, 'value', ?, ?, 'open')`,
-      [mktValue, id, `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`, thresholdValue]
-    );
+    const questionValue = `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`;
+    try {
+      await sql`
+        INSERT INTO betting_markets (
+          id, artwork_id, market_type, question, threshold_value, status
+        ) VALUES (
+          ${mktValue}, ${id}, 'value', ${questionValue}, ${thresholdValue}, 'open'
+        )
+      `;
+    } catch (dbErr: any) {
+      console.error("[certify] betting_markets value INSERT failed:", dbErr.message, dbErr.code);
+      // Non-fatal
+    }
 
     const config = getConfig();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get("host") || "art-core.app"}`;

@@ -69,19 +69,87 @@ export async function queryAll<T = any>(
   return sql.unsafe<T[]>(pgText, params);
 }
 
-/** Convertit les ? (style SQLite) en $1, $2... (style Postgres). */
+/**
+ * Convertit les ? (style SQLite) en $1, $2... (style Postgres).
+ * Ignore les ? qui se trouvent à l'intérieur d'une chaîne SQL ('…')
+ * ou d'un identifiant entre guillemets ("…"), et ignore les blocs
+ * de commentaires (-- …, /* … *\/). Évite aussi de toucher aux
+ * opérateurs JSONB ?|, ?& et ??.
+ */
 function convertPlaceholders(text: string): string {
+  let out = "";
   let i = 0;
-  return text.replace(/\?/g, () => `$${++i}`);
+  let n = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    // '...' string literal (avec échappement '')
+    if (ch === "'") {
+      out += ch;
+      i++;
+      while (i < text.length) {
+        out += text[i];
+        if (text[i] === "'") {
+          if (text[i + 1] === "'") { out += text[++i]; } else { i++; break; }
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // "..." quoted identifier
+    if (ch === '"') {
+      out += ch;
+      i++;
+      while (i < text.length && text[i] !== '"') { out += text[i++]; }
+      if (i < text.length) { out += text[i++]; }
+      continue;
+    }
+
+    // -- line comment
+    if (ch === "-" && next === "-") {
+      while (i < text.length && text[i] !== "\n") { out += text[i++]; }
+      continue;
+    }
+
+    // /* block comment */
+    if (ch === "/" && next === "*") {
+      out += "/*"; i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) { out += text[i++]; }
+      if (i < text.length) { out += "*/"; i += 2; }
+      continue;
+    }
+
+    // Opérateurs JSONB : ??, ?|, ?& → on laisse passer tel quel
+    if (ch === "?" && (next === "?" || next === "|" || next === "&")) {
+      out += ch + next;
+      i += 2;
+      continue;
+    }
+
+    // Placeholder à remplacer
+    if (ch === "?") {
+      out += `$${++n}`;
+      i++;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+  return out;
 }
 
 // ----------------------------------------------------------------------------
 // Helpers métier (remplacent les exports de l'ancien lib/db.ts)
 // ----------------------------------------------------------------------------
 
+// Fetch users sans alias `full_name AS name` — le schéma déployé a `name`.
+// Les consommateurs gèrent déjà `user.name || user.full_name` en fallback.
 export async function getUserByEmail(email: string) {
   const row = await queryOne<any>(
-    "SELECT *, full_name AS name FROM users WHERE email = ?",
+    "SELECT * FROM users WHERE email = ?",
     [email]
   );
   return row;
@@ -89,7 +157,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: string) {
   const row = await queryOne<any>(
-    "SELECT *, full_name AS name FROM users WHERE id = ?",
+    "SELECT * FROM users WHERE id = ?",
     [id]
   );
   return row;
@@ -106,59 +174,4 @@ export async function createSession(userId: string, token: string) {
 
 export async function getSessionByToken(token: string) {
   return queryOne(
-    "SELECT * FROM sessions WHERE token = ? AND expires_at > NOW()",
-    [token]
-  );
-}
-
-export async function deleteSession(token: string) {
-  await query("DELETE FROM sessions WHERE token = ?", [token]);
-}
-
-export async function getUserByToken(token: string) {
-  return queryOne<any>(
-    `SELECT u.*, u.full_name AS name FROM users u
-     JOIN sessions s ON s.user_id = u.id
-     WHERE s.token = ? AND s.expires_at > NOW()`,
-    [token]
-  );
-}
-
-export async function getArtworkById(id: string) {
-  return queryOne<any>(
-    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-     FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
-    [id]
-  );
-}
-
-export async function getArtworks(opts: { artistId?: string; limit?: number } = {}) {
-  const { artistId, limit = 50 } = opts;
-  if (artistId) {
-    return queryAll<any>(
-      `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-       FROM artworks a JOIN users u ON a.artist_id = u.id
-       WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`,
-      [artistId, limit]
-    );
-  }
-  return queryAll<any>(
-    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-     FROM artworks a JOIN users u ON a.artist_id = u.id
-     ORDER BY a.created_at DESC LIMIT ?`,
-    [limit]
-  );
-}
-
-export async function getGaugeEntries(artworkId: string) {
-  return queryAll<any>(
-    `SELECT g.*, u.name as initiate_name, u.username as initiate_username
-     FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
-     WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
-    [artworkId]
-  );
-}
-
-export function getDb(): never {
-  throw new Error("[db] getDb() n'existe plus — utilise query / queryOne / queryAll (async)");
-}
+    "SELECT * FROM sessions WHERE token = ? AND expire

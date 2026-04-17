@@ -69,19 +69,87 @@ export async function queryAll<T = any>(
   return sql.unsafe<T[]>(pgText, params);
 }
 
-/** Convertit les ? (style SQLite) en $1, $2... (style Postgres). */
+/**
+ * Convertit les ? (style SQLite) en $1, $2... (style Postgres).
+ * Ignore les ? qui se trouvent à l'intérieur d'une chaîne SQL ('…')
+ * ou d'un identifiant entre guillemets ("…"), et ignore les blocs
+ * de commentaires (-- …, /* … *\/). Évite aussi de toucher aux
+ * opérateurs JSONB ?|, ?& et ??.
+ */
 function convertPlaceholders(text: string): string {
+  let out = "";
   let i = 0;
-  return text.replace(/\?/g, () => `$${++i}`);
+  let n = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    // '...' string literal (avec échappement '')
+    if (ch === "'") {
+      out += ch;
+      i++;
+      while (i < text.length) {
+        out += text[i];
+        if (text[i] === "'") {
+          if (text[i + 1] === "'") { out += text[++i]; } else { i++; break; }
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // "..." quoted identifier
+    if (ch === '"') {
+      out += ch;
+      i++;
+      while (i < text.length && text[i] !== '"') { out += text[i++]; }
+      if (i < text.length) { out += text[i++]; }
+      continue;
+    }
+
+    // -- line comment
+    if (ch === "-" && next === "-") {
+      while (i < text.length && text[i] !== "\n") { out += text[i++]; }
+      continue;
+    }
+
+    // /* block comment */
+    if (ch === "/" && next === "*") {
+      out += "/*"; i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) { out += text[i++]; }
+      if (i < text.length) { out += "*/"; i += 2; }
+      continue;
+    }
+
+    // Opérateurs JSONB : ??, ?|, ?& → on laisse passer tel quel
+    if (ch === "?" && (next === "?" || next === "|" || next === "&")) {
+      out += ch + next;
+      i += 2;
+      continue;
+    }
+
+    // Placeholder à remplacer
+    if (ch === "?") {
+      out += `$${++n}`;
+      i++;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+  return out;
 }
 
 // ----------------------------------------------------------------------------
 // Helpers métier (remplacent les exports de l'ancien lib/db.ts)
 // ----------------------------------------------------------------------------
 
+// Fetch users sans alias `full_name AS name` — le schéma déployé a `name`.
+// Les consommateurs gèrent déjà `user.name || user.full_name` en fallback.
 export async function getUserByEmail(email: string) {
   const row = await queryOne<any>(
-    "SELECT *, full_name AS name FROM users WHERE email = ?",
+    "SELECT * FROM users WHERE email = ?",
     [email]
   );
   return row;
@@ -89,7 +157,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: string) {
   const row = await queryOne<any>(
-    "SELECT *, full_name AS name FROM users WHERE id = ?",
+    "SELECT * FROM users WHERE id = ?",
     [id]
   );
   return row;
@@ -117,11 +185,22 @@ export async function deleteSession(token: string) {
 
 export async function getUserByToken(token: string) {
   return queryOne<any>(
-    `SELECT u.*, u.full_name AS name FROM users u
+    `SELECT u.* FROM users u
      JOIN sessions s ON s.user_id = u.id
      WHERE s.token = ? AND s.expires_at > NOW()`,
     [token]
   );
+}
+
+/** Ping DB — utilisé par /api/health pour vérifier la connectivité. */
+export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+  const t0 = Date.now();
+  try {
+    await sql`SELECT 1 AS ok`;
+    return { ok: true, latencyMs: Date.now() - t0 };
+  } catch (err: any) {
+    return { ok: false, latencyMs: Date.now() - t0, error: err?.message ?? String(err) };
+  }
 }
 
 export async function getArtworkById(id: string) {
