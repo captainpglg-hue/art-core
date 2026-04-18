@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Check local DB
     const artwork = await queryOne<any>(
-      `SELECT a.*, u.name as artist_name FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.blockchain_hash = ?`,
+      `SELECT a.*, u.full_name as artist_name FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.blockchain_hash = ?`,
       [hash]
     );
 

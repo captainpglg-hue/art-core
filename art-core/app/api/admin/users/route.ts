@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
   const users = await queryAll(
-    `SELECT u.id, u.email, u.name, u.username, u.role, u.points_balance, u.total_earned,
+    `SELECT u.id, u.email, u.full_name as name, u.username, u.role, u.points_balance, u.total_earned,
             u.is_initie, u.created_at,
             (SELECT COUNT(*) FROM artworks WHERE artist_id = u.id) as artworks_count,
             (SELECT COUNT(*) FROM transactions WHERE buyer_id = u.id) as purchases_count

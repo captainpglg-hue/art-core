@@ -17,12 +17,12 @@ export async function GET(req: NextRequest) {
     const where = status !== "all" ? `WHERE a.certification_status = ?` : "";
     if (status !== "all") {
       certs = await queryAll(
-        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ORDER BY a.created_at DESC LIMIT 50`,
+        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ORDER BY a.created_at DESC LIMIT 50`,
         [status]
       );
     } else {
       certs = await queryAll(
-        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ORDER BY a.created_at DESC LIMIT 50`,
+        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ORDER BY a.created_at DESC LIMIT 50`,
         []
       );
     }

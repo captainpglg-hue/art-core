@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     `SELECT
       a.id, a.title, a.artist_id, a.blockchain_hash, a.blockchain_tx_id,
       a.certification_date, a.status, a.category,
-      u.name as artist_name, u.email as artist_email
+      u.full_name as artist_name, u.email as artist_email
     FROM artworks a
     JOIN users u ON a.artist_id = u.id
     WHERE a.blockchain_hash IS NOT NULL

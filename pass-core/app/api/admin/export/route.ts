@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const type = new URL(req.url).searchParams.get("type") || "all";
 
   const users = await queryAll(
-    `SELECT u.id, u.email, u.name, u.username, u.role, u.points_balance, u.total_earned, u.is_initie, u.created_at,
+    `SELECT u.id, u.email, u.full_name as name, u.username, u.role, u.points_balance, u.total_earned, u.is_initie, u.created_at,
             (SELECT COUNT(*) FROM artworks WHERE artist_id = u.id) as artworks_count
      FROM users u ORDER BY u.created_at DESC`,
     []
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     `SELECT a.id, a.title, a.description, a.technique, a.dimensions, a.category, a.status, a.price,
             a.gauge_points, a.views_count, a.favorites_count, a.blockchain_hash, a.certification_date,
             a.created_at, a.listed_at, a.sold_at,
-            u.name as artist_name, u.email as artist_email
+            u.full_name as artist_name, u.email as artist_email
      FROM artworks a JOIN users u ON a.artist_id = u.id
      ORDER BY a.created_at DESC`,
     []

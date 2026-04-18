@@ -348,10 +348,10 @@ export async function getArtworkById(id: string) {
     const a = rows[0]; if (!a) return undefined;
     const users = await restSelect("users", { id: a.artist_id }, { limit: 1 });
     const u = users[0] || {};
-    return { ...a, artist_name: u.name || u.full_name, artist_username: u.username, artist_avatar: u.avatar_url, artist_bio: u.bio };
+    return { ...a, artist_name: u.full_name as name || u.full_name, artist_username: u.username, artist_avatar: u.avatar_url, artist_bio: u.bio };
   } catch {
     return queryOne<any>(
-      `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+      `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
        FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
       [id]
     );
@@ -371,7 +371,7 @@ export async function getArtworks(opts: { artistId?: string; limit?: number } = 
     for (const u of users) byId[u.id] = u;
     return arts.map((a: any) => ({ ...a, artist_name: byId[a.artist_id]?.name || byId[a.artist_id]?.full_name, artist_username: byId[a.artist_id]?.username, artist_avatar: byId[a.artist_id]?.avatar_url }));
   } catch {
-    const join = `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+    const join = `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
                   FROM artworks a JOIN users u ON a.artist_id = u.id`;
     if (artistId) return queryAll<any>(`${join} WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`, [artistId, limit]);
     return queryAll<any>(`${join} ORDER BY a.created_at DESC LIMIT ?`, [limit]);
@@ -388,7 +388,7 @@ export async function getGaugeEntries(artworkId: string) {
     return entries.map((e: any) => ({ ...e, initiate_name: byId[e.initiate_id]?.name || byId[e.initiate_id]?.full_name, initiate_username: byId[e.initiate_id]?.username }));
   } catch {
     return queryAll<any>(
-      `SELECT g.*, u.name as initiate_name, u.username as initiate_username
+      `SELECT g.*, u.full_name as initiate_name, u.username as initiate_username
        FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
        WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
       [artworkId]

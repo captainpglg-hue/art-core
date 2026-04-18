@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const artworks = await queryAll(
       `SELECT a.id, a.title, a.category, a.price, a.status,
               a.blockchain_hash, a.created_at, a.macro_photo,
-              u.name as artist_name
+              u.full_name as artist_name
        FROM artworks a
        JOIN users u ON a.artist_id = u.id
        ORDER BY a.created_at DESC`

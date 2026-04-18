@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   // Text search
   if (q) {
-    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.name LIKE ? OR a.technique LIKE ? OR a.style LIKE ?)");
+    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.full_name as name LIKE ? OR a.technique LIKE ? OR a.style LIKE ?)");
     const s = `%${q}%`;
     params.push(s, s, s, s, s);
   }
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
   const countRow = await queryOne(`SELECT COUNT(*) as c FROM artworks a JOIN users u ON a.artist_id = u.id ${where}`, params) as any;
 
-  const sql = `SELECT a.*, u.name as artist_name, u.username as artist_username
+  const sql = `SELECT a.*, u.full_name as artist_name, u.username as artist_username
     FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ${orderBy} LIMIT ? OFFSET ?`;
   const queryParams = [...params, limit, offset];
 

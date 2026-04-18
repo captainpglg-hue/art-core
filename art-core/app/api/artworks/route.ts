@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     params.push(category);
   }
   if (search) {
-    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.name LIKE ?)");
+    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.full_name as name LIKE ?)");
     const s = `%${search}%`;
     params.push(s, s, s);
   }
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   const artworkParams = [...params, limit, offset];
   const artworks = await queryAll(
-    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+    `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
      FROM artworks a
      JOIN users u ON a.artist_id = u.id
      ${where}

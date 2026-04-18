@@ -4,7 +4,7 @@ import { query, queryOne, queryAll, getUserByToken } from "@/lib/db";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const artwork = await queryOne(
-    `SELECT a.*, u.name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar, u.bio as artist_bio
+    `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar, u.bio as artist_bio
      FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
     [id]
   ) as any;
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const gaugeEntries = await queryAll(
-    `SELECT ge.*, u.name as initiate_name, u.username as initiate_username
+    `SELECT ge.*, u.full_name as initiate_name, u.username as initiate_username
      FROM gauge_entries ge JOIN users u ON ge.initiate_id = u.id
      WHERE ge.artwork_id = ? ORDER BY ge.created_at DESC`,
     [id]
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // Get offers
   const offers = await queryAll(
-    `SELECT o.*, u.name as buyer_name FROM offers o JOIN users u ON o.buyer_id = u.id
+    `SELECT o.*, u.full_name as buyer_name FROM offers o JOIN users u ON o.buyer_id = u.id
      WHERE o.artwork_id = ? ORDER BY o.created_at DESC`,
     [id]
   ) as any[];

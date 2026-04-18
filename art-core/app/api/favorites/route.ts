@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const favorites = await queryAll(
     `SELECT f.*, a.title, a.price, a.photos, a.gauge_points, a.gauge_locked, a.status,
-      u.name as artist_name
+      u.full_name as artist_name
      FROM favorites f
      JOIN artworks a ON f.artwork_id = a.id
      JOIN users u ON a.artist_id = u.id
