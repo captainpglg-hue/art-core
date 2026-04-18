@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, queryAll, getUserByToken } from "@/lib/db";
+import {
+  getMerchantForUser,
+  createPoliceRegisterEntry,
+  generateSingleFichePDF,
+  sendFicheEmail,
+} from "@/lib/fiche-police";
+
+const ROLES_FICHE_POLICE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -97,7 +105,50 @@ export async function POST(req: NextRequest) {
       [id, title, user.id, description || "", technique || "", dimensions || "", creation_date || "", category || "painting", photosJson, price]
     );
 
-    return NextResponse.json({ id, success: true });
+    // ── Déclenchement automatique fiche de police (pros uniquement) ──────
+    let fichePolice: any = null;
+    if (ROLES_FICHE_POLICE.includes(user.role)) {
+      try {
+        const merchant = await getMerchantForUser(user.id);
+        if (!merchant) {
+          fichePolice = {
+            triggered: false,
+            reason: "missing_merchant_profile",
+            message: "Fiche de police non générée — vous devez d'abord compléter /pro/inscription (SIRET, raison sociale, etc.)",
+          };
+        } else {
+          const artworkPayload = {
+            id, title, description, technique, dimensions, creation_date, category,
+            price: Number(price) || 0, photos: photos || [],
+          };
+          const created = await createPoliceRegisterEntry({
+            user: user as any, merchant, artwork: artworkPayload, body,
+          });
+          if (created) {
+            const pdfBuffer = await generateSingleFichePDF({
+              merchant, entry: created.entry, artwork: artworkPayload, user: user as any,
+            });
+            const emailSent = await sendFicheEmail({
+              merchant, entry: created.entry, artwork: artworkPayload, user: user as any, pdfBuffer,
+            });
+            fichePolice = {
+              triggered: true,
+              entry_number: created.entryNumber,
+              entry_id: created.entry.id,
+              email_sent: emailSent,
+              pdf_size: pdfBuffer.length,
+            };
+          } else {
+            fichePolice = { triggered: false, reason: "insert_failed" };
+          }
+        }
+      } catch (e: any) {
+        console.error("[artworks] fiche-police hook failed:", e?.message);
+        fichePolice = { triggered: false, reason: "exception", error: e?.message };
+      }
+    }
+
+    return NextResponse.json({ id, success: true, fiche_police: fichePolice });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

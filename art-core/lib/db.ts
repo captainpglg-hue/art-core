@@ -414,6 +414,20 @@ export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; via?: 
   }
 }
 
-export function getDb(): never {
-  throw new Error("[db] getDb() n'existe plus — utilise query / queryOne / queryAll (async)");
+// ── getDb() — Supabase admin client (service role, bypasses RLS) ──────────
+// Utilisé par les routes /api/merchants/* qui interagissent directement avec
+// Supabase via .from().select(). Les autres routes utilisent query/queryOne.
+import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+let _sbAdmin: ReturnType<typeof createSupabaseAdminClient> | null = null;
+export function getDb() {
+  if (_sbAdmin) return _sbAdmin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("[db.getDb] SUPABASE_URL / SERVICE_ROLE_KEY manquants");
+  }
+  _sbAdmin = createSupabaseAdminClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return _sbAdmin;
 }
