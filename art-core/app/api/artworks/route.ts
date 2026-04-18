@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, queryOne, queryAll, getUserByToken } from "@/lib/db";
+import { query, getUserByToken, getDb } from "@/lib/db";
 import {
   getMerchantForUser,
   createPoliceRegisterEntry,
@@ -10,71 +10,70 @@ import {
 const ROLES_FICHE_POLICE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status") || undefined;
-  const category = searchParams.get("category") || undefined;
-  const search = searchParams.get("search") || undefined;
-  const sort = searchParams.get("sort") || undefined;
-  const limit = parseInt(searchParams.get("limit") || "20");
-  const offset = parseInt(searchParams.get("offset") || "0");
-  const artistId = searchParams.get("artist_id") || undefined;
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status") || undefined;
+    const category = searchParams.get("category") || undefined;
+    const search = searchParams.get("search") || undefined;
+    const sort = searchParams.get("sort") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const artistId = searchParams.get("artist_id") || undefined;
 
-  // TODO: getArtworks and countArtworks are helper functions from lib/db that need conversion
-  // For now, inline the logic with async calls
-  const conditions: string[] = [];
-  const params: any[] = [];
+    // Réécriture via client Supabase direct (le translator SQL→REST ne gère pas
+    // les JOINs). On fait 2 requêtes : artworks + users, puis on merge en JS.
+    const sb = getDb();
+    let q = sb.from("artworks").select("*", { count: "exact" });
+    if (status) q = q.eq("status", status);
+    if (category) q = q.eq("category", category);
+    if (artistId) q = q.eq("artist_id", artistId);
+    if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 
-  if (status) {
-    conditions.push("a.status = ?");
-    params.push(status);
+    if (sort === "price_asc") q = q.order("price", { ascending: true });
+    else if (sort === "price_desc") q = q.order("price", { ascending: false });
+    else if (sort === "gauge") q = q.order("gauge_points", { ascending: false });
+    else if (sort === "popular") q = q.order("views_count", { ascending: false });
+    else q = q.order("created_at", { ascending: false });
+
+    q = q.range(offset, offset + limit - 1);
+
+    const { data: artworks, count, error } = await q;
+    if (error) {
+      console.error("[GET /api/artworks] supabase error:", error.message);
+      return NextResponse.json({ error: error.message, artworks: [], total: 0, limit, offset }, { status: 500 });
+    }
+
+    // Enrichissement avec données artiste (full_name, username, avatar_url)
+    const artistIds = Array.from(new Set((artworks || []).map((a: any) => a.artist_id).filter(Boolean)));
+    let usersById: Record<string, any> = {};
+    if (artistIds.length) {
+      const { data: users } = await sb
+        .from("users")
+        .select("id, full_name, name, username, avatar_url")
+        .in("id", artistIds);
+      usersById = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+    }
+
+    const parsed = (artworks || []).map((a: any) => {
+      const u = usersById[a.artist_id] || {};
+      return {
+        ...a,
+        photos: typeof a.photos === "string" ? safeJson(a.photos) : (a.photos || []),
+        artist_name: u.full_name || u.name || null,
+        artist_username: u.username || null,
+        artist_avatar: u.avatar_url || null,
+      };
+    });
+
+    return NextResponse.json({ artworks: parsed, total: count || 0, limit, offset });
+  } catch (e: any) {
+    console.error("[GET /api/artworks] exception:", e?.message);
+    return NextResponse.json({ error: e?.message || "Internal error", artworks: [], total: 0 }, { status: 500 });
   }
-  if (category) {
-    conditions.push("a.category = ?");
-    params.push(category);
-  }
-  if (search) {
-    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.full_name as name LIKE ?)");
-    const s = `%${search}%`;
-    params.push(s, s, s);
-  }
-  if (artistId) {
-    conditions.push("a.artist_id = ?");
-    params.push(artistId);
-  }
+}
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-  let orderBy = "ORDER BY a.created_at DESC";
-  if (sort === "price_asc") orderBy = "ORDER BY a.price ASC";
-  else if (sort === "price_desc") orderBy = "ORDER BY a.price DESC";
-  else if (sort === "gauge") orderBy = "ORDER BY a.gauge_points DESC";
-  else if (sort === "newest") orderBy = "ORDER BY a.created_at DESC";
-  else if (sort === "popular") orderBy = "ORDER BY a.views_count DESC";
-
-  const artworkParams = [...params, limit, offset];
-  const artworks = await queryAll(
-    `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-     FROM artworks a
-     JOIN users u ON a.artist_id = u.id
-     ${where}
-     ${orderBy}
-     LIMIT ? OFFSET ?`,
-    artworkParams
-  );
-
-  const countParams = [...params];
-  const countRow = await queryOne(
-    `SELECT COUNT(*) as count FROM artworks a JOIN users u ON a.artist_id = u.id ${where}`,
-    countParams
-  ) as any;
-  const total = countRow?.count || 0;
-
-  const parsed = artworks.map((a) => ({
-    ...a,
-    photos: JSON.parse(a.photos || "[]"),
-  }));
-
-  return NextResponse.json({ artworks: parsed, total, limit, offset });
+function safeJson(s: string): any[] {
+  try { return JSON.parse(s); } catch { return []; }
 }
 
 export async function POST(req: NextRequest) {
