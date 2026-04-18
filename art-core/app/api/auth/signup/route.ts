@@ -11,9 +11,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tous les champs sont requis" }, { status: 400 });
     }
 
+    const ALLOW_OVERWRITE = process.env.ALLOW_SIGNUP_OVERWRITE === "1";
+
     const existing = await getUserByEmail(email);
     if (existing) {
-      return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
+      if (!ALLOW_OVERWRITE) {
+        return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
+      }
+      // Mode test : purge l'ancien compte + toutes ses dépendances avant de recréer
+      console.log("[signup] ALLOW_SIGNUP_OVERWRITE=1 → purge user", existing.id, email);
+      const sbAdmin = (await import("@/lib/db")).getDb();
+      await sbAdmin.from("sessions").delete().eq("user_id", existing.id);
+      await sbAdmin.from("police_register_entries").delete().eq("user_id", existing.id);
+      await sbAdmin.from("cahier_police").delete().eq("user_id", existing.id);
+      await sbAdmin.from("merchants").delete().eq("user_id", existing.id);
+      await sbAdmin.from("artworks").delete().eq("artist_id", existing.id);
+      await sbAdmin.from("notifications").delete().eq("user_id", existing.id);
+      await sbAdmin.from("favorites").delete().eq("user_id", existing.id);
+      await sbAdmin.from("users").delete().eq("id", existing.id);
     }
 
     const existingUsername = await queryOne(
@@ -21,7 +36,17 @@ export async function POST(req: NextRequest) {
       [username]
     );
     if (existingUsername) {
-      return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
+      if (!ALLOW_OVERWRITE) {
+        return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
+      }
+      // Purge aussi le user qui squatte le username
+      const sbAdmin = (await import("@/lib/db")).getDb();
+      const uid = (existingUsername as any).id;
+      await sbAdmin.from("sessions").delete().eq("user_id", uid);
+      await sbAdmin.from("police_register_entries").delete().eq("user_id", uid);
+      await sbAdmin.from("merchants").delete().eq("user_id", uid);
+      await sbAdmin.from("artworks").delete().eq("artist_id", uid);
+      await sbAdmin.from("users").delete().eq("id", uid);
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
