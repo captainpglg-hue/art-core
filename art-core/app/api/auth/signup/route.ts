@@ -55,13 +55,24 @@ export async function POST(req: NextRequest) {
     const isInitie = userRole === "initiate";
     const initialPoints = isInitie ? 15 : 0;
 
-    // Schéma déployé : colonne `name` (pas `full_name`). is_initie est INTEGER
-    // côté DB → on coerce le boolean en 0/1 pour éviter toute ambiguïté de
-    // type avec postgres-js.
-    await query(
-      "INSERT INTO users (id, email, password_hash, name, username, role, is_initie, points_balance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [userId, email, passwordHash, name, username, userRole, isInitie ? 1 : 0, initialPoints]
-    );
+    // Schéma déployé Supabase : colonne `full_name` (pas `name`) ; `is_initie`
+    // est BOOLEAN (pas integer). Insert direct via client Supabase pour éviter
+    // les ambiguïtés de type du translator SQL→REST.
+    const sbAdmin = (await import("@/lib/db")).getDb();
+    const { error: insErr } = await sbAdmin.from("users").insert({
+      id: userId,
+      email,
+      password_hash: passwordHash,
+      full_name: name,
+      username,
+      role: userRole,
+      is_initie: isInitie,
+      points_balance: initialPoints,
+    });
+    if (insErr) {
+      console.error("[signup] INSERT users failed:", insErr.message);
+      return NextResponse.json({ error: "Erreur création compte : " + insErr.message }, { status: 500 });
+    }
 
     const token = crypto.randomBytes(32).toString("hex");
     await createSession(userId, token);
