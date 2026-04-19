@@ -1,46 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, queryOne, queryAll, getUserByToken } from "@/lib/db";
+import { query, queryOne, queryAll, getUserByToken, getDb } from "@/lib/db";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const artwork = await queryOne(
-    `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar, u.bio as artist_bio
-     FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
-    [id]
-  ) as any;
+  try {
+    const { id } = await params;
+    const sb = getDb();
 
-  if (!artwork) {
-    return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
+    // Artwork — pas de JOIN, le translator SQL→REST ne les gère pas.
+    const { data: artwork, error: aErr } = await sb
+      .from("artworks")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (aErr) throw aErr;
+    if (!artwork) {
+      return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
+    }
+
+    // Artiste (JOIN manuel)
+    const { data: artist } = await sb
+      .from("users")
+      .select("full_name, username, avatar_url, bio")
+      .eq("id", artwork.artist_id)
+      .maybeSingle();
+
+    // gauge_entries + initiate name (2 requêtes, merge JS)
+    const { data: gaugeRaw } = await sb
+      .from("gauge_entries")
+      .select("*")
+      .eq("artwork_id", id)
+      .order("created_at", { ascending: false });
+    const initiateIds = Array.from(new Set((gaugeRaw || []).map((g: any) => g.initiate_id).filter(Boolean)));
+    let initiates: Record<string, any> = {};
+    if (initiateIds.length) {
+      const { data: users } = await sb
+        .from("users")
+        .select("id, full_name, username")
+        .in("id", initiateIds);
+      initiates = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+    }
+    const gaugeEntries = (gaugeRaw || []).map((g: any) => ({
+      ...g,
+      initiate_name: initiates[g.initiate_id]?.full_name || null,
+      initiate_username: initiates[g.initiate_id]?.username || null,
+    }));
+
+    // offers + buyer name
+    const { data: offersRaw } = await sb
+      .from("offers")
+      .select("*")
+      .eq("artwork_id", id)
+      .order("created_at", { ascending: false });
+    const buyerIds = Array.from(new Set((offersRaw || []).map((o: any) => o.buyer_id).filter(Boolean)));
+    let buyers: Record<string, any> = {};
+    if (buyerIds.length) {
+      const { data: users } = await sb
+        .from("users")
+        .select("id, full_name")
+        .in("id", buyerIds);
+      buyers = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+    }
+    const offers = (offersRaw || []).map((o: any) => ({
+      ...o,
+      buyer_name: buyers[o.buyer_id]?.full_name || null,
+    }));
+
+    // betting markets
+    const { data: markets } = await sb
+      .from("betting_markets")
+      .select("*")
+      .eq("artwork_id", id)
+      .order("created_at", { ascending: false });
+
+    // Photos peut être stocké en JSON string (ancien format) ou array (nouveau)
+    let photos: any[] = [];
+    if (Array.isArray(artwork.photos)) {
+      photos = artwork.photos;
+    } else if (typeof artwork.photos === "string") {
+      try { photos = JSON.parse(artwork.photos); } catch { photos = []; }
+    }
+
+    return NextResponse.json({
+      artwork: {
+        ...artwork,
+        photos,
+        artist_name: artist?.full_name || null,
+        artist_username: artist?.username || null,
+        artist_avatar: artist?.avatar_url || null,
+        artist_bio: artist?.bio || null,
+      },
+      gaugeEntries,
+      offers,
+      markets: markets || [],
+    });
+  } catch (e: any) {
+    console.error("[artworks/[id]] GET failed:", e?.message);
+    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
   }
-
-  const gaugeEntries = await queryAll(
-    `SELECT ge.*, u.full_name as initiate_name, u.username as initiate_username
-     FROM gauge_entries ge JOIN users u ON ge.initiate_id = u.id
-     WHERE ge.artwork_id = ? ORDER BY ge.created_at DESC`,
-    [id]
-  ) as any[];
-
-  const photos = JSON.parse(artwork.photos || "[]");
-
-  // Get offers
-  const offers = await queryAll(
-    `SELECT o.*, u.full_name as buyer_name FROM offers o JOIN users u ON o.buyer_id = u.id
-     WHERE o.artwork_id = ? ORDER BY o.created_at DESC`,
-    [id]
-  ) as any[];
-
-  // Get betting markets
-  const markets = await queryAll(
-    "SELECT * FROM betting_markets WHERE artwork_id = ? ORDER BY created_at DESC",
-    [id]
-  ) as any[];
-
-  return NextResponse.json({
-    artwork: { ...artwork, photos },
-    gaugeEntries,
-    offers,
-    markets,
-  });
 }
 
 // PATCH: admin can update artwork status, price, visibility

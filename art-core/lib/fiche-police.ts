@@ -371,7 +371,8 @@ export async function sendFicheEmail(args: {
     return false;
   }
   const subject = `Fiche de police N° ${entry.entry_number} — ${artwork.title}`;
-  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@art-core.app";
+  // Domaine vérifié chez Resend (même convention que /lib/mailer.ts)
+  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@core-ecosystem.art";
   const attachmentName = `fiche-police-${entry.entry_number}-${safeSlug(artwork.title)}.pdf`;
 
   try {
