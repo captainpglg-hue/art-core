@@ -50,6 +50,17 @@ export default function CertifierPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [authUser, setAuthUser] = useState<any | null | "loading">("loading");
+
+  // Check auth on mount — certify requires a valid user.id (UUID) on pass-core
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive) setAuthUser(j?.user || null); })
+      .catch(() => { if (alive) setAuthUser(null); });
+    return () => { alive = false; };
+  }, []);
   const [qualityScore, setQualityScore] = useState<any>(null);
   const [qualityScore2, setQualityScore2] = useState<any>(null);
   const [qualityScore2b, setQualityScore2b] = useState<any>(null);
@@ -459,12 +470,42 @@ export default function CertifierPage() {
         </div>
       )}
 
+      {/* ═══ AUTH REQUIRED ═══ */}
+      {step === "intro" && authUser === null && (
+        <div className="animate-fade-in text-center pt-6">
+          <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
+            <Lock className="size-10 text-[#C9A84C]" />
+          </div>
+          <h1 className="font-display text-2xl font-semibold text-white mb-3">Connexion requise</h1>
+          <p className="text-white/50 text-sm mb-8 leading-relaxed">
+            Connectez-vous pour certifier votre œuvre. Un compte permet d&apos;associer la certification à votre profil et d&apos;envoyer le certificat par email.
+          </p>
+          <div className="space-y-3">
+            <a href={`/auth/login?next=${encodeURIComponent("/pass-core/certifier")}`} className="block w-full py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-base active:brightness-90">
+              Se connecter
+            </a>
+            <a href="https://art-core.app/auth/signup" className="block w-full py-4 rounded-xl border border-white/15 text-white font-medium active:bg-white/5">
+              Créer un compte sur ART-CORE
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ AUTH LOADING ═══ */}
+      {step === "intro" && authUser === "loading" && (
+        <div className="animate-fade-in text-center pt-20">
+          <Loader2 className="size-8 text-[#C9A84C] animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm">Chargement…</p>
+        </div>
+      )}
+
       {/* ═══ INTRO ═══ */}
-      {step === "intro" && (
+      {step === "intro" && authUser && authUser !== "loading" && (
         <div className="animate-fade-in text-center pt-6">
           <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
             <ShieldCheck className="size-10 text-[#C9A84C]" />
           </div>
+          <p className="text-xs text-[#C9A84C]/70 mb-2">Connecté en tant que {authUser.name || authUser.email}</p>
           <h1 className="font-display text-2xl font-semibold text-white mb-3">Certifiez votre œuvre en 5 minutes</h1>
           <p className="text-white/40 text-sm mb-8 leading-relaxed">
             ART-CORE vérifie que votre œuvre est originale. Ce processus protège votre travail et rassure les acheteurs.
