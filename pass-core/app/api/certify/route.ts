@@ -9,11 +9,17 @@ import path from "path";
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
-    let artistId = "usr_artist_1";
+    let artistId: string | null = null;
 
     if (token) {
       const user = await getUserByToken(token);
-      if (user && (user.role === "artist" || user.role === "admin")) artistId = user.id;
+      // Tous les roles connectes peuvent certifier (artist, galeriste, antiquaire,
+      // brocanteur, depot_vente, admin, client...). On enregistre l'oeuvre sous
+      // leur user.id qui est deja un UUID.
+      if (user?.id) artistId = user.id;
+    }
+    if (!artistId) {
+      return NextResponse.json({ error: "Connexion requise pour certifier une oeuvre" }, { status: 401 });
     }
 
     const contentType = req.headers.get("content-type") || "";

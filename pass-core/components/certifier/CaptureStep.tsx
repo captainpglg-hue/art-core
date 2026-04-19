@@ -4,14 +4,17 @@ import { useEffect } from "react";
 import { useCameraMacro, type CameraQuality } from "./useCameraMacro";
 
 /**
- * Étape 1/3 — Capture photo macro avec guide visuel et contraintes qualité.
+ * Capture photo macro avec guide visuel et contraintes qualité.
  *
  * Affiche :
- *  - preview caméra plein écran (viewfinder)
- *  - overlay cadre de cadrage
- *  - barre de qualité (résolution + netteté + exposition)
- *  - feedback textuel en temps réel
+ *  - viewfinder caméra plein écran (fixed inset-0, z-50)
+ *  - overlay cadre de cadrage, coins + cible centrale
+ *  - jauge qualité EN HAUT (toujours visible, au-dessus de la zone
+ *    que la nav bar Android peut manger)
+ *  - jauge qualité EN BAS (redondance) avec safe-area-inset-bottom
+ *  - feedback textuel en temps réel (résolution / netteté / exposition)
  *  - bouton Capturer désactivé tant que qualité insuffisante
+ *  - état "initialisation caméra" visible si pas encore ready
  */
 
 interface Props {
@@ -41,38 +44,86 @@ export default function CaptureStep({ onCapture, onCancel, title, subtitle }: Pr
     onCapture(result.blob, result.dataUrl, result.width, result.height, result.quality);
   }
 
+  const scoreColor = quality.isAcceptable ? "#10b981" : quality.score >= 40 ? "#f59e0b" : "#ef4444";
+  const scoreBg = quality.isAcceptable
+    ? "linear-gradient(to right, #10b981, #34d399)"
+    : quality.score >= 40
+    ? "linear-gradient(to right, #f59e0b, #fbbf24)"
+    : "linear-gradient(to right, #dc2626, #f59e0b)";
+
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-col">
-      {/* ── Viewfinder ──────────────────────────────────────── */}
+    <div
+      className="fixed inset-0 bg-black text-white flex flex-col"
+      style={{ zIndex: 60 }}
+    >
+      {/* ═══ BARRE QUALITE HAUTE (toujours visible) ══════════════ */}
+      <div
+        className="bg-black/90 backdrop-blur px-4 pt-3 pb-3 border-b border-white/10"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        {title && (
+          <p className="text-[10px] uppercase tracking-widest text-[#d4af37] mb-0.5">
+            {title}
+          </p>
+        )}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs opacity-80">
+            {quality.resolution} MP · netteté {quality.sharpness}% · expo {quality.exposure}%
+          </span>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{
+              color: scoreColor,
+              backgroundColor: `${scoreColor}20`,
+            }}
+          >
+            {isReady ? (quality.isAcceptable ? "✓ PRÊT" : "⚠ AJUSTER") : "INIT…"}
+          </span>
+        </div>
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all duration-200"
+            style={{ width: `${quality.score}%`, background: scoreBg }}
+          />
+        </div>
+        <p className="text-[11px] mt-1 opacity-80">
+          {!isReady ? "Initialisation de la caméra…" : quality.feedback}
+        </p>
+      </div>
+
+      {/* ═══ VIEWFINDER ══════════════════════════════════════════ */}
       <div className="relative flex-1 overflow-hidden">
         <video
           ref={videoRef}
           playsInline
           muted
+          autoPlay
           className="absolute inset-0 w-full h-full object-cover"
         />
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Overlay guide macro */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/25" />
           {/* Fenêtre centrale claire */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] aspect-square border-2 rounded-lg"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] aspect-square border-2 rounded-lg transition-colors duration-200"
             style={{
-              borderColor: quality.isAcceptable ? "#d4af37" : "#ef4444",
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)",
+              borderColor: scoreColor,
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.35)",
             }}
           >
             {/* Coins */}
-            {["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"].map((pos) => (
-              <div
-                key={pos}
-                className={`absolute w-4 h-4 border-white ${pos} ${
-                  pos.includes("top") ? "border-t-2" : "border-b-2"
-                } ${pos.includes("left") ? "border-l-2" : "border-r-2"}`}
-              />
-            ))}
+            {["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"].map(
+              (pos) => (
+                <div
+                  key={pos}
+                  className={`absolute w-5 h-5 border-white ${pos} ${
+                    pos.includes("top") ? "border-t-2" : "border-b-2"
+                  } ${pos.includes("left") ? "border-l-2" : "border-r-2"}`}
+                />
+              )
+            )}
             {/* Cible centrale */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-8 h-px bg-white/50" />
@@ -80,23 +131,36 @@ export default function CaptureStep({ onCapture, onCancel, title, subtitle }: Pr
             </div>
           </div>
 
-          {/* Texte guide */}
-          <div className="absolute top-4 left-0 right-0 text-center px-4">
-            {title && <p className="text-xs uppercase tracking-widest text-[#d4af37] mb-1">{title}</p>}
-            <p className="text-sm opacity-90">
-              {subtitle || "Cadre un détail unique de l'œuvre (signature, texture, défaut, pigment)"}
-            </p>
-          </div>
+          {/* Subtitle guide */}
+          {subtitle && (
+            <div className="absolute top-3 left-0 right-0 text-center px-4">
+              <p className="text-sm opacity-90 bg-black/40 inline-block px-3 py-1 rounded-full backdrop-blur">
+                {subtitle}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Écran d'init si pas ready */}
+        {!isReady && !error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+            <div className="text-center">
+              <div className="inline-block w-10 h-10 border-4 border-white/20 border-t-[#d4af37] rounded-full animate-spin mb-3" />
+              <p className="text-sm opacity-80">Démarrage de la caméra…</p>
+              <p className="text-xs opacity-50 mt-1">Autorise l&apos;accès à la caméra si demandé</p>
+            </div>
+          </div>
+        )}
 
         {/* Erreur caméra */}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/80">
+          <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/85">
             <div className="max-w-sm text-center">
-              <p className="text-red-400 mb-2">{error}</p>
+              <p className="text-red-400 mb-2 font-medium">Impossible d&apos;accéder à la caméra</p>
+              <p className="text-xs text-white/60 mb-4 break-words">{error}</p>
               <button
                 onClick={start}
-                className="mt-4 px-4 py-2 bg-white text-black rounded-lg"
+                className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium"
               >
                 Réessayer
               </button>
@@ -105,46 +169,38 @@ export default function CaptureStep({ onCapture, onCancel, title, subtitle }: Pr
         )}
       </div>
 
-      {/* ── Barre qualité ───────────────────────────────────── */}
-      <div className="bg-black px-4 py-3 border-t border-white/10">
-        <div className="flex items-center justify-between mb-2 text-xs">
-          <span className="opacity-60">
-            {quality.resolution} MP · netteté {quality.sharpness}% · expo {quality.exposure}%
+      {/* ═══ BARRE QUALITE BASSE (redondance + gros score) ═════════ */}
+      <div
+        className="bg-black/90 backdrop-blur px-4 py-3 border-t border-white/10"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wider opacity-60">
+            Score qualité
           </span>
           <span
-            className={
-              quality.isAcceptable ? "text-emerald-400" : "text-amber-400"
-            }
+            className="text-2xl font-bold tabular-nums"
+            style={{ color: scoreColor }}
           >
-            {quality.isAcceptable ? "✓ Prêt" : "⚠ Ajuster"}
+            {quality.score}
+            <span className="text-xs opacity-60 font-normal">/100</span>
           </span>
         </div>
-
-        {/* Score */}
-        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full transition-all duration-200"
-            style={{
-              width: `${quality.score}%`,
-              background: quality.isAcceptable
-                ? "linear-gradient(to right, #d4af37, #f0d66b)"
-                : "linear-gradient(to right, #dc2626, #f59e0b)",
-            }}
-          />
-        </div>
-
-        <p className="text-xs mt-2 opacity-80">{quality.feedback}</p>
       </div>
 
-      {/* ── Boutons ─────────────────────────────────────────── */}
-      <div className="bg-black px-6 py-4 flex items-center justify-between">
-        {onCancel && (
+      {/* ═══ BOUTONS ═══════════════════════════════════════════════ */}
+      <div
+        className="bg-black px-6 py-4 flex items-center justify-between"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
+        {onCancel ? (
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm opacity-70 hover:opacity-100"
+            className="px-4 py-2 text-sm opacity-80 hover:opacity-100"
           >
             Annuler
           </button>
+        ) : (
+          <div className="w-[72px]" />
         )}
         <button
           onClick={handleCapture}
