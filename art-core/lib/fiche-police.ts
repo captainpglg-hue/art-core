@@ -319,19 +319,31 @@ export async function sendFicheEmail(args: {
 }): Promise<FicheEmailResult> {
   const { merchant, entry, artwork, user, pdfBuffer } = args;
 
-  // Config email : SMTP (Gmail) en priorite, sinon Resend en fallback
+  // Config email : SMTP (Gmail) en priorite, sinon Resend en fallback.
+  // Une cle Resend valide commence par "re_" (format officiel Resend).
+  const smtpPass = String(process.env.SMTP_PASS || "");
   const hasSmtp =
-    process.env.SMTP_HOST &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS &&
-    !String(process.env.SMTP_PASS).includes("COLLE_TON_MOT_DE_PASSE") &&
-    !String(process.env.SMTP_PASS).includes("TO_FILL");
-  const RESEND = process.env.RESEND_API_KEY;
-  const hasResend = !!RESEND && !RESEND.includes("REMPLACE") && !RESEND.includes("TO_FILL");
+    !!process.env.SMTP_HOST &&
+    !!process.env.SMTP_USER &&
+    smtpPass.length > 6 &&
+    !smtpPass.includes("COLLE_TON_MOT_DE_PASSE") &&
+    !smtpPass.includes("TO_FILL");
+  const RESEND = String(process.env.RESEND_API_KEY || "");
+  // On rejette uniquement les placeholders evidents. Tout le reste tentera
+  // l'appel Resend qui renverra une erreur claire si invalide.
+  const hasResend =
+    RESEND.length > 6 &&
+    !RESEND.includes("REMPLACE") &&
+    !RESEND.includes("TO_FILL") &&
+    !RESEND.toLowerCase().includes("placeholder");
 
   if (!hasSmtp && !hasResend) {
-    console.warn("[fiche-police] aucune config email (SMTP_HOST/USER/PASS ou RESEND_API_KEY) — email skipped");
-    return { success: false, error: "no_email_config" };
+    const keyPreview = RESEND ? `${RESEND.slice(0, 3)}...(${RESEND.length} chars)` : "(missing)";
+    console.warn(`[fiche-police] aucune config email utilisable. RESEND_API_KEY=${keyPreview}, SMTP_HOST=${!!process.env.SMTP_HOST}`);
+    return {
+      success: false,
+      error: `no_email_config — RESEND_API_KEY preview: ${keyPreview}, SMTP_HOST present: ${!!process.env.SMTP_HOST}`,
+    };
   }
 
   const priceFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(entry.purchase_price) || 0);
