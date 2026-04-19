@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useCameraMacro } from "./useCameraMacro";
+import { useCameraMacro, type CameraQuality } from "./useCameraMacro";
 
 /**
  * Étape 1/3 — Capture photo macro avec guide visuel et contraintes qualité.
@@ -15,11 +15,19 @@ import { useCameraMacro } from "./useCameraMacro";
  */
 
 interface Props {
-  onCapture: (blob: Blob, dataUrl: string, width: number, height: number) => void;
+  onCapture: (
+    blob: Blob,
+    dataUrl: string,
+    width: number,
+    height: number,
+    quality: CameraQuality
+  ) => void;
   onCancel?: () => void;
+  title?: string;
+  subtitle?: string;
 }
 
-export default function CaptureStep({ onCapture, onCancel }: Props) {
+export default function CaptureStep({ onCapture, onCancel, title, subtitle }: Props) {
   const { videoRef, canvasRef, isReady, error, quality, start, capture } =
     useCameraMacro();
 
@@ -30,7 +38,7 @@ export default function CaptureStep({ onCapture, onCancel }: Props) {
   async function handleCapture() {
     const result = await capture();
     if (!result) return;
-    onCapture(result.blob, result.dataUrl, result.width, result.height);
+    onCapture(result.blob, result.dataUrl, result.width, result.height, result.quality);
   }
 
   return (
@@ -74,8 +82,9 @@ export default function CaptureStep({ onCapture, onCancel }: Props) {
 
           {/* Texte guide */}
           <div className="absolute top-4 left-0 right-0 text-center px-4">
+            {title && <p className="text-xs uppercase tracking-widest text-[#d4af37] mb-1">{title}</p>}
             <p className="text-sm opacity-90">
-              Cadre un détail unique de l&apos;œuvre (signature, texture, défaut, pigment)
+              {subtitle || "Cadre un détail unique de l'œuvre (signature, texture, défaut, pigment)"}
             </p>
           </div>
         </div>

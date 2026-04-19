@@ -7,6 +7,8 @@ import {
   Loader2, Sparkles, X, Award, Lock, TrendingUp, Image as ImgIcon, Move,
   Fingerprint, Eye, Mic, MicOff,
 } from "lucide-react";
+import CaptureStep from "@/components/certifier/CaptureStep";
+import type { CameraQuality } from "@/components/certifier/useCameraMacro";
 
 // ═══════════════════════════════════════════════════════════
 // TYPES
@@ -59,6 +61,51 @@ export default function CertifierPage() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const zoneRef = useRef<HTMLDivElement>(null);
+
+  // ── Live camera overlay (3 macros avec jauge temps reel) ──
+  const [liveCapture, setLiveCapture] = useState<null | "photo2" | "photo2b" | "photo2c">(null);
+
+  function qualityFromCamera(q: CameraQuality) {
+    // Mappe CameraQuality (sharpness/exposure/resolution/score) vers
+    // la shape que la gauge post-capture affiche deja.
+    let status: string, message: string;
+    if (q.score >= 75) { status = "excellent"; message = "Bonne qualité — détails suffisants"; }
+    else if (q.score >= 50) { status = "acceptable"; message = q.feedback || "Qualité correcte"; }
+    else { status = "insufficient"; message = q.feedback || "Qualité insuffisante"; }
+    return {
+      score: q.score,
+      status,
+      message,
+      details: {
+        resolution: {
+          score: Math.min(100, Math.round(q.resolution * 20)),
+          value: `${q.resolution} MP`,
+          megapixels: q.resolution.toFixed(1),
+        },
+        sharpness: q.sharpness,
+        exposure: q.exposure,
+        liveCapture: true,
+      },
+    };
+  }
+
+  function handleLiveCapture(
+    blob: Blob,
+    dataUrl: string,
+    width: number,
+    height: number,
+    q: CameraQuality
+  ) {
+    const which = liveCapture;
+    if (!which) return;
+    const file = new File([blob], `macro-${which}.jpg`, { type: "image/jpeg" });
+    const url = URL.createObjectURL(blob);
+    const qMapped = qualityFromCamera(q);
+    if (which === "photo2") { setPhoto2({ file, url }); setQualityScore2(qMapped); }
+    if (which === "photo2b") { setPhoto2b({ file, url }); setQualityScore2b(qMapped); }
+    if (which === "photo2c") { setPhoto2c({ file, url }); setQualityScore2c(qMapped); }
+    setLiveCapture(null);
+  }
 
   // Progress
   const ALL_STEPS: Step[] = ["intro", "photo1", "zone_select", "photo2", "photo2b", "photo2c", "photo3", "f_title", "f_technique", "f_dimensions", "f_year", "f_description", "f_price", "review", "submitting", "done"];
@@ -324,6 +371,24 @@ export default function CertifierPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 min-h-[calc(100vh-4rem)] pb-24">
+      {/* ═══ OVERLAY CAMERA LIVE (jauge temps reel pour les 3 macros) ═══ */}
+      {liveCapture && (
+        <CaptureStep
+          title={
+            liveCapture === "photo2" ? "Macro 1/3 — Vue frontale" :
+            liveCapture === "photo2b" ? "Macro 2/3 — Lumière rasante" :
+            "Macro 3/3 — Ultra-détail"
+          }
+          subtitle={
+            liveCapture === "photo2" ? "5-10 cm, bien en face de la zone" :
+            liveCapture === "photo2b" ? "Inclinez à 30° pour révéler les reliefs" :
+            "2-3 cm, pigments et micro-textures"
+          }
+          onCapture={handleLiveCapture}
+          onCancel={() => setLiveCapture(null)}
+        />
+      )}
+
       {/* Progress bar */}
       {step !== "intro" && step !== "done" && (
         <div className="h-1 bg-white/5 rounded-full mb-6 overflow-hidden">
@@ -469,14 +534,15 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Macro frontale
               </div>
-              <button onClick={() => { setQualityScore2(null); capturePhoto(setPhoto2, setQualityScore2); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2(null); setLiveCapture("photo2"); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2, setQualityScore2)}
+            <button onClick={() => setLiveCapture("photo2")}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Photo macro frontale</p>
               <p className="text-white/20 text-xs">5-10cm, bien en face de la zone</p>
+              <p className="text-[11px] text-white/40 mt-1">Caméra live + jauge temps réel</p>
             </button>
           )}
 
@@ -531,14 +597,15 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Lumière rasante
               </div>
-              <button onClick={() => { setQualityScore2b(null); capturePhoto(setPhoto2b, setQualityScore2b); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2b(null); setLiveCapture("photo2b"); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2b, setQualityScore2b)}
+            <button onClick={() => setLiveCapture("photo2b")}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Macro angle rasant</p>
               <p className="text-white/20 text-xs">Inclinez à 30° pour les reliefs</p>
+              <p className="text-[11px] text-white/40 mt-1">Caméra live + jauge temps réel</p>
             </button>
           )}
 
@@ -593,14 +660,15 @@ export default function CertifierPage() {
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
                 <Check className="size-3" /> Ultra-détail
               </div>
-              <button onClick={() => { setQualityScore2c(null); capturePhoto(setPhoto2c, setQualityScore2c); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
+              <button onClick={() => { setQualityScore2c(null); setLiveCapture("photo2c"); }} className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs">Reprendre</button>
             </div>
           ) : (
-            <button onClick={() => capturePhoto(setPhoto2c, setQualityScore2c)}
+            <button onClick={() => setLiveCapture("photo2c")}
               className="w-full aspect-square rounded-2xl border-2 border-dashed border-[#C9A84C]/40 flex flex-col items-center justify-center gap-3 bg-[#C9A84C]/5 active:bg-[#C9A84C]/10 mb-4">
               <ZoomIn className="size-12 text-[#C9A84C]" />
               <p className="text-[#C9A84C] font-medium">Ultra-détail</p>
               <p className="text-white/20 text-xs">2-3cm, pigments et micro-textures</p>
+              <p className="text-[11px] text-white/40 mt-1">Caméra live + jauge temps réel</p>
             </button>
           )}
 
