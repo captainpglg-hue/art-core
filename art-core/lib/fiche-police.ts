@@ -301,13 +301,22 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
 
 // ── Envoi email via Resend avec PJ PDF ────────────────────────────────────
 
+export interface FicheEmailResult {
+  success: boolean;
+  mode?: "smtp" | "resend-api" | "resend-smtp" | "resend-fallback";
+  error?: string;
+  to?: string;
+  from?: string;
+  recipient_fallback?: boolean;
+}
+
 export async function sendFicheEmail(args: {
   merchant: MerchantLite;
   entry: any;
   artwork: ArtworkLite;
   user: UserLite;
   pdfBuffer: Buffer;
-}): Promise<boolean> {
+}): Promise<FicheEmailResult> {
   const { merchant, entry, artwork, user, pdfBuffer } = args;
 
   // Config email : SMTP (Gmail) en priorite, sinon Resend en fallback
@@ -322,7 +331,7 @@ export async function sendFicheEmail(args: {
 
   if (!hasSmtp && !hasResend) {
     console.warn("[fiche-police] aucune config email (SMTP_HOST/USER/PASS ou RESEND_API_KEY) — email skipped");
-    return false;
+    return { success: false, error: "no_email_config" };
   }
 
   const priceFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(entry.purchase_price) || 0);
@@ -364,60 +373,104 @@ export async function sendFicheEmail(args: {
     </p>
   </div>`;
 
-  // Envoi via nodemailer (Gmail SMTP) ou Resend SMTP en fallback
+  // Envoi via nodemailer (Gmail SMTP) ou Resend (API HTTP de préférence)
   const to = merchant.email || user.email;
   if (!to) {
     console.warn("[fiche-police] destinataire manquant (ni merchant.email ni user.email)");
-    return false;
+    return { success: false, error: "no_recipient" };
   }
   const subject = `Fiche de police N° ${entry.entry_number} — ${artwork.title}`;
   // Domaine vérifié chez Resend (même convention que /lib/mailer.ts)
   const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@core-ecosystem.art";
   const attachmentName = `fiche-police-${entry.entry_number}-${safeSlug(artwork.title)}.pdf`;
 
-  try {
-    const nodemailer = (await import("nodemailer")).default;
-    let transporter;
-    if (hasSmtp) {
-      transporter = nodemailer.createTransport({
+  // ── SMTP Gmail (prioritaire si configuré) ──
+  if (hasSmtp) {
+    try {
+      const nodemailer = (await import("nodemailer")).default;
+      const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || "587"),
         secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: process.env.SMTP_USER!,
-          pass: process.env.SMTP_PASS!,
-        },
+        auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
       });
-    } else {
-      // Resend SMTP fallback
-      transporter = nodemailer.createTransport({
-        host: "smtp.resend.com",
-        port: 465,
-        secure: true,
-        auth: { user: "resend", pass: RESEND! },
+      await transporter.sendMail({
+        from, to, cc: CC_ADMIN, subject, html,
+        attachments: [{ filename: attachmentName, content: pdfBuffer, contentType: "application/pdf" }],
       });
+      console.log(`[fiche-police] email SMTP envoye a ${to} (cc ${CC_ADMIN})`);
+      return { success: true, mode: "smtp", to, from };
+    } catch (e: any) {
+      console.warn("[fiche-police] SMTP failed:", e.message);
+      // On continue sur Resend si dispo
     }
-
-    await transporter.sendMail({
-      from,
-      to,
-      cc: CC_ADMIN,
-      subject,
-      html,
-      attachments: [
-        {
-          filename: attachmentName,
-          content: pdfBuffer,
-          contentType: "application/pdf",
-        },
-      ],
-    });
-    console.log(`[fiche-police] email envoye a ${to} (cc ${CC_ADMIN}) via ${hasSmtp ? "SMTP" : "Resend"}`);
-    return true;
-  } catch (e: any) {
-    console.warn("[fiche-police] envoi email echec:", e.message);
-    return false;
   }
+
+  // ── Resend API HTTP (plus fiable que SMTP, messages d'erreur clairs) ──
+  if (hasResend) {
+    try {
+      const payload = {
+        from,
+        to: [to],
+        cc: [CC_ADMIN],
+        subject,
+        html,
+        attachments: [{ filename: attachmentName, content: pdfBuffer.toString("base64") }],
+      };
+      const resp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (resp.ok) {
+        const j = await resp.json().catch(() => ({}));
+        console.log(`[fiche-police] email Resend API envoye a ${to}, id=${j?.id}`);
+        return { success: true, mode: "resend-api", to, from };
+      }
+      const errTxt = await resp.text();
+      console.warn(`[fiche-police] Resend API ${resp.status}:`, errTxt);
+
+      // ── Dernier recours : envoyer uniquement au CC_ADMIN depuis onboarding@resend.dev ──
+      // Resend autorise toujours onboarding@resend.dev → owner du compte (captainpglg@gmail.com).
+      // Ça permet au moins à l'admin de recevoir la fiche, même si le domaine custom
+      // n'est pas vérifié et que le marchand a une adresse hors-compte.
+      if (CC_ADMIN) {
+        try {
+          const fallback = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "onboarding@resend.dev",
+              to: [CC_ADMIN],
+              subject: `[Fallback admin] ${subject} — destinataire initial : ${to}`,
+              html: `<p style="font-family:Arial;color:#333">
+                Envoi initial vers <b>${to}</b> refusé par Resend (domaine ${from} non vérifié).<br/>
+                Erreur Resend : <code>${escapeHtml(errTxt).slice(0, 400)}</code>
+              </p>${html}`,
+              attachments: [{ filename: attachmentName, content: pdfBuffer.toString("base64") }],
+            }),
+          });
+          if (fallback.ok) {
+            console.log(`[fiche-police] fallback admin envoye a ${CC_ADMIN} via onboarding@resend.dev`);
+            return { success: true, mode: "resend-fallback", to: CC_ADMIN, from: "onboarding@resend.dev", recipient_fallback: true, error: errTxt.slice(0, 300) };
+          }
+          const fb = await fallback.text();
+          return { success: false, mode: "resend-api", error: `primary: ${errTxt.slice(0, 200)} | fallback: ${fb.slice(0, 200)}`, to, from };
+        } catch (fbErr: any) {
+          return { success: false, mode: "resend-api", error: `primary: ${errTxt.slice(0, 200)} | fallback exc: ${fbErr.message}`, to, from };
+        }
+      }
+      return { success: false, mode: "resend-api", error: errTxt.slice(0, 300), to, from };
+    } catch (e: any) {
+      console.warn("[fiche-police] Resend API exception:", e.message);
+      return { success: false, mode: "resend-api", error: e.message, to, from };
+    }
+  }
+
+  return { success: false, error: "no_transport_available", to, from };
 }
 
 function escapeHtml(s: string): string {

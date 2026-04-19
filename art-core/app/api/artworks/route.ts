@@ -129,14 +129,19 @@ export async function POST(req: NextRequest) {
             const pdfBuffer = await generateSingleFichePDF({
               merchant, entry: created.entry, artwork: artworkPayload, user: user as any,
             });
-            const emailSent = await sendFicheEmail({
+            const emailResult = await sendFicheEmail({
               merchant, entry: created.entry, artwork: artworkPayload, user: user as any, pdfBuffer,
             });
             fichePolice = {
               triggered: true,
               entry_number: created.entryNumber,
               entry_id: created.entry.id,
-              email_sent: emailSent,
+              email_sent: emailResult.success,
+              email_mode: emailResult.mode,
+              email_error: emailResult.error,
+              email_to: emailResult.to,
+              email_from: emailResult.from,
+              recipient_fallback: emailResult.recipient_fallback || false,
               pdf_size: pdfBuffer.length,
             };
           } else {
