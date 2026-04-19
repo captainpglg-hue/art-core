@@ -300,11 +300,70 @@ export default function CertifierPage() {
     finally { setAiLoading(false); }
   }
 
+  // ── Compression cote client (evite 413 sur Vercel 4.5MB) ──
+  // Photos Xiaomi = 3-8MB chacune, 4-5 photos = 15-40MB.
+  // Cible : 2048x2048 max, JPEG 0.85 → 600-1500KB par photo.
+  async function compressFile(file: File, maxDim = 2048, quality = 0.85): Promise<File> {
+    if (file.size < 1_200_000) return file; // deja leger
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("read fail"));
+      reader.readAsDataURL(file);
+    });
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const r = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * r);
+          height = Math.round(height * r);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas 2D indisponible"));
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("compression echouee"));
+            resolve(new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error("image illisible"));
+      img.src = dataUrl;
+    });
+  }
+
   // ── Submit ─────────────────────────────────────────────
   async function handleSubmit() {
     setStep("submitting");
     setLoading(true);
     try {
+      // Compresse toutes les photos avant submit pour rester sous 4.5MB (limite Vercel)
+      const compressed: Record<string, File | null> = {};
+      const toCompress: Array<[string, { file: File; url: string } | null]> = [
+        ["photo1", photo1], ["photo2", photo2], ["photo2b", photo2b],
+        ["photo2c", photo2c], ["photo3", photo3], ["photoCreation", photoCreation],
+      ];
+      for (const [key, ph] of toCompress) {
+        if (!ph) { compressed[key] = null; continue; }
+        try {
+          compressed[key] = await compressFile(ph.file);
+        } catch (e) {
+          console.warn(`[certifier] compression ${key} failed, sending original:`, e);
+          compressed[key] = ph.file;
+        }
+      }
+      const totalKB = Math.round(
+        Object.values(compressed).reduce((s, f) => s + (f?.size || 0), 0) / 1024
+      );
+      console.log(`[certifier] total payload compressed : ${totalKB} KB`);
+
       const fd = new FormData();
       fd.append("title", title);
       fd.append("technique", technique);
@@ -315,17 +374,21 @@ export default function CertifierPage() {
       fd.append("macro_zone", JSON.stringify(macroZone));
       fd.append("macro_position", `${macroZone.x},${macroZone.y},${macroZone.w},${macroZone.h}`);
       fd.append("macro_quality_score", String(qualityScore?.score || 0));
-      if (photo1) fd.append("main_photo", photo1.file);
-      if (photo2) fd.append("macro_photo", photo2.file);
-      if (photo2b) fd.append("macro_photos", photo2b.file);
-      if (photo2c) fd.append("macro_photos", photo2c.file);
-      if (photo3) fd.append("extra_photos", photo3.file);
-      if (photoCreation) fd.append("extra_photos", photoCreation.file);
+      if (compressed.photo1) fd.append("main_photo", compressed.photo1);
+      if (compressed.photo2) fd.append("macro_photo", compressed.photo2);
+      if (compressed.photo2b) fd.append("macro_photos", compressed.photo2b);
+      if (compressed.photo2c) fd.append("macro_photos", compressed.photo2c);
+      if (compressed.photo3) fd.append("extra_photos", compressed.photo3);
+      if (compressed.photoCreation) fd.append("extra_photos", compressed.photoCreation);
 
       const res = await fetch("/api/certify", { method: "POST", body: fd });
       if (!res.ok) {
         let errMsg = `Erreur serveur (${res.status})`;
-        try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch { /* response wasn't JSON */ }
+        if (res.status === 413) {
+          errMsg = `Photos trop volumineuses apres compression (${totalKB} KB). Reessayez avec des zooms moins larges.`;
+        } else {
+          try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch { /* ignore */ }
+        }
         throw new Error(errMsg);
       }
       const data = await res.json();
