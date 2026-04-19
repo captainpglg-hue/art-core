@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Titre requis" }, { status: 400 });
     }
 
-    const id = `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Schema deploye : id UUID (pas TEXT). On utilise randomUUID.
+    const id = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
     // ── Blockchain certification ──────────────────────────
     const chainResult = await certifyOnChain({
@@ -130,19 +131,25 @@ export async function POST(req: NextRequest) {
     // Pre-build params explicitly — using postgres-js tagged template syntax
     // to avoid any `?` → `$N` conversion ambiguity. Each value is bound directly.
     try {
+      // Schema deploye : owner_id NOT NULL (meme valeur que artist_id par defaut).
+      // certification_status="certified" pour distinguer des oeuvres deposees
+      // sans passage par pass-core (qui restent en "pending").
       await sql`
         INSERT INTO artworks (
-          id, title, artist_id, description, technique, dimensions,
+          id, title, artist_id, owner_id, description, technique, dimensions,
           creation_date, category, photos, macro_photo,
-          blockchain_hash, blockchain_tx_id, certification_date,
+          blockchain_hash, blockchain_tx_id, certification_date, certification_status,
+          certification_photos,
           status, price, listed_at, macro_position, macro_quality_score
         ) VALUES (
-          ${id}, ${title}, ${artistId}, ${description ?? ""},
+          ${id}, ${title}, ${artistId}, ${artistId}, ${description ?? ""},
           ${technique ?? ""}, ${dimensions ?? ""},
           ${creation_date ?? ""}, ${category ?? "painting"},
           ${photosJson}, ${macroPhotoPath ?? ""},
           ${chainResult.blockchainHash}, ${chainResult.txHash},
-          NOW(), 'for_sale', ${price ?? 0}, NOW(),
+          NOW(), 'certified',
+          ${photosJson},
+          'for_sale', ${price ?? 0}, NOW(),
           ${macroPosition ?? ""}, ${macroQualityScore ?? 0}
         )
       `;
