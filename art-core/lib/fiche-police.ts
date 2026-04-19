@@ -309,9 +309,19 @@ export async function sendFicheEmail(args: {
   pdfBuffer: Buffer;
 }): Promise<boolean> {
   const { merchant, entry, artwork, user, pdfBuffer } = args;
+
+  // Config email : SMTP (Gmail) en priorite, sinon Resend en fallback
+  const hasSmtp =
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS &&
+    !String(process.env.SMTP_PASS).includes("COLLE_TON_MOT_DE_PASSE") &&
+    !String(process.env.SMTP_PASS).includes("TO_FILL");
   const RESEND = process.env.RESEND_API_KEY;
-  if (!RESEND || RESEND.includes("REMPLACE")) {
-    console.warn("[fiche-police] RESEND_API_KEY missing — email skipped");
+  const hasResend = !!RESEND && !RESEND.includes("REMPLACE") && !RESEND.includes("TO_FILL");
+
+  if (!hasSmtp && !hasResend) {
+    console.warn("[fiche-police] aucune config email (SMTP_HOST/USER/PASS ou RESEND_API_KEY) — email skipped");
     return false;
   }
 
@@ -354,35 +364,57 @@ export async function sendFicheEmail(args: {
     </p>
   </div>`;
 
+  // Envoi via nodemailer (Gmail SMTP) ou Resend SMTP en fallback
+  const to = merchant.email || user.email;
+  if (!to) {
+    console.warn("[fiche-police] destinataire manquant (ni merchant.email ni user.email)");
+    return false;
+  }
+  const subject = `Fiche de police N° ${entry.entry_number} — ${artwork.title}`;
+  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@art-core.app";
+  const attachmentName = `fiche-police-${entry.entry_number}-${safeSlug(artwork.title)}.pdf`;
+
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "noreply@art-core.app",
-        to: [merchant.email || user.email],
-        cc: [CC_ADMIN],
-        subject: `Fiche de police N° ${entry.entry_number} — ${artwork.title}`,
-        html,
-        attachments: [
-          {
-            filename: `fiche-police-${entry.entry_number}-${safeSlug(artwork.title)}.pdf`,
-            content: pdfBuffer.toString("base64"),
-          },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      console.warn("[fiche-police] Resend error:", res.status, t.slice(0, 300));
-      return false;
+    const nodemailer = (await import("nodemailer")).default;
+    let transporter;
+    if (hasSmtp) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER!,
+          pass: process.env.SMTP_PASS!,
+        },
+      });
+    } else {
+      // Resend SMTP fallback
+      transporter = nodemailer.createTransport({
+        host: "smtp.resend.com",
+        port: 465,
+        secure: true,
+        auth: { user: "resend", pass: RESEND! },
+      });
     }
+
+    await transporter.sendMail({
+      from,
+      to,
+      cc: CC_ADMIN,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: attachmentName,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+    console.log(`[fiche-police] email envoye a ${to} (cc ${CC_ADMIN}) via ${hasSmtp ? "SMTP" : "Resend"}`);
     return true;
   } catch (e: any) {
-    console.warn("[fiche-police] Resend throw:", e.message);
+    console.warn("[fiche-police] envoi email echec:", e.message);
     return false;
   }
 }

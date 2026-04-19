@@ -95,13 +95,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Titre et prix requis" }, { status: 400 });
     }
 
-    const id = `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Schema deploye : id UUID (pas TEXT), owner_id NOT NULL sans default.
+    // On utilise l'UUID standard au lieu de art_<timestamp>.
+    const id = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const photosJson = JSON.stringify(photos || []);
 
     await query(
-      `INSERT INTO artworks (id, title, artist_id, description, technique, dimensions, creation_date, category, photos, status, price, listed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'for_sale', ?, NOW())`,
-      [id, title, user.id, description || "", technique || "", dimensions || "", creation_date || "", category || "painting", photosJson, price]
+      `INSERT INTO artworks (id, title, artist_id, owner_id, description, technique, dimensions, creation_date, category, photos, status, price, listed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'for_sale', ?, NOW())`,
+      [id, title, user.id, user.id, description || "", technique || "", dimensions || "", creation_date || "", category || "painting", photosJson, price]
     );
 
     // ── Déclenchement automatique fiche de police (pros uniquement) ──────

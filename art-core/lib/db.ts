@@ -134,14 +134,40 @@ async function sqlViaRest(text: string, params: any[]): Promise<{ rows: any[]; r
     return { rows: [], rowCount: n };
   }
 
-  // INSERT INTO <table> (cols) VALUES (?, ?, ...) [RETURNING col]
-  m = normalized.match(/^INSERT\s+INTO\s+(\w+)\s*\(([^)]+)\)\s+VALUES\s*\(([^)]+)\)(?:\s+RETURNING\s+(.+))?$/i);
+  // INSERT INTO <table> (cols) VALUES (?, ?, 'lit', NOW(), ...) [RETURNING col]
+  // Note : VALUES doit accepter des parens imbriques (NOW(), COALESCE(...), etc.)
+  m = normalized.match(/^INSERT\s+INTO\s+(\w+)\s*\(([^)]+)\)\s+VALUES\s*\((.+)\)(?:\s+RETURNING\s+(.+))?$/i);
   if (m) {
-    const [, table, colsRaw, , returningRaw] = m;
+    const [, table, colsRaw, valuesRaw, returningRaw] = m;
     const cols = colsRaw.split(",").map(c => c.trim());
-    // params correspond aux ? dans l'ordre
+    // Parse chaque valeur : ? -> params[idx++], 'str' -> str, NOW() -> timestamp,
+    // nombre -> nombre, NULL -> null, TRUE/FALSE -> bool, autre -> literal string
+    const values = splitCommasNotInParens(valuesRaw);
+    if (values.length !== cols.length) {
+      throw new Error(`sqlViaRest INSERT: mismatch cols(${cols.length}) vs values(${values.length})`);
+    }
+    let pIdx = 0;
     const data: any = {};
-    cols.forEach((c, i) => { data[c] = params[i]; });
+    for (let i = 0; i < cols.length; i++) {
+      const v = values[i].trim();
+      if (v === "?") {
+        data[cols[i]] = params[pIdx++];
+      } else if (/^NOW\(\)$/i.test(v)) {
+        data[cols[i]] = new Date().toISOString();
+      } else if (/^NULL$/i.test(v)) {
+        data[cols[i]] = null;
+      } else if (/^TRUE$/i.test(v)) {
+        data[cols[i]] = true;
+      } else if (/^FALSE$/i.test(v)) {
+        data[cols[i]] = false;
+      } else if (/^-?\d+(\.\d+)?$/.test(v)) {
+        data[cols[i]] = Number(v);
+      } else if (/^'.*'$/.test(v)) {
+        data[cols[i]] = v.slice(1, -1).replace(/''/g, "'");
+      } else {
+        data[cols[i]] = v; // dernier recours : littéral brut
+      }
+    }
     const wantReturning = !!returningRaw;
     const result = await restInsert(table, data, wantReturning);
     return { rows: result, rowCount: result.length || 1 };
