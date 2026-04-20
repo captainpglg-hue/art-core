@@ -337,13 +337,31 @@ export async function sendFicheEmail(args: {
     !RESEND.includes("TO_FILL") &&
     !RESEND.toLowerCase().includes("placeholder");
 
+  // Si aucune config email utilisable, on bascule immédiatement sur le fallback
+  // Storage : le PDF est stocké dans Supabase Storage pour que l'admin le récupère
+  // manuellement depuis /admin/fiches-pending.
   if (!hasSmtp && !hasResend) {
     const keyPreview = RESEND ? `${RESEND.slice(0, 3)}...(${RESEND.length} chars)` : "(missing)";
-    console.warn(`[fiche-police] aucune config email utilisable. RESEND_API_KEY=${keyPreview}, SMTP_HOST=${!!process.env.SMTP_HOST}`);
-    return {
-      success: false,
-      error: `no_email_config — RESEND_API_KEY preview: ${keyPreview}, SMTP_HOST present: ${!!process.env.SMTP_HOST}`,
-    };
+    console.warn(`[fiche-police] aucune config email, bascule sur Storage fallback. RESEND_API_KEY=${keyPreview}`);
+    try {
+      const { uploadFichePDF } = await import("@/lib/fiches-storage");
+      const storageUrl = await uploadFichePDF(entry.id, pdfBuffer);
+      console.log(`[fiche-police] PDF stocke dans Storage pending: ${storageUrl}`);
+      return {
+        success: true,
+        mode: "storage-fallback",
+        to: merchant.email || user.email || "",
+        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@core-ecosystem.art",
+        storage_url: storageUrl,
+        note: "Email indisponible — fiche disponible dans /admin/fiches-pending pour envoi manuel",
+      };
+    } catch (e: any) {
+      console.error("[fiche-police] Storage fallback failed:", e.message);
+      return {
+        success: false,
+        error: `no_email_config + storage_fallback_failed: ${e.message}`,
+      };
+    }
   }
 
   const priceFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(entry.purchase_price) || 0);
@@ -480,6 +498,28 @@ export async function sendFicheEmail(args: {
       console.warn("[fiche-police] Resend API exception:", e.message);
       return { success: false, mode: "resend-api", error: e.message, to, from };
     }
+  }
+
+  // ── Fallback Storage : si aucun email n'a pu partir, on stocke le PDF dans
+  //    Supabase Storage pour que l'admin puisse le télécharger et l'envoyer
+  //    manuellement depuis /admin/fiches-pending.
+  //    Cette branche ne s'exécute que si hasResend/hasSmtp sont tous les deux
+  //    faux (donc avant on aurait déjà return plus haut) OU si les tentatives
+  //    SMTP + Resend ont toutes échoué plus haut sans retourner.
+  try {
+    const { uploadFichePDF } = await import("@/lib/fiches-storage");
+    const storageUrl = await uploadFichePDF(entry.id, pdfBuffer);
+    console.log(`[fiche-police] stockee dans Storage pending: ${storageUrl}`);
+    return {
+      success: true,
+      mode: "storage-fallback",
+      to,
+      from,
+      storage_url: storageUrl,
+      note: "Email indisponible — fiche disponible dans /admin/fiches-pending pour envoi manuel",
+    };
+  } catch (e: any) {
+    console.warn("[fiche-police] Storage fallback failed:", e.message);
   }
 
   return { success: false, error: "no_transport_available", to, from };
