@@ -12,7 +12,7 @@ export default async function OrdersPage() {
   if (!user) redirect("/auth/login");
 
   const orders = await queryAll<any>(
-    `SELECT t.*, a.title, a.photos, u.name as seller_name
+    `SELECT t.*, a.title, a.photos, u.full_name as seller_name
      FROM transactions t
      JOIN artworks a ON t.artwork_id = a.id
      JOIN users u ON t.seller_id = u.id

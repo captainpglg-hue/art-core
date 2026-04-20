@@ -127,9 +127,9 @@ export default function AdminPage() {
       if (search) {
         filteredUsers = filteredUsers.filter(
           (u: any) =>
-            u.name.toLowerCase().includes(search.toLowerCase()) ||
-            u.email.toLowerCase().includes(search.toLowerCase()) ||
-            u.username.toLowerCase().includes(search.toLowerCase())
+            (u.full_name || u.name || "").toLowerCase().includes(search.toLowerCase()) ||
+            (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
+            (u.username || "").toLowerCase().includes(search.toLowerCase())
         );
       }
       setUsers(filteredUsers);
@@ -696,7 +696,7 @@ export default function AdminPage() {
                       <tr key={u.id} className="border-t border-white/5 hover:bg-white/[0.02]">
                         <td className="px-4 py-3">
                           <div>
-                            <p className="text-white font-medium">{u.name}</p>
+                            <p className="text-white font-medium">{u.full_name || u.name}</p>
                             <p className="text-white/30 text-xs">@{u.username}</p>
                           </div>
                         </td>

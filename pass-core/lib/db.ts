@@ -366,10 +366,10 @@ export async function getArtworks(opts: { artistId?: string; limit?: number } = 
     const arts = await restSelect("artworks", filters, { limit, orderBy: "created_at", orderDir: "desc" });
     // Enrichir avec user infos
     const artistIds = [...new Set(arts.map((a: any) => a.artist_id))];
-    const users = artistIds.length ? await restSelect("users", {}, { columns: "id,name,full_name,username,avatar_url" }) : [];
+    const users = artistIds.length ? await restSelect("users", {}, { columns: "id,full_name,username,avatar_url" }) : [];
     const byId: any = {};
     for (const u of users) byId[u.id] = u;
-    return arts.map((a: any) => ({ ...a, artist_name: byId[a.artist_id]?.name || byId[a.artist_id]?.full_name, artist_username: byId[a.artist_id]?.username, artist_avatar: byId[a.artist_id]?.avatar_url }));
+    return arts.map((a: any) => ({ ...a, artist_name: byId[a.artist_id]?.full_name, artist_username: byId[a.artist_id]?.username, artist_avatar: byId[a.artist_id]?.avatar_url }));
   } catch {
     const join = `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
                   FROM artworks a JOIN users u ON a.artist_id = u.id`;
@@ -382,10 +382,10 @@ export async function getGaugeEntries(artworkId: string) {
   try {
     const entries = await restSelect("gauge_entries", { artwork_id: artworkId }, { orderBy: "created_at", orderDir: "desc" });
     const initiateIds = [...new Set(entries.map((e: any) => e.initiate_id))];
-    const users = initiateIds.length ? await restSelect("users", {}, { columns: "id,name,full_name,username" }) : [];
+    const users = initiateIds.length ? await restSelect("users", {}, { columns: "id,full_name,username" }) : [];
     const byId: any = {};
     for (const u of users) byId[u.id] = u;
-    return entries.map((e: any) => ({ ...e, initiate_name: byId[e.initiate_id]?.name || byId[e.initiate_id]?.full_name, initiate_username: byId[e.initiate_id]?.username }));
+    return entries.map((e: any) => ({ ...e, initiate_name: byId[e.initiate_id]?.full_name, initiate_username: byId[e.initiate_id]?.username }));
   } catch {
     return queryAll<any>(
       `SELECT g.*, u.full_name as initiate_name, u.username as initiate_username

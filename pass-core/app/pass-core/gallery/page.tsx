@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
   const artworks = await queryAll<any>(
-    `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.name as artist_name
+    `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.full_name as artist_name
      FROM artworks a JOIN users u ON a.artist_id = u.id
      WHERE a.blockchain_hash IS NOT NULL
      ORDER BY a.certification_date DESC`
