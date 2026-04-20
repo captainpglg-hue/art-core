@@ -64,29 +64,42 @@ function saveEmailLocally(filename: string, html: string, metadata: {
   from: string;
   date: string;
 }): string {
-  const emailDir = path.join(process.cwd(), "public", "emails");
-  fs.mkdirSync(emailDir, { recursive: true });
+  // On Vercel, the filesystem is READ-ONLY except for /tmp.
+  // Locally, save under public/emails/ so emails are viewable via the dev server.
+  const IS_VERCEL = !!process.env.VERCEL;
+  const emailDir = IS_VERCEL
+    ? path.join("/tmp", "emails")
+    : path.join(process.cwd(), "public", "emails");
 
-  const filepath = path.join(emailDir, filename);
-  fs.writeFileSync(filepath, html, "utf-8");
-
-  // Update email index
-  const indexPath = path.join(emailDir, "index.json");
-  let index: any[] = [];
+  // Wrap every fs call in try/catch so a filesystem failure never crashes the
+  // API route (certify, admin-code). Email logging is best-effort; SMTP/Resend
+  // delivery is still attempted below regardless of whether we could save a copy.
   try {
-    if (fs.existsSync(indexPath)) {
-      index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-    }
-  } catch {}
+    fs.mkdirSync(emailDir, { recursive: true });
 
-  index.unshift({
-    filename,
-    ...metadata,
-    mode: _mode,
-  });
+    const filepath = path.join(emailDir, filename);
+    fs.writeFileSync(filepath, html, "utf-8");
 
-  if (index.length > 100) index = index.slice(0, 100);
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf-8");
+    // Update email index
+    const indexPath = path.join(emailDir, "index.json");
+    let index: any[] = [];
+    try {
+      if (fs.existsSync(indexPath)) {
+        index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+      }
+    } catch {}
+
+    index.unshift({
+      filename,
+      ...metadata,
+      mode: _mode,
+    });
+
+    if (index.length > 100) index = index.slice(0, 100);
+    fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf-8");
+  } catch (err: any) {
+    console.warn(`📧 saveEmailLocally failed (non-fatal): ${err?.message || err}`);
+  }
 
   return `/emails/${filename}`;
 }
