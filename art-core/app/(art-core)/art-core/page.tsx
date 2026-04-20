@@ -28,13 +28,13 @@ interface PageProps {
 }
 
 async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["searchParams"]> }) {
-  const artworks = getArtworks({
+  const artworks = await getArtworks({
     status: searchParams.status || undefined,
     category: searchParams.category && searchParams.category !== "all" ? searchParams.category : undefined,
     search: searchParams.q || undefined,
     sort: searchParams.sort || "newest",
     limit: 60,
-  });
+  } as any);
 
   let parsed = artworks.map((a) => ({
     ...a,
