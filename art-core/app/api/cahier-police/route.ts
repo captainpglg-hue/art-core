@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 
 // Rôles autorisés pour le cahier de police
 const ROLES_CAHIER = ["antiquaire", "brocanteur", "galeriste", "depot_vente", "admin"];
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const parsed = entries.map((e: any) => ({
       ...e,
-      photos: JSON.parse(e.photos || "[]"),
+      photos: parsePhotos(e.photos),
     }));
 
     return NextResponse.json({ entries: parsed, total, limit, offset });

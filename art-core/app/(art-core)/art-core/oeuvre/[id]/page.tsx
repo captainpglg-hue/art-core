@@ -11,7 +11,7 @@ import { getSessionUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GaugeBar } from "@/components/art-core/GaugeBar";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, parsePhotos } from "@/lib/utils";
 import { ArtworkDetailClient } from "./detail-client";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const artwork = await getArtworkById(id);
   if (!artwork) notFound();
 
-  const photos = typeof artwork.photos === "string" ? JSON.parse(artwork.photos) : artwork.photos;
+  const photos = parsePhotos(artwork.photos);
   const gaugeEntries = await getGaugeEntries(id);
   const currentUser = await getSessionUser();
 

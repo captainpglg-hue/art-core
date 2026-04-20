@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { verifyOnChain, getConfig, getExplorerUrl } from "@/lib/blockchain";
+import { parsePhotos } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
         blockchain_hash: artwork.blockchain_hash,
         tx_hash: artwork.blockchain_tx_id,
         explorer_url: getExplorerUrl(artwork.blockchain_tx_id),
-        photos: JSON.parse(artwork.photos || "[]"),
+        photos: parsePhotos(artwork.photos),
       } : null,
       blockchain: onChainResult ? {
         certified_by: onChainResult.certifiedBy,

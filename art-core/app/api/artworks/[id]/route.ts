@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, queryAll, getUserByToken, getDb } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -72,13 +73,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .eq("artwork_id", id)
       .order("created_at", { ascending: false });
 
-    // Photos peut être stocké en JSON string (ancien format) ou array (nouveau)
-    let photos: any[] = [];
-    if (Array.isArray(artwork.photos)) {
-      photos = artwork.photos;
-    } else if (typeof artwork.photos === "string") {
-      try { photos = JSON.parse(artwork.photos); } catch { photos = []; }
-    }
+    // Photos peut être stocké en TEXT[] (nouveau) ou JSON string (ancien) — parsePhotos gère les deux.
+    const photos = parsePhotos(artwork.photos);
 
     return NextResponse.json({
       artwork: {

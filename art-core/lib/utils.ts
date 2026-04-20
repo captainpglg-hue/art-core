@@ -38,3 +38,24 @@ export function slugify(str: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+/**
+ * Parse the `photos` column into a string[] safely.
+ *
+ * The schema stores it as TEXT[] (postgres-js returns a JS array directly),
+ * but older rows may still contain a JSON-encoded string. Callers must not
+ * call JSON.parse blindly — that crashes when the value is already an array
+ * ("22P02"-style malformed array errors on the client, or SyntaxError).
+ */
+export function parsePhotos(input: unknown): string[] {
+  if (Array.isArray(input)) return input as string[];
+  if (typeof input === "string" && input.length > 0) {
+    try {
+      const parsed = JSON.parse(input);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}

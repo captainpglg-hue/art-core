@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne, queryAll } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 
 // Haversine distance in km
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -89,8 +90,8 @@ export async function GET(req: NextRequest) {
 
   let artworks = await queryAll(sql, queryParams) as any[];
 
-  // Parse photos
-  artworks = artworks.map(a => ({ ...a, photos: JSON.parse(a.photos || "[]") }));
+  // Parse photos (TEXT[] native array or legacy JSON string)
+  artworks = artworks.map(a => ({ ...a, photos: parsePhotos(a.photos) }));
 
   // Geo filter (post-query since we'll do it in app)
   if (lat && lon && radius > 0) {

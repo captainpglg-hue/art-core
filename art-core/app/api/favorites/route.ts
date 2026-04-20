@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("core_session")?.value;
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
     [user.id]
   ) as any[];
 
-  const parsed = favorites.map((f) => ({ ...f, photos: JSON.parse(f.photos || "[]") }));
+  const parsed = favorites.map((f) => ({ ...f, photos: parsePhotos(f.photos) }));
   return NextResponse.json({ favorites: parsed });
 }
 

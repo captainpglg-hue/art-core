@@ -1,4 +1,5 @@
 import { queryAll } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
@@ -21,7 +22,7 @@ export default async function GalleryPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {artworks.map((a) => {
-          const photos = JSON.parse(a.photos || "[]");
+          const photos = parsePhotos(a.photos);
           return (
             <a key={a.id} href={`${process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app"}/art-core/oeuvre/${a.id}`} className="group block rounded-2xl overflow-hidden bg-navy-200 border border-white/5 hover:border-gold-DEFAULT/20 transition-all">
               <div className="relative aspect-[4/3] bg-navy-300">

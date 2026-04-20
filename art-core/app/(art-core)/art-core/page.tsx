@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getArtworks } from "@/lib/db";
+import { parsePhotos } from "@/lib/utils";
 import { ArtworkCard, ArtworkCardSkeleton } from "@/components/art-core/ArtworkCard";
 import { FilterBar } from "@/components/art-core/FilterBar";
 import { SearchAutocomplete } from "@/components/art-core/SearchAutocomplete";
@@ -37,7 +38,7 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
 
   let parsed = artworks.map((a) => ({
     ...a,
-    photos: typeof a.photos === "string" ? JSON.parse(a.photos) : a.photos,
+    photos: parsePhotos(a.photos),
   }));
 
   // Price filter

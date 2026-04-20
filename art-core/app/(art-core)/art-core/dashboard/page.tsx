@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { queryOne, queryAll } from "@/lib/db";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, parsePhotos } from "@/lib/utils";
 import { Package, Coins, Eye, TrendingUp, Image as ImageIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-white mb-4">Mes oeuvres récentes</h2>
           <div className="space-y-2">
             {recentArtworks.map((a) => {
-              const photos = JSON.parse(a.photos || "[]");
+              const photos = parsePhotos(a.photos);
               return (
                 <Link key={a.id} href={`/art-core/oeuvre/${a.id}`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
                   <div className="w-12 h-12 rounded-lg bg-[#111] overflow-hidden shrink-0">
