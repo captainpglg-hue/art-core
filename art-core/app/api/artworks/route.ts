@@ -47,10 +47,11 @@ export async function GET(req: NextRequest) {
     const artistIds = Array.from(new Set((artworks || []).map((a: any) => a.artist_id).filter(Boolean)));
     let usersById: Record<string, any> = {};
     if (artistIds.length) {
-      const { data: users } = await sb
+      const { data: users, error: usersErr } = await sb
         .from("users")
-        .select("id, full_name, name, username, avatar_url")
+        .select("id, full_name, username, avatar_url")
         .in("id", artistIds);
+      if (usersErr) console.error("[GET /api/artworks] users enrichment failed:", usersErr.message);
       usersById = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
     }
 
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
       return {
         ...a,
         photos: typeof a.photos === "string" ? safeJson(a.photos) : (a.photos || []),
-        artist_name: u.full_name || u.name || null,
+        artist_name: u.full_name || null,
         artist_username: u.username || null,
         artist_avatar: u.avatar_url || null,
       };
