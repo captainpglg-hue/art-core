@@ -56,7 +56,7 @@ export async function uploadPhoto(
       });
 
     if (error) {
-      console.error("Supabase Storage upload error:", error.message);
+      console.error(`[uploadPhoto] Supabase Storage upload error for ${storagePath} — bucket=${BUCKET}, size=${buffer.length} bytes, err=${error.message}`);
       throw new Error(`Upload failed: ${error.message}`);
     }
 
@@ -65,9 +65,10 @@ export async function uploadPhoto(
       .from(BUCKET)
       .getPublicUrl(storagePath);
 
+    console.log(`[uploadPhoto] OK → ${data.publicUrl}`);
     return data.publicUrl;
   } catch (err: any) {
-    console.error("Upload photo failed:", err.message);
+    console.error(`[uploadPhoto] FAILED for ${folder}/${name} — falling back to placehold.co. Reason:`, err.message);
     return `https://placehold.co/800x600/1a1a2e/C9A84C?text=${encodeURIComponent(name)}`;
   }
 }
