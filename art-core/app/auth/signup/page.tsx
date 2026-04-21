@@ -129,8 +129,20 @@ export default function SignupPage() {
           <Label htmlFor="username">Nom d&apos;utilisateur</Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">@</span>
-            <Input id="username" placeholder="jean.dupont" className="pl-8" {...register("username")} />
+            <Input
+              id="username"
+              placeholder="jean.dupont"
+              className="pl-8"
+              {...register("username", {
+                onChange: (e) => {
+                  // Auto-nettoyage : minuscules + suppression des caractères interdits
+                  e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+                  setValue("username", e.target.value, { shouldValidate: false });
+                }
+              })}
+            />
           </div>
+          <p className="text-[11px] text-white/40">Sans espace ni accent — lettres / chiffres / . / - uniquement</p>
           {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
         </div>
 
