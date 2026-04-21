@@ -1,5 +1,5 @@
 import { queryAll } from "@/lib/db";
-import { parsePhotos } from "@/lib/utils";
+import { resolveFirstPhoto } from "@/lib/resolve-photo";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
@@ -22,11 +22,11 @@ export default async function GalleryPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {artworks.map((a) => {
-          const photos = parsePhotos(a.photos);
+          const mainPhoto = resolveFirstPhoto(a.photos);
           return (
             <a key={a.id} href={`${process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app"}/art-core/oeuvre/${a.id}`} className="group block rounded-2xl overflow-hidden bg-navy-200 border border-white/5 hover:border-gold-DEFAULT/20 transition-all">
               <div className="relative aspect-[4/3] bg-navy-300">
-                {photos[0] && <img src={photos[0]} alt={a.title} className="w-full h-full object-cover" />}
+                <img src={mainPhoto} alt={a.title} className="w-full h-full object-cover" />
                 <div className="absolute top-3 left-3">
                   <span className="flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-sm border border-gold-DEFAULT/30 px-2.5 py-1 text-[11px] text-gold-DEFAULT font-medium">
                     <ShieldCheck className="size-3" />Certifié

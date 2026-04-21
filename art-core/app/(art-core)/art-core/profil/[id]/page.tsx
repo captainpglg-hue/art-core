@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getUserById, getArtworks, queryOne } from "@/lib/db";
 import { ArtworkCard } from "@/components/art-core/ArtworkCard";
-import { formatPrice, parsePhotos } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
+import { resolveAllPhotos } from "@/lib/resolve-photo";
 import { Image as ImageIcon, Users, TrendingUp, Calendar } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function ProfilPage({ params }: Props) {
   if (!user) notFound();
 
   const artworks = await getArtworks({ artistId: id, limit: 50 });
-  const parsed = artworks.map((a) => ({ ...a, photos: parsePhotos(a.photos) }));
+  const parsed = artworks.map((a) => ({ ...a, photos: resolveAllPhotos(a.photos) }));
   const totalSales = await queryOne<any>("SELECT COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?", [id]);
   const followersRow = await queryOne<any>("SELECT COUNT(*)::int as count FROM follows WHERE following_id = ?", [id]);
   const followers = followersRow?.count || 0;

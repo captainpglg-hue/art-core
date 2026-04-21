@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { queryAll } from "@/lib/db";
-import { formatPrice, formatDate, parsePhotos } from "@/lib/utils";
+import { formatPrice, formatDate } from "@/lib/utils";
+import { resolveFirstPhoto } from "@/lib/resolve-photo";
 import { Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +35,11 @@ export default async function OrdersPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((o) => {
-            const photos = parsePhotos(o.photos);
+            const mainPhoto = resolveFirstPhoto(o.photos);
             return (
               <Link key={o.id} href={`/art-core/oeuvre/${o.artwork_id}`} className="flex items-center gap-4 p-4 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-colors">
                 <div className="w-16 h-16 rounded-xl bg-[#111] overflow-hidden shrink-0">
-                  {photos[0] && <img src={photos[0]} alt="" className="w-full h-full object-cover" />}
+                  <img src={mainPhoto} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{o.title}</p>

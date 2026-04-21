@@ -6,11 +6,12 @@ import { useState } from "react";
 import { GaugeBar } from "./GaugeBar";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { resolveFirstPhoto, PLACEHOLDER_ART } from "@/lib/resolve-photo";
 
 type Artwork = {
   id: string;
   title: string;
-  photos: string[];
+  photos: string[] | string | null;
   price: number;
   gauge_points: number;
   gauge_locked: number;
@@ -35,8 +36,8 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
   const gaugePoints = artwork.gauge_points ?? 0;
   const isCertified = !!artwork.blockchain_hash;
   const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
-  const initialUrl = artwork.photos?.[0] || "/placeholder-art.jpg";
-  const imageUrl = imageError ? "/placeholder-art.jpg" : initialUrl;
+  const initialUrl = resolveFirstPhoto(artwork.photos);
+  const imageUrl = imageError ? PLACEHOLDER_ART : initialUrl;
   const artistName = artwork.artist_name ?? "Artiste";
   const isPromoted = promoted || artwork.boost_active === 1 || artwork.highlight_active === 1;
 

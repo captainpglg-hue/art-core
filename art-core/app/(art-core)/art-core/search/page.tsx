@@ -9,6 +9,7 @@ import {
   Star, ChevronDown, Navigation, Package,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { resolveFirstPhoto } from "@/lib/resolve-photo";
 import { GaugeBar } from "@/components/art-core/GaugeBar";
 
 const CATEGORIES = [
@@ -221,7 +222,7 @@ export default function SearchPage() {
               <Link key={a.id} href={`/art-core/oeuvre/${a.id}`}
                 className="group block rounded-2xl overflow-hidden bg-[#111111] active:scale-[0.98] transition-all">
                 <div className="relative aspect-[3/4] bg-[#0a0a0a]">
-                  {a.photos?.[0] && <Image src={a.photos[0]} alt={a.title} fill className="object-cover" sizes="50vw" />}
+                  <Image src={resolveFirstPhoto(a.photos)} alt={a.title} fill className="object-cover" sizes="50vw" />
                   {a.blockchain_hash && (
                     <span className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 text-[#C9A84C] text-[9px]">
                       <ShieldCheck className="size-2.5" />

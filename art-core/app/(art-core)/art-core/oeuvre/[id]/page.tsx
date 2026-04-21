@@ -11,7 +11,8 @@ import { getSessionUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GaugeBar } from "@/components/art-core/GaugeBar";
-import { formatPrice, formatDate, parsePhotos } from "@/lib/utils";
+import { formatPrice, formatDate } from "@/lib/utils";
+import { resolveAllPhotos, PLACEHOLDER_ART } from "@/lib/resolve-photo";
 import { ArtworkDetailClient } from "./detail-client";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const artwork = await getArtworkById(id);
   if (!artwork) notFound();
 
-  const photos = parsePhotos(artwork.photos);
+  const photos = resolveAllPhotos(artwork.photos);
   const gaugeEntries = await getGaugeEntries(id);
   const currentUser = await getSessionUser();
 
@@ -46,7 +47,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
   const isArtist = currentUser?.id === artwork.artist_id;
   const isCertified = !!artwork.blockchain_hash;
-  const mainImage = photos[0] || "/placeholder-art.jpg";
+  const mainImage = photos[0] || PLACEHOLDER_ART;
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">

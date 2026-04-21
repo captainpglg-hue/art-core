@@ -5,6 +5,7 @@ import {
   Trash2, Eye, EyeOff, Edit3, Check, X, RefreshCw, Shield, AlertTriangle, Users,
   Package, Download, BarChart3, TrendingUp, Lock, Unlock, Plus, Search
 } from "lucide-react";
+import { resolveFirstPhoto } from "@/lib/resolve-photo";
 
 interface Artwork {
   id: string;
@@ -551,15 +552,11 @@ export default function AdminPage() {
                       <tr key={art.id} className="border-t border-white/5 hover:bg-white/[0.02]">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            {art.photos?.[0] ? (
-                              <img
-                                src={art.photos[0]}
-                                alt=""
-                                className="w-10 h-10 rounded-lg object-cover bg-white/5"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-white/5" />
-                            )}
+                            <img
+                              src={resolveFirstPhoto(art.photos)}
+                              alt=""
+                              className="w-10 h-10 rounded-lg object-cover bg-white/5"
+                            />
                             <a
                               href={`/art-core/oeuvre/${art.id}`}
                               className="text-white hover:text-gold font-medium truncate max-w-[200px]"

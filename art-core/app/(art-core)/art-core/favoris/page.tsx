@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, X } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { resolveFirstPhoto } from "@/lib/resolve-photo";
 import { toast } from "@/hooks/use-toast";
 
 export default function FavorisPage() {
@@ -42,7 +43,7 @@ export default function FavorisPage() {
             <div key={f.id} className="relative rounded-2xl overflow-hidden bg-[#111111] group">
               <Link href={`/art-core/oeuvre/${f.artwork_id}`}>
                 <div className="relative aspect-[4/3] bg-[#111]">
-                  {f.photos?.[0] && <Image src={f.photos[0]} alt={f.title} fill className="object-cover" sizes="33vw" />}
+                  <Image src={resolveFirstPhoto(f.photos)} alt={f.title} fill className="object-cover" sizes="33vw" />
                 </div>
                 <div className="p-4">
                   <p className="text-xs text-white/40 mb-1">{f.artist_name}</p>

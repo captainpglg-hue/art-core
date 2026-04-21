@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getArtworks } from "@/lib/db";
-import { parsePhotos } from "@/lib/utils";
+import { resolveAllPhotos } from "@/lib/resolve-photo";
 import { ArtworkCard, ArtworkCardSkeleton } from "@/components/art-core/ArtworkCard";
 import { FilterBar } from "@/components/art-core/FilterBar";
 import { SearchAutocomplete } from "@/components/art-core/SearchAutocomplete";
@@ -38,7 +38,7 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
 
   let parsed = artworks.map((a) => ({
     ...a,
-    photos: parsePhotos(a.photos),
+    photos: resolveAllPhotos(a.photos),
   }));
 
   // Price filter
