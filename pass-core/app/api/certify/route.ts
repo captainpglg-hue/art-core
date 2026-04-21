@@ -26,30 +26,6 @@ export async function POST(req: NextRequest) {
 
   try {
 
-    const token = req.cookies.get("core_session")?.value;
-
-    let artistId: string | null = null;
-
-    if (token) {
-
-      const user = await getUserByToken(token);
-
-      // Tous les roles connectes peuvent certifier (artist, galeriste, antiquaire,
-
-      // brocanteur, depot_vente, admin, client...). On enregistre l'oeuvre sous
-
-      // leur user.id qui est deja un UUID.
-
-      if (user?.id) artistId = user.id;
-
-    }
-
-    if (!artistId) {
-
-      return NextResponse.json({ error: "Connexion requise pour certifier une oeuvre" }, { status: 401 });
-
-    }
-
     const contentType = req.headers.get("content-type") || "";
 
     let title = "", description = "", technique = "", dimensions = "";
@@ -68,11 +44,21 @@ export async function POST(req: NextRequest) {
 
     let recipientEmail = "";
 
+    // ── Identification fields (si l'utilisateur n'est pas encore connecté) ──
+    // Permettent de créer un compte + merchant à la volée pendant la certif.
+    let identUserEmail = "";
+    let identUserName = "";
+    let identUserPhone = "";
+    let identUserRole = "";
+    let identMerchant: any = null;
+    let formDataRef: FormData | null = null;
+
     if (contentType.includes("multipart/form-data")) {
 
       // ── Handle file upload from mobile camera ───────────
 
       const formData = await req.formData();
+      formDataRef = formData;
 
       title = (formData.get("title") as string) || "";
 
@@ -87,6 +73,102 @@ export async function POST(req: NextRequest) {
       category = (formData.get("category") as string) || "painting";
 
       price = parseFloat((formData.get("price") as string) || "0");
+
+      // Champs d'identification (auto-signup si pas de session)
+      identUserEmail = ((formData.get("user_email") as string) || "").trim().toLowerCase();
+      identUserName = ((formData.get("user_name") as string) || "").trim();
+      identUserPhone = ((formData.get("user_phone") as string) || "").trim();
+      identUserRole = ((formData.get("user_role") as string) || "").trim();
+
+      // Si pro, on récupère aussi les champs merchant
+      const PRO_ROLES = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
+      if (PRO_ROLES.includes(identUserRole)) {
+        const raisonSociale = ((formData.get("merchant_raison_sociale") as string) || "").trim();
+        const siret = ((formData.get("merchant_siret") as string) || "").trim().replace(/\s/g, "");
+        const activite = ((formData.get("merchant_activite") as string) || "").trim();
+        const nomGerant = ((formData.get("merchant_nom_gerant") as string) || "").trim();
+        const adresse = ((formData.get("merchant_adresse") as string) || "").trim();
+        const codePostal = ((formData.get("merchant_code_postal") as string) || "").trim();
+        const ville = ((formData.get("merchant_ville") as string) || "").trim();
+        if (raisonSociale && siret && activite && nomGerant && adresse && codePostal && ville) {
+          identMerchant = { raison_sociale: raisonSociale, siret, activite, nom_gerant: nomGerant, email: identUserEmail, telephone: identUserPhone, adresse, code_postal: codePostal, ville };
+        }
+      }
+
+    } else {
+
+      // ── Handle JSON (for demo/desktop) ──────────────────
+
+      const body = await req.json();
+
+      title = body.title || "";
+
+      description = body.description || "";
+
+      technique = body.technique || "";
+
+      dimensions = body.dimensions || "";
+
+      creation_date = body.creation_date || "";
+
+      category = body.category || "painting";
+
+      price = body.price || 0;
+
+      photos = body.photos || [];
+
+      macroPhotoPath = body.macro_photo || "";
+
+      identUserEmail = (body.user_email || "").trim().toLowerCase();
+      identUserName = (body.user_name || "").trim();
+      identUserPhone = (body.user_phone || "").trim();
+      identUserRole = (body.user_role || "").trim();
+      if (body.merchant) identMerchant = body.merchant;
+
+    }
+
+    // ── Auth: session ou auto-signup ──
+    const token = req.cookies.get("core_session")?.value;
+
+    let artistId: string | null = null;
+    let autoCreatedSessionToken: string | null = null;
+
+    if (token) {
+
+      const user = await getUserByToken(token);
+
+      if (user?.id) artistId = user.id;
+
+    }
+
+    // Auto-signup si pas de session mais infos d'identification fournies
+    if (!artistId && identUserEmail && identUserName) {
+      try {
+        const { autoSignupAndMaybeMerchant } = await import("@/lib/auto-signup");
+        const result = await autoSignupAndMaybeMerchant({
+          email: identUserEmail,
+          name: identUserName,
+          phone: identUserPhone,
+          role: identUserRole || "artist",
+          merchant: identMerchant,
+        });
+        artistId = result.userId;
+        autoCreatedSessionToken = result.sessionToken;
+      } catch (signupErr: any) {
+        console.error("[certify] auto-signup failed:", signupErr?.message);
+        return NextResponse.json({ error: `Création du compte échouée : ${signupErr?.message}` }, { status: 400 });
+      }
+    }
+
+    if (!artistId) {
+
+      return NextResponse.json({ error: "Connexion requise pour certifier une oeuvre, ou fournir user_email + user_name pour créer un compte" }, { status: 401 });
+
+    }
+
+    if (contentType.includes("multipart/form-data") && formDataRef) {
+
+      const formData = formDataRef;
 
       // Upload folder: cert/<artistId>
 
@@ -191,30 +273,6 @@ export async function POST(req: NextRequest) {
         }
 
       }
-
-    } else {
-
-      // ── Handle JSON (for demo/desktop) ──────────────────
-
-      const body = await req.json();
-
-      title = body.title || "";
-
-      description = body.description || "";
-
-      technique = body.technique || "";
-
-      dimensions = body.dimensions || "";
-
-      creation_date = body.creation_date || "";
-
-      category = body.category || "painting";
-
-      price = body.price || 0;
-
-      photos = body.photos || [];
-
-      macroPhotoPath = body.macro_photo || "";
 
     }
 
@@ -434,7 +492,13 @@ export async function POST(req: NextRequest) {
     // valide, on génère la fiche + PDF + email (ou fallback Storage si email KO).
     let fichePolice: any = null;
     const PRO_ROLES_FICHE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
-    const artistUserForFiche = token ? await getUserByToken(token) : null;
+    // Récupère l'utilisateur courant (session existante OU auto-signup).
+    // On utilise artistId qui vient d'être résolu au-dessus.
+    const artistUserForFiche = artistId ? await (async () => {
+      const sb = (await import("@/lib/db")).getDb();
+      const { data } = await sb.from("users").select("id, email, full_name, phone, role").eq("id", artistId).maybeSingle();
+      return data as any;
+    })() : null;
     if (artistUserForFiche && PRO_ROLES_FICHE.includes(artistUserForFiche.role)) {
       try {
         const { getMerchantForUser, createPoliceRegisterEntry, generateSingleFichePDF, sendFicheEmail } = await import("@/lib/fiche-police");
@@ -472,7 +536,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
 
       id,
 
@@ -527,6 +591,20 @@ export async function POST(req: NextRequest) {
       success: true,
 
     });
+
+    // Si on vient de créer une session à la volée (auto-signup), on pose le
+    // cookie sur la réponse — l'utilisateur sera connecté pour la prochaine
+    // requête (voir son œuvre sur art-core, admin, etc.).
+    if (autoCreatedSessionToken) {
+      response.cookies.set("core_session", autoCreatedSessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60,
+        path: "/",
+      });
+    }
+    return response;
 
   } catch (error: any) {
 

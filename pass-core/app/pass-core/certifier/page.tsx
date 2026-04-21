@@ -15,6 +15,7 @@ import type { CameraQuality } from "@/components/certifier/useCameraMacro";
 // ═══════════════════════════════════════════════════════════
 type Step = "intro" | "photo1" | "zone_select" | "photo2" | "photo2b" | "photo2c" | "photo3" |
             "f_title" | "f_technique" | "f_dimensions" | "f_year" | "f_description" | "f_price" |
+            "f_identification" |
             "review" | "submitting" | "done";
 
 const TECHNIQUES = ["Huile", "Acrylique", "Aquarelle", "Mixte", "Pastel", "Encre", "Numerique", "Sculpture", "Photographie", "Autre"];
@@ -70,6 +71,21 @@ export default function CertifierPage() {
   const [returnToReview, setReturnToReview] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // ── Identification (auto-signup si pas de session) ────────────
+  const [identEmail, setIdentEmail] = useState("");
+  const [identName, setIdentName] = useState("");
+  const [identPhone, setIdentPhone] = useState("");
+  const [identRole, setIdentRole] = useState<"artist" | "galeriste" | "antiquaire" | "brocanteur" | "depot_vente" | "client">("artist");
+  const [merchantRaisonSociale, setMerchantRaisonSociale] = useState("");
+  const [merchantSiret, setMerchantSiret] = useState("");
+  const [merchantActivite, setMerchantActivite] = useState("");
+  const [merchantNomGerant, setMerchantNomGerant] = useState("");
+  const [merchantAdresse, setMerchantAdresse] = useState("");
+  const [merchantCodePostal, setMerchantCodePostal] = useState("");
+  const [merchantVille, setMerchantVille] = useState("");
+  const PRO_ROLES_SET = ["galeriste", "antiquaire", "brocanteur", "depot_vente"] as const;
+  const isProRole = PRO_ROLES_SET.includes(identRole as any);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const zoneRef = useRef<HTMLDivElement>(null);
 
@@ -119,7 +135,7 @@ export default function CertifierPage() {
   }
 
   // Progress
-  const ALL_STEPS: Step[] = ["intro", "photo1", "zone_select", "photo2", "photo2b", "photo2c", "photo3", "f_title", "f_technique", "f_dimensions", "f_year", "f_description", "f_price", "review", "submitting", "done"];
+  const ALL_STEPS: Step[] = ["intro", "photo1", "zone_select", "photo2", "photo2b", "photo2c", "photo3", "f_title", "f_technique", "f_dimensions", "f_year", "f_description", "f_price", "f_identification", "review", "submitting", "done"];
   const stepIdx = ALL_STEPS.indexOf(step);
   const progress = Math.round((stepIdx / (ALL_STEPS.length - 1)) * 100);
 
@@ -392,6 +408,23 @@ export default function CertifierPage() {
       if (compressed.photo3) fd.append("extra_photos", compressed.photo3);
       if (compressed.photoCreation) fd.append("extra_photos", compressed.photoCreation);
 
+      // ── Identification (auto-signup si pas de session existante) ──
+      // Si l'utilisateur est déjà connecté (authUser présent), ces champs
+      // sont quand même envoyés mais l'API ignore car artistId est déjà résolu.
+      if (identEmail) fd.append("user_email", identEmail);
+      if (identName)  fd.append("user_name", identName);
+      if (identPhone) fd.append("user_phone", identPhone);
+      if (identRole)  fd.append("user_role", identRole);
+      if (isProRole) {
+        if (merchantRaisonSociale) fd.append("merchant_raison_sociale", merchantRaisonSociale);
+        if (merchantSiret)         fd.append("merchant_siret", merchantSiret);
+        if (merchantActivite)      fd.append("merchant_activite", merchantActivite);
+        if (merchantNomGerant)     fd.append("merchant_nom_gerant", merchantNomGerant);
+        if (merchantAdresse)       fd.append("merchant_adresse", merchantAdresse);
+        if (merchantCodePostal)    fd.append("merchant_code_postal", merchantCodePostal);
+        if (merchantVille)         fd.append("merchant_ville", merchantVille);
+      }
+
       const res = await fetch("/api/certify", { method: "POST", body: fd });
       if (!res.ok) {
         let errMsg = `Erreur serveur (${res.status})`;
@@ -470,27 +503,6 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ AUTH REQUIRED ═══ */}
-      {step === "intro" && authUser === null && (
-        <div className="animate-fade-in text-center pt-6">
-          <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
-            <Lock className="size-10 text-[#C9A84C]" />
-          </div>
-          <h1 className="font-display text-2xl font-semibold text-white mb-3">Connexion requise</h1>
-          <p className="text-white/50 text-sm mb-8 leading-relaxed">
-            Connectez-vous pour certifier votre œuvre. Un compte permet d&apos;associer la certification à votre profil et d&apos;envoyer le certificat par email.
-          </p>
-          <div className="space-y-3">
-            <a href={`/auth/login?next=${encodeURIComponent("/pass-core/certifier")}`} className="block w-full py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-base active:brightness-90">
-              Se connecter
-            </a>
-            <a href="https://art-core.app/auth/signup" className="block w-full py-4 rounded-xl border border-white/15 text-white font-medium active:bg-white/5">
-              Créer un compte sur ART-CORE
-            </a>
-          </div>
-        </div>
-      )}
-
       {/* ═══ AUTH LOADING ═══ */}
       {step === "intro" && authUser === "loading" && (
         <div className="animate-fade-in text-center pt-20">
@@ -499,13 +511,15 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ INTRO ═══ */}
-      {step === "intro" && authUser && authUser !== "loading" && (
+      {/* ═══ INTRO ═══ (connecté OU non — on identifie au step f_identification si null) */}
+      {step === "intro" && authUser !== "loading" && (
         <div className="animate-fade-in text-center pt-6">
           <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
             <ShieldCheck className="size-10 text-[#C9A84C]" />
           </div>
-          <p className="text-xs text-[#C9A84C]/70 mb-2">Connecté en tant que {authUser.name || authUser.email}</p>
+          {authUser?.email
+            ? <p className="text-xs text-[#C9A84C]/70 mb-2">Connecté en tant que {authUser.name || authUser.email}</p>
+            : <p className="text-xs text-white/40 mb-2">Pas de compte ? Pas de problème — on le crée à la fin.</p>}
           <h1 className="font-display text-2xl font-semibold text-white mb-3">Certifiez votre œuvre en 5 minutes</h1>
           <p className="text-white/40 text-sm mb-8 leading-relaxed">
             ART-CORE vérifie que votre œuvre est originale. Ce processus protège votre travail et rassure les acheteurs.
@@ -957,7 +971,126 @@ export default function CertifierPage() {
               className="w-full h-14 rounded-xl bg-white/5 border border-white/10 text-white text-xl text-center pr-10 focus:outline-none focus:border-[#C9A84C]/40" />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 text-lg">EUR</span>
           </div>
-          <NavButtons back="f_description" next={() => setStep("review")} nextLabel="Verifier" />
+          <NavButtons back="f_description" next={() => setStep(authUser?.id ? "review" : "f_identification")} nextLabel={authUser?.id ? "Verifier" : "Identifier"} />
+        </div>
+      )}
+
+      {/* ═══ IDENTIFICATION (auto-signup pour non-connectés) ═══ */}
+      {step === "f_identification" && (
+        <div className="animate-fade-in flex flex-col min-h-[50vh] pb-8">
+          <h2 className="font-display text-2xl font-semibold text-white mb-2">Identification</h2>
+          <p className="text-white/50 text-sm mb-5">
+            Pour valider la certification, on a besoin de quelques informations. Un compte sera créé automatiquement.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-white/60 text-xs mb-1.5">Nom complet *</label>
+              <input
+                type="text" value={identName} onChange={(e) => setIdentName(e.target.value)}
+                placeholder="Jean Dupont"
+                className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-white/60 text-xs mb-1.5">Email *</label>
+              <input
+                type="email" value={identEmail} onChange={(e) => setIdentEmail(e.target.value)}
+                placeholder="jean@exemple.com"
+                className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-white/60 text-xs mb-1.5">Téléphone</label>
+              <input
+                type="tel" value={identPhone} onChange={(e) => setIdentPhone(e.target.value)}
+                placeholder="+33 6 12 34 56 78"
+                className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-white/60 text-xs mb-2">Vous êtes ? *</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { v: "artist", label: "Artiste" },
+                  { v: "galeriste", label: "Galeriste" },
+                  { v: "antiquaire", label: "Antiquaire" },
+                  { v: "brocanteur", label: "Brocanteur" },
+                  { v: "depot_vente", label: "Dépôt-vente" },
+                  { v: "client", label: "Particulier" },
+                ].map((r) => (
+                  <button
+                    key={r.v} type="button"
+                    onClick={() => setIdentRole(r.v as any)}
+                    className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      identRole === r.v
+                        ? "bg-[#C9A84C]/20 border border-[#C9A84C]/50 text-[#C9A84C]"
+                        : "bg-white/5 border border-white/10 text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {isProRole && (
+              <div className="mt-4 p-4 rounded-xl bg-[#C9A84C]/5 border border-[#C9A84C]/20 space-y-3">
+                <p className="text-[#C9A84C] text-xs font-semibold uppercase tracking-wider">
+                  Informations professionnelles (obligatoires pour fiche de police)
+                </p>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1.5">Raison sociale *</label>
+                  <input type="text" value={merchantRaisonSociale} onChange={(e) => setMerchantRaisonSociale(e.target.value)} placeholder="Galerie Dupont SARL" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                </div>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1.5">SIRET (14 chiffres) *</label>
+                  <input type="text" maxLength={14} value={merchantSiret} onChange={(e) => setMerchantSiret(e.target.value.replace(/\D/g, ""))} placeholder="12345678901234" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 font-mono focus:outline-none focus:border-[#C9A84C]/40" />
+                </div>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1.5">Activité *</label>
+                  <input type="text" value={merchantActivite} onChange={(e) => setMerchantActivite(e.target.value)} placeholder="Galerie d'art / Antiquités" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                </div>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1.5">Nom du gérant *</label>
+                  <input type="text" value={merchantNomGerant} onChange={(e) => setMerchantNomGerant(e.target.value)} placeholder="Jean Dupont" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                </div>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1.5">Adresse *</label>
+                  <input type="text" value={merchantAdresse} onChange={(e) => setMerchantAdresse(e.target.value)} placeholder="12 rue des Arts" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1">
+                    <label className="block text-white/60 text-xs mb-1.5">CP *</label>
+                    <input type="text" maxLength={5} value={merchantCodePostal} onChange={(e) => setMerchantCodePostal(e.target.value.replace(/\D/g, ""))} placeholder="75001" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-white/60 text-xs mb-1.5">Ville *</label>
+                    <input type="text" value={merchantVille} onChange={(e) => setMerchantVille(e.target.value)} placeholder="Paris" className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white px-3 focus:outline-none focus:border-[#C9A84C]/40" />
+                  </div>
+                </div>
+                <p className="text-white/40 text-[11px] leading-relaxed">
+                  Une fiche de police sera générée automatiquement et archivée (obligation légale Art. R.321-1 Code pénal).
+                </p>
+              </div>
+            )}
+          </div>
+
+          <NavButtons
+            back="f_price"
+            next={() => {
+              if (!identEmail || !identName) { alert("Nom et email requis"); return; }
+              if (isProRole && (!merchantRaisonSociale || !merchantSiret || merchantSiret.length !== 14 || !merchantActivite || !merchantNomGerant || !merchantAdresse || !merchantCodePostal || !merchantVille)) {
+                alert("Tous les champs pro sont requis (SIRET exactement 14 chiffres)");
+                return;
+              }
+              setStep("review");
+            }}
+            nextLabel="Verifier"
+          />
         </div>
       )}
 
