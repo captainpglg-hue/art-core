@@ -428,9 +428,55 @@ export async function POST(req: NextRequest) {
 
     }
 
+    // ── Déclenchement automatique fiche de police (pros uniquement) ──────
+    // Miroir du hook art-core/api/artworks. Si le user qui certifie est pro
+    // (antiquaire/galeriste/brocanteur/depot_vente) ET a un profil merchants
+    // valide, on génère la fiche + PDF + email (ou fallback Storage si email KO).
+    let fichePolice: any = null;
+    const PRO_ROLES_FICHE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
+    const artistUserForFiche = token ? await getUserByToken(token) : null;
+    if (artistUserForFiche && PRO_ROLES_FICHE.includes(artistUserForFiche.role)) {
+      try {
+        const { getMerchantForUser, createPoliceRegisterEntry, generateSingleFichePDF, sendFicheEmail } = await import("@/lib/fiche-police");
+        const merchant = await getMerchantForUser(artistUserForFiche.id);
+        if (!merchant) {
+          fichePolice = {
+            triggered: false,
+            reason: "missing_merchant_profile",
+            message: "Fiche non générée — remplis d'abord /art-core/pro/inscription (SIRET, raison sociale, etc.)",
+          };
+        } else {
+          const artworkPayload = { id, title, description, technique, dimensions, creation_date, category, price: Number(price) || 0, photos: photosArr };
+          const created = await createPoliceRegisterEntry({ user: artistUserForFiche as any, merchant, artwork: artworkPayload, body: {} });
+          if (created) {
+            const pdfBuffer = await generateSingleFichePDF({ merchant, entry: created.entry, artwork: artworkPayload, user: artistUserForFiche as any });
+            const emailResultFiche = await sendFicheEmail({ merchant, entry: created.entry, artwork: artworkPayload, user: artistUserForFiche as any, pdfBuffer });
+            fichePolice = {
+              triggered: true,
+              entry_number: created.entryNumber,
+              entry_id: created.entry.id,
+              email_sent: emailResultFiche.success,
+              email_mode: emailResultFiche.mode,
+              email_error: emailResultFiche.error,
+              storage_url: emailResultFiche.storage_url,
+              recipient_fallback: emailResultFiche.recipient_fallback || false,
+              pdf_size: pdfBuffer.length,
+            };
+          } else {
+            fichePolice = { triggered: false, reason: "insert_failed" };
+          }
+        }
+      } catch (e: any) {
+        console.error("[certify] fiche-police hook failed:", e?.message);
+        fichePolice = { triggered: false, reason: "exception", error: e?.message };
+      }
+    }
+
     return NextResponse.json({
 
       id,
+
+      fiche_police: fichePolice,
 
       blockchain_hash: chainResult.blockchainHash,
 
