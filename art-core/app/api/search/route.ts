@@ -1,121 +1,179 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryOne, queryAll } from "@/lib/db";
-import { parsePhotos } from "@/lib/utils";
+import { getDb } from "@/lib/db";
 
-// Haversine distance in km
+/**
+ * GET /api/search
+ * Recherche avancée dans le marketplace.
+ *
+ * Réécriture via Supabase client : le translator SQL→REST ne gère pas
+ * les JOIN, l'ancien code avec "JOIN users" produisait un 500 silencieux.
+ * Ici on fait 2 requêtes (artworks + users) et on merge côté JS.
+ *
+ * Query params supportés :
+ *   q         — texte libre (titre, description, technique, style)
+ *   category  — painting | sculpture | photography | digital | drawing | mixed | ceramic
+ *   technique — string (ILIKE %technique%)
+ *   style     — string
+ *   price_min / price_max — number
+ *   format    — small (<30cm) | medium (30-100) | large (>100) — filtre post-query
+ *   gauge     — empty | active | locked
+ *   certified — yes | no (basé sur blockchain_hash)
+ *   city      — string (ILIKE)
+ *   pickup    — yes
+ *   lat, lon, radius — geo filter (km), post-query via Haversine
+ *   sort      — newest (default) | price_asc | price_desc | gauge | popular
+ *   limit, offset
+ */
+
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export async function GET(req: NextRequest) {
-  const p = new URL(req.url).searchParams;
-  const q = p.get("q") || "";
-  const category = p.get("category") || "";
-  const technique = p.get("technique") || "";
-  const style = p.get("style") || "";
-  const priceMin = parseFloat(p.get("price_min") || "0");
-  const priceMax = parseFloat(p.get("price_max") || "999999");
-  const format = p.get("format") || "";
-  const gauge = p.get("gauge") || "";
-  const certified = p.get("certified") || "";
-  const sort = p.get("sort") || "newest";
-  const city = p.get("city") || "";
-  const lat = parseFloat(p.get("lat") || "0");
-  const lon = parseFloat(p.get("lon") || "0");
-  const radius = parseInt(p.get("radius") || "0");
-  const pickup = p.get("pickup") || "";
-  const limit = parseInt(p.get("limit") || "40");
-  const offset = parseInt(p.get("offset") || "0");
+  try {
+    const p = new URL(req.url).searchParams;
+    const q = (p.get("q") || "").trim();
+    const category = p.get("category") || "";
+    const technique = p.get("technique") || "";
+    const style = p.get("style") || "";
+    const priceMin = parseFloat(p.get("price_min") || "0");
+    const priceMax = parseFloat(p.get("price_max") || "0") || Infinity;
+    const format = p.get("format") || "";
+    const gauge = p.get("gauge") || "";
+    const certified = p.get("certified") || "";
+    const sort = p.get("sort") || "newest";
+    const city = p.get("city") || "";
+    const lat = parseFloat(p.get("lat") || "0");
+    const lon = parseFloat(p.get("lon") || "0");
+    const radius = parseInt(p.get("radius") || "0");
+    const pickup = p.get("pickup") || "";
+    const limit = Math.min(parseInt(p.get("limit") || "40"), 100);
+    const offset = parseInt(p.get("offset") || "0");
 
-  const conditions: string[] = ["a.status IN ('for_sale', 'certified')"];
-  const params: any[] = [];
+    const sb = getDb();
 
-  // Text search
-  if (q) {
-    conditions.push("(a.title LIKE ? OR a.description LIKE ? OR u.full_name as name LIKE ? OR a.technique LIKE ? OR a.style LIKE ?)");
-    const s = `%${q}%`;
-    params.push(s, s, s, s, s);
-  }
+    // ── Build base query ──────────────────────────────────────
+    let query = sb
+      .from("artworks")
+      .select("*", { count: "exact" })
+      .in("status", ["for_sale", "certified"]);
 
-  // Category
-  if (category) { conditions.push("a.category = ?"); params.push(category); }
+    if (q) {
+      // PostgREST .or() : filtres en OR, séparés par virgules
+      const like = `%${q}%`;
+      query = query.or(
+        `title.ilike.${like},description.ilike.${like},technique.ilike.${like},style.ilike.${like}`
+      );
+    }
+    if (category) query = query.eq("category", category);
+    if (technique) query = query.ilike("technique", `%${technique}%`);
+    if (style) query = query.eq("style", style);
+    if (priceMin > 0) query = query.gte("price", priceMin);
+    if (priceMax !== Infinity) query = query.lte("price", priceMax);
+    if (gauge === "empty") query = query.eq("gauge_points", 0);
+    else if (gauge === "active") query = query.gt("gauge_points", 0).lt("gauge_points", 100);
+    else if (gauge === "locked") query = query.eq("gauge_locked", true);
+    if (certified === "yes") query = query.not("blockchain_hash", "is", null);
+    else if (certified === "no") query = query.or("blockchain_hash.is.null,blockchain_hash.eq.");
+    if (city) query = query.ilike("shipping_from_city", `%${city}%`);
+    if (pickup === "yes") query = query.eq("pickup_available", true);
 
-  // Technique
-  if (technique) { conditions.push("a.technique LIKE ?"); params.push(`%${technique}%`); }
+    // ── Tri ────────────────────────────────────────────────────
+    if (sort === "price_asc") query = query.order("price", { ascending: true });
+    else if (sort === "price_desc") query = query.order("price", { ascending: false });
+    else if (sort === "gauge") query = query.order("gauge_points", { ascending: false });
+    else if (sort === "popular") query = query.order("views_count", { ascending: false });
+    else query = query.order("created_at", { ascending: false });
 
-  // Style
-  if (style) { conditions.push("a.style = ?"); params.push(style); }
+    query = query.range(offset, offset + limit - 1);
 
-  // Price
-  if (priceMin > 0) { conditions.push("a.price >= ?"); params.push(priceMin); }
-  if (priceMax < 999999) { conditions.push("a.price <= ?"); params.push(priceMax); }
+    const { data: rawArtworks, error, count } = await query;
+    if (error) throw new Error(`search query failed: ${error.message}`);
 
-  // Format (based on dimensions text) - Using Postgres substring functions
-  if (format === "small") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) < 30");
-  else if (format === "medium") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) BETWEEN 30 AND 100");
-  else if (format === "large") conditions.push("CAST(SUBSTRING(a.dimensions, 1, POSITION('x' IN a.dimensions) - 1) AS INTEGER) > 100");
+    let artworks = rawArtworks || [];
 
-  // Gauge
-  if (gauge === "empty") conditions.push("a.gauge_points = 0");
-  else if (gauge === "active") conditions.push("a.gauge_points > 0 AND a.gauge_points < 100");
-  else if (gauge === "locked") conditions.push("a.gauge_locked = 1");
+    // ── JOIN users (merge côté JS) ────────────────────────────
+    const artistIds = Array.from(new Set(artworks.map((a: any) => a.artist_id).filter(Boolean)));
+    let usersMap: Record<string, any> = {};
+    if (artistIds.length) {
+      const { data: users } = await sb
+        .from("users")
+        .select("id, full_name, username, avatar_url")
+        .in("id", artistIds);
+      usersMap = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+    }
 
-  // Certified
-  if (certified === "yes") conditions.push("a.blockchain_hash IS NOT NULL AND a.blockchain_hash != ''");
-  else if (certified === "no") conditions.push("(a.blockchain_hash IS NULL OR a.blockchain_hash = '')");
-
-  // City
-  if (city) { conditions.push("a.city LIKE ?"); params.push(`%${city}%`); }
-
-  // Pickup
-  if (pickup === "yes") conditions.push("a.pickup_available = 1");
-
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-  let orderBy = "ORDER BY a.created_at DESC";
-  if (sort === "price_asc") orderBy = "ORDER BY a.price ASC";
-  else if (sort === "price_desc") orderBy = "ORDER BY a.price DESC";
-  else if (sort === "gauge") orderBy = "ORDER BY a.gauge_points DESC";
-  else if (sort === "popular") orderBy = "ORDER BY a.views_count DESC";
-
-  const countRow = await queryOne(`SELECT COUNT(*) as c FROM artworks a JOIN users u ON a.artist_id = u.id ${where}`, params) as any;
-
-  const sql = `SELECT a.*, u.full_name as artist_name, u.username as artist_username
-    FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ${orderBy} LIMIT ? OFFSET ?`;
-  const queryParams = [...params, limit, offset];
-
-  let artworks = await queryAll(sql, queryParams) as any[];
-
-  // Parse photos (TEXT[] native array or legacy JSON string)
-  artworks = artworks.map(a => ({ ...a, photos: parsePhotos(a.photos) }));
-
-  // Geo filter (post-query since we'll do it in app)
-  if (lat && lon && radius > 0) {
-    artworks = artworks.filter(a => {
-      if (!a.latitude || !a.longitude) return false;
-      const dist = haversine(lat, lon, a.latitude, a.longitude);
-      (a as any).distance_km = Math.round(dist);
-      return dist <= radius;
-    }).sort((a: any, b: any) => (a.distance_km || 0) - (b.distance_km || 0));
-  } else if (lat && lon) {
-    // Add distance info even without radius filter
-    artworks = artworks.map(a => {
-      if (a.latitude && a.longitude) {
-        (a as any).distance_km = Math.round(haversine(lat, lon, a.latitude, a.longitude));
+    artworks = artworks.map((a: any) => {
+      // Normalise photos (peut etre array ou JSON string selon ancien format)
+      let photos: any[] = [];
+      if (Array.isArray(a.photos)) photos = a.photos;
+      else if (typeof a.photos === "string") {
+        try { photos = JSON.parse(a.photos); } catch { photos = []; }
       }
-      return a;
+      const artist = usersMap[a.artist_id];
+      return {
+        ...a,
+        photos,
+        artist_name: artist?.full_name || null,
+        artist_username: artist?.username || null,
+        artist_avatar: artist?.avatar_url || null,
+      };
     });
-  }
 
-  return NextResponse.json({
-    artworks,
-    total: countRow?.c || 0,
-    limit,
-    offset,
-    filters: { q, category, technique, style, priceMin, priceMax, format, gauge, certified, sort, city, radius, pickup },
-  });
+    // ── Filtre format (post-query, car parsing dimensions) ────
+    if (format) {
+      artworks = artworks.filter((a: any) => {
+        const d = String(a.dimensions || "");
+        const m = d.match(/^\s*(\d+)/);
+        if (!m) return false;
+        const w = parseInt(m[1]);
+        if (format === "small") return w < 30;
+        if (format === "medium") return w >= 30 && w <= 100;
+        if (format === "large") return w > 100;
+        return true;
+      });
+    }
+
+    // ── Filtre géo (post-query) ───────────────────────────────
+    if (lat && lon && radius > 0) {
+      artworks = artworks
+        .filter((a: any) => {
+          if (!a.latitude || !a.longitude) return false;
+          const dist = haversine(lat, lon, a.latitude, a.longitude);
+          a.distance_km = Math.round(dist);
+          return dist <= radius;
+        })
+        .sort((a: any, b: any) => (a.distance_km || 0) - (b.distance_km || 0));
+    } else if (lat && lon) {
+      artworks = artworks.map((a: any) => {
+        if (a.latitude && a.longitude) {
+          a.distance_km = Math.round(haversine(lat, lon, a.latitude, a.longitude));
+        }
+        return a;
+      });
+    }
+
+    return NextResponse.json({
+      artworks,
+      total: count ?? artworks.length,
+      limit,
+      offset,
+      filters: {
+        q, category, technique, style,
+        price_min: priceMin, price_max: priceMax === Infinity ? null : priceMax,
+        format, gauge, certified, sort, city, radius, pickup,
+      },
+    });
+  } catch (e: any) {
+    console.error("[search] failed:", e.message);
+    return NextResponse.json({ error: e.message || "Recherche indisponible" }, { status: 500 });
+  }
 }
