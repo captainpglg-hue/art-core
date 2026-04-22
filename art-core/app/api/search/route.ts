@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
     const q = (p.get("q") || "").trim();
     const category = p.get("category") || "";
     const technique = p.get("technique") || "";
-    const style = p.get("style") || "";
     const priceMin = parseFloat(p.get("price_min") || "0");
     const priceMax = parseFloat(p.get("price_max") || "0") || Infinity;
     const format = p.get("format") || "";
@@ -54,7 +53,6 @@ export async function GET(req: NextRequest) {
     const lat = parseFloat(p.get("lat") || "0");
     const lon = parseFloat(p.get("lon") || "0");
     const radius = parseInt(p.get("radius") || "0");
-    const pickup = p.get("pickup") || "";
     const limit = Math.min(parseInt(p.get("limit") || "40"), 100);
     const offset = parseInt(p.get("offset") || "0");
 
@@ -70,12 +68,11 @@ export async function GET(req: NextRequest) {
       // PostgREST .or() : filtres en OR, séparés par virgules
       const like = `%${q}%`;
       query = query.or(
-        `title.ilike.${like},description.ilike.${like},technique.ilike.${like},style.ilike.${like}`
+        `title.ilike.${like},description.ilike.${like},technique.ilike.${like}`
       );
     }
     if (category) query = query.eq("category", category);
     if (technique) query = query.ilike("technique", `%${technique}%`);
-    if (style) query = query.eq("style", style);
     if (priceMin > 0) query = query.gte("price", priceMin);
     if (priceMax !== Infinity) query = query.lte("price", priceMax);
     if (gauge === "empty") query = query.eq("gauge_points", 0);
@@ -84,7 +81,6 @@ export async function GET(req: NextRequest) {
     if (certified === "yes") query = query.not("blockchain_hash", "is", null);
     else if (certified === "no") query = query.or("blockchain_hash.is.null,blockchain_hash.eq.");
     if (city) query = query.ilike("shipping_from_city", `%${city}%`);
-    if (pickup === "yes") query = query.eq("pickup_available", true);
 
     // ── Tri ────────────────────────────────────────────────────
     if (sort === "price_asc") query = query.order("price", { ascending: true });
@@ -167,9 +163,9 @@ export async function GET(req: NextRequest) {
       limit,
       offset,
       filters: {
-        q, category, technique, style,
+        q, category, technique,
         price_min: priceMin, price_max: priceMax === Infinity ? null : priceMax,
-        format, gauge, certified, sort, city, radius, pickup,
+        format, gauge, certified, sort, city, radius,
       },
     });
   } catch (e: any) {
