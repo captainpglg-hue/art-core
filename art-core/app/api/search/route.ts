@@ -10,16 +10,14 @@ import { getDb } from "@/lib/db";
  * Ici on fait 2 requêtes (artworks + users) et on merge côté JS.
  *
  * Query params supportés :
- *   q         — texte libre (titre, description, technique, style)
+ *   q         — texte libre (titre, description, technique)
  *   category  — painting | sculpture | photography | digital | drawing | mixed | ceramic
  *   technique — string (ILIKE %technique%)
- *   style     — string
  *   price_min / price_max — number
  *   format    — small (<30cm) | medium (30-100) | large (>100) — filtre post-query
  *   gauge     — empty | active | locked
  *   certified — yes | no (basé sur blockchain_hash)
  *   city      — string (ILIKE)
- *   pickup    — yes
  *   lat, lon, radius — geo filter (km), post-query via Haversine
  *   sort      — newest (default) | price_asc | price_desc | gauge | popular
  *   limit, offset
