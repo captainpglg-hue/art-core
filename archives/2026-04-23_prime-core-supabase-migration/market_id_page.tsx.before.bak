@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getMarketById, getBetsForMarket } from "@/lib/db";
+import { getMarketById, getBetsForMarket, getDb } from "@/lib/db";
 import { BetForm } from "./bet-form";
 import { Lock, TrendingUp } from "lucide-react";
 
@@ -9,15 +9,15 @@ interface Props { params: Promise<{ id: string }> }
 
 export default async function MarketDetailPage({ params }: Props) {
   const { id } = await params;
-  const market = await getMarketById(id);
+  const market = getMarketById(id);
   if (!market) notFound();
 
-  const bets = await getBetsForMarket(id);
+  const bets = getBetsForMarket(id);
   const photos = JSON.parse(market.photos || "[]");
 
-  const totalPool = Number(market.total_yes_amount) + Number(market.total_no_amount);
-  const yesPercent = totalPool > 0 ? (Number(market.total_yes_amount) / totalPool * 100).toFixed(1) : "50.0";
-  const noPercent = totalPool > 0 ? (Number(market.total_no_amount) / totalPool * 100).toFixed(1) : "50.0";
+  const totalPool = market.total_yes_amount + market.total_no_amount;
+  const yesPercent = totalPool > 0 ? (market.total_yes_amount / totalPool * 100).toFixed(1) : "50.0";
+  const noPercent = totalPool > 0 ? (market.total_no_amount / totalPool * 100).toFixed(1) : "50.0";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -73,7 +73,7 @@ export default async function MarketDetailPage({ params }: Props) {
             <p className="text-[10px] text-white/30">Paris placés</p>
           </div>
           <div className="rounded-xl bg-white/3 p-3">
-            <p className="text-lg font-bold text-white capitalize tabular-nums">{String(market.status).replace("_", " ")}</p>
+            <p className="text-lg font-bold text-white capitalize tabular-nums">{market.status.replace("_", " ")}</p>
             <p className="text-[10px] text-white/30">Statut</p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export default async function MarketDetailPage({ params }: Props) {
 
       {/* Bet form (client component) */}
       {market.status === "open" && (
-        <BetForm marketId={id} question={market.question} oddsYes={Number(market.odds_yes)} oddsNo={Number(market.odds_no)} />
+        <BetForm marketId={id} question={market.question} oddsYes={market.odds_yes} oddsNo={market.odds_no} />
       )}
 
       {/* Recent bets */}
@@ -89,7 +89,7 @@ export default async function MarketDetailPage({ params }: Props) {
         <div className="mt-8">
           <h3 className="text-sm font-semibold text-white/60 mb-4">Paris récents</h3>
           <div className="space-y-2">
-            {bets.map((bet: any) => (
+            {bets.map((bet) => (
               <div key={bet.id} className="flex items-center justify-between p-3 rounded-xl bg-[#141720] border border-white/5 text-xs">
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-0.5 rounded font-bold ${bet.position === "yes" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>

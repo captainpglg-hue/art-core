@@ -12,9 +12,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // Depuis 2026-04-23 : prime-core est passé de better-sqlite3 à postgres-js.
-    // Pas besoin de l'externaliser, postgres-js est pure JS et bundle-friendly.
-    serverComponentsExternalPackages: [],
+    serverComponentsExternalPackages: ["better-sqlite3"],
   },
 };
 

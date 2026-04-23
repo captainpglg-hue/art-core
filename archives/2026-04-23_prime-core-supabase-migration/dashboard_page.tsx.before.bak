@@ -1,22 +1,22 @@
-import { getMarkets, getTotalBetsCount } from "@/lib/db";
+import { getMarkets, getDb } from "@/lib/db";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Lock, Clock, CheckCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const markets = await getMarkets();
+export default function DashboardPage() {
+  const markets = getMarkets();
   const parsed = markets.map((m) => ({
     ...m,
     photos: JSON.parse(m.photos || "[]"),
   }));
 
   const openMarkets = parsed.filter(m => m.status === "open");
-  const resolvedMarkets = parsed.filter(m => String(m.status).startsWith("resolved"));
+  const resolvedMarkets = parsed.filter(m => m.status.startsWith("resolved"));
 
   // Stats
-  const totalVolume = parsed.reduce((sum, m) => sum + Number(m.total_yes_amount) + Number(m.total_no_amount), 0);
-  const totalBets = await getTotalBetsCount();
+  const totalVolume = parsed.reduce((sum, m) => sum + m.total_yes_amount + m.total_no_amount, 0);
+  const totalBets = (getDb().prepare("SELECT COUNT(*) as count FROM bets").get() as any).count;
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-6 rounded-lg overflow-hidden flex">
-                    <div className="bg-green-500/20 flex items-center justify-center" style={{ width: `${(Number(market.total_yes_amount) / Math.max(Number(market.total_yes_amount) + Number(market.total_no_amount), 1)) * 100}%` }}>
+                    <div className="bg-green-500/20 flex items-center justify-center" style={{ width: `${(market.total_yes_amount / Math.max(market.total_yes_amount + market.total_no_amount, 1)) * 100}%` }}>
                       <span className="text-[10px] font-bold text-green-400">OUI {market.odds_yes}x</span>
                     </div>
                     <div className="bg-red-500/20 flex-1 flex items-center justify-center">
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
               {/* Gauge indicator */}
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-white/30">Jauge: {market.gauge_points}/100</span>
-                <span className="text-white/30">{Number(market.total_yes_amount) + Number(market.total_no_amount)} pts misés</span>
+                <span className="text-white/30">{market.total_yes_amount + market.total_no_amount} pts misés</span>
                 <span className="text-[#C9A84C] font-medium">{market.market_type === "time" ? "Délai" : "Valeur"}</span>
               </div>
             </div>
