@@ -9,8 +9,17 @@
 ## [Non publié]
 
 Travaux en cours non encore livrés en prod (cf. `MIGRATION-LOG.md` racine) :
-- Adaptation du code au schéma Supabase réel (users.full_name, UUID, BOOLEAN, TEXT[] photos).
-- Résolution du blocage pooler Supabase (IPv6 vs egress Vercel).
+- Tests bout-en-bout à refaire après redeploy du fix dépôt (cf. 2026-04-23).
+
+## 2026-04-23 — Fix complet du flow dépôt d'œuvre (5 bugs)
+
+Suite au test utilisateur bout-en-bout (compte antiquaire, dépôt avec photos, certification, fiche de police, marketplace), 5 bugs bloquants identifiés et corrigés en une passe :
+
+- `app/api/cahier-police/route.ts` : rewire de la route sur la table réelle `police_register_entries` (la table `cahier_police` référencée n'existait pas).
+- `app/api/artworks/route.ts` : INSERT enrichi — `is_public=true`, `is_for_sale=true`, `image_url` + `additional_images` (nouveau schéma), `pass_core_id` + `blockchain_hash` SHA-256 générés automatiquement, auto-provisioning d'un merchant par défaut pour les pros sans profil.
+- `app/(art-core)/art-core/cahier-police/page.tsx` : UI d'erreur propre, plus d'exposition d'erreur SQL brute.
+
+Archive complète : `archives/2026-04-23_fix-deposer-flow/` (versions avant + CHANGELOG détaillé).
 
 ---
 

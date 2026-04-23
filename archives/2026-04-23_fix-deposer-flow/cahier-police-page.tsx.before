@@ -66,24 +66,14 @@ export default function CahierPolicePage() {
   async function fetchEntries() {
     try {
       const res = await fetch("/api/cahier-police");
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json();
       if (!res.ok) {
-        // On n'expose jamais l'erreur SQL brute (schema cache, codes PGRST…)
-        // à l'utilisateur. Le détail technique reste en console pour debug.
-        if (data?.error) console.warn("[cahier-police] API error:", data.error);
-        if (res.status === 401) {
-          setError("Veuillez vous reconnecter pour accéder au cahier de police.");
-        } else if (res.status === 403) {
-          setError("Le cahier de police est réservé aux professionnels (antiquaire, brocanteur, galeriste, dépôt-vente).");
-        } else {
-          setError("Le cahier de police est momentanément indisponible. Réessayez dans quelques instants ou contactez le support si le problème persiste.");
-        }
+        setError(data.error);
         return;
       }
       setEntries(data.entries || []);
     } catch (err: any) {
-      console.warn("[cahier-police] fetch exception:", err?.message);
-      setError("Connexion au serveur impossible. Vérifiez votre réseau et réessayez.");
+      setError(err.message);
     } finally {
       setLoading(false);
     }

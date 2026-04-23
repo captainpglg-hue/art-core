@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { query, getUserByToken, getDb } from "@/lib/db";
 import {
   getMerchantForUser,
@@ -78,44 +77,6 @@ function safeJson(s: string): any[] {
   try { return JSON.parse(s); } catch { return []; }
 }
 
-// ── Auto-provisioning d'un profil merchant par défaut pour les pros ────────
-// Nécessaire pour que le hook fiche-police fonctionne dès le 1er dépôt, sans
-// que l'antiquaire ait à passer par /pro/inscription. Les champs SIRET/ROM
-// restent à compléter par l'utilisateur mais le merchant existe avec l'email.
-async function ensureMerchantForProUser(user: { id: string; email: string; role: string; full_name?: string; name?: string }) {
-  const sb = getDb();
-  const existing = await sb.from("merchants").select("*").eq("user_id", user.id).eq("actif", true).maybeSingle();
-  if (existing.data) return existing.data;
-
-  // Profil minimal, à compléter par l'user ensuite
-  const nom_gerant = user.full_name || user.name || user.email.split("@")[0];
-  const raison_sociale = `${nom_gerant} (${user.role})`;
-  const activite = user.role;
-  // Placeholder SIRET clairement faux — à compléter par l'user via /pro/inscription.
-  // On n'utilise pas "00000000000000" pour éviter toute collision accidentelle.
-  const siret = `SIRET-PENDING-${user.id.slice(0, 8)}`;
-
-  const { data, error } = await sb
-    .from("merchants")
-    .insert({
-      user_id: user.id,
-      raison_sociale,
-      siret,
-      activite,
-      nom_gerant,
-      email: user.email,
-      actif: true,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("[artworks] auto-merchant creation failed:", error.message);
-    return null;
-  }
-  return data;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
@@ -135,67 +96,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Titre et prix requis" }, { status: 400 });
     }
 
-    // Schema déployé : id UUID (pas TEXT), owner_id NOT NULL sans default.
+    // Schema deploye : id UUID (pas TEXT), owner_id NOT NULL sans default.
+    // On utilise l'UUID standard au lieu de art_<timestamp>.
     const id = (globalThis.crypto?.randomUUID?.() as string) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const photosJson = JSON.stringify(photos || []);
 
-    // ── Migration photos : legacy `photos` (TEXT JSON) + nouveau schéma
-    // `image_url` + `additional_images` (TEXT[]) ──────────────────────────
-    const photosArr: string[] = Array.isArray(photos)
-      ? photos.filter((p: any) => typeof p === "string")
-      : [];
-    const image_url = photosArr[0] || null;
-    const additional_images = photosArr.slice(1);
-
-    // ── Certification Pass-Core automatique ───────────────────────────────
-    // Génère un hash SHA-256 déterministe à partir du contenu + photos.
-    // Sert de preuve d'intégrité (simulé tant que l'intégration on-chain
-    // Polygon/Base n'est pas en place).
-    const passCoreId = (globalThis.crypto?.randomUUID?.() as string) || `pass-${Date.now()}`;
-    const hashPayload = JSON.stringify({
-      artwork_id: id,
-      title,
-      artist_id: user.id,
-      photos: photosArr,
-      certified_at: new Date().toISOString(),
-    });
-    const blockchainHash = crypto.createHash("sha256").update(hashPayload).digest("hex");
-
-    // INSERT avec tous les champs : legacy + nouveau schéma + certification + visibilité
     await query(
-      `INSERT INTO artworks (
-         id, title, artist_id, owner_id,
-         description, technique, dimensions, creation_date, category,
-         photos, image_url, additional_images,
-         status, price, listed_at,
-         is_public, is_for_sale,
-         pass_core_id, blockchain_hash, certification_status, certification_date
-       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'for_sale', ?, NOW(), true, true, ?, ?, 'certified', NOW())`,
-      [
-        id, title, user.id, user.id,
-        description || "", technique || "", dimensions || "", creation_date || "", category || "painting",
-        photosJson, image_url, additional_images,
-        price,
-        passCoreId, blockchainHash,
-      ]
+      `INSERT INTO artworks (id, title, artist_id, owner_id, description, technique, dimensions, creation_date, category, photos, status, price, listed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'for_sale', ?, NOW())`,
+      [id, title, user.id, user.id, description || "", technique || "", dimensions || "", creation_date || "", category || "painting", photosJson, price]
     );
 
     // ── Déclenchement automatique fiche de police (pros uniquement) ──────
     let fichePolice: any = null;
     if (ROLES_FICHE_POLICE.includes(user.role)) {
       try {
-        let merchant = await getMerchantForUser(user.id);
-        if (!merchant) {
-          // Auto-provisioning d'un merchant par défaut : évite le "missing_merchant_profile"
-          // au premier dépôt, l'utilisateur pourra compléter SIRET/ROM depuis /pro/inscription.
-          merchant = await ensureMerchantForProUser(user as any);
-        }
+        const merchant = await getMerchantForUser(user.id);
         if (!merchant) {
           fichePolice = {
             triggered: false,
-            reason: "merchant_creation_failed",
-            message: "Fiche de police non générée — impossible de créer un profil merchant par défaut.",
+            reason: "missing_merchant_profile",
+            message: "Fiche de police non générée — vous devez d'abord compléter /pro/inscription (SIRET, raison sociale, etc.)",
           };
         } else {
           const artworkPayload = {
@@ -234,13 +155,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      id,
-      success: true,
-      pass_core_id: passCoreId,
-      blockchain_hash: blockchainHash,
-      fiche_police: fichePolice,
-    });
+    return NextResponse.json({ id, success: true, fiche_police: fichePolice });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
