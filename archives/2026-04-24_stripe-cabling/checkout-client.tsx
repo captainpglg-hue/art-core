@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { getStripe } from "@/lib/stripe";
+import { Lock, Loader2, CheckCircle2 } from "lucide-react";
+
+interface Props {
+  artworkId: string;
+  priceEur: number;
+  artworkTitle: string;
+}
+
+/**
+ * Client component encapsulant le flow Stripe Elements.
+ * 1. Au mount : POST /api/purchase → récupère client_secret
+ * 2. Rend un <Elements> avec ce client_secret
+ * 3. À la confirmation, Stripe redirige vers return_url (la même page)
+ *    qui vérifie le payment_intent et affiche la confirmation.
+ */
+export function CheckoutClient({ artworkId, priceEur, artworkTitle }: Props) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const stripePromise = useMemo(() => getStripe(), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ artwork_id: artworkId }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          if (!cancelled) setError(j?.error || "Impossible d'initier le paiement.");
+          return;
+        }
+        if (!cancelled) setClientSecret(j.client_secret);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || "Erreur réseau.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [artworkId]);
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+        {error}
+      </div>
+    );
+  }
+
+  if (!clientSecret) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-6 text-sm text-white/40">
+        <Loader2 className="size-4 animate-spin" />Préparation du paiement…
+      </div>
+    );
+  }
+
+  return (
+    <Elements
+      stripe={stripePromise}
+      options={{
+        clientSecret,
+        appearance: {
+          theme: "night",
+          variables: {
+            colorPrimary: "#C9A84C",
+            colorBackground: "#0f0f0f",
+            colorText: "#ffffff",
+            colorDanger: "#ef4444",
+            fontFamily: "system-ui, sans-serif",
+            borderRadius: "12px",
+          },
+        },
+      }}
+    >
+      <CheckoutForm priceEur={priceEur} artworkTitle={artworkTitle} />
+    </Elements>
+  );
+}
+
+function CheckoutForm({ priceEur, artworkTitle }: { priceEur: number; artworkTitle: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const router = useRouter();
+  const [processing, setProcessing] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [succeeded, setSucceeded] = useState(false);
+
+  // Si on revient sur la page après un redirect Stripe avec ?payment_intent=...
+  useEffect(() => {
+    if (!stripe) return;
+    const url = new URL(window.location.href);
+    const cs = url.searchParams.get("payment_intent_client_secret");
+    if (!cs) return;
+    stripe.retrievePaymentIntent(cs).then(({ paymentIntent }) => {
+      if (paymentIntent?.status === "succeeded") setSucceeded(true);
+      else if (paymentIntent?.status === "processing") setErr("Paiement en cours de traitement…");
+      else if (paymentIntent?.status === "requires_payment_method") setErr("Le paiement a échoué. Réessaie avec une autre carte.");
+    });
+  }, [stripe]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    setErr(null);
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+    });
+
+    if (error) {
+      setErr(error.message || "Erreur lors du paiement.");
+      setProcessing(false);
+    }
+    // Sinon Stripe redirige, useEffect ci-dessus prendra le relai
+  }
+
+  if (succeeded) {
+    return (
+      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-6 text-center">
+        <CheckCircle2 className="size-10 text-green-400 mx-auto mb-3" />
+        <p className="text-green-400 font-semibold mb-1">Paiement confirmé</p>
+        <p className="text-white/50 text-sm mb-4">Tu as acheté « {artworkTitle} » pour {priceEur} €.</p>
+        <button
+          onClick={() => router.push("/art-core/orders")}
+          className="px-5 py-2.5 rounded-xl bg-[#C9A84C] text-[#0a0a0a] font-semibold text-sm hover:brightness-110 transition-all"
+        >
+          Voir mes commandes
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {err && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-sm text-red-300">
+          {err}
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#C9A84C] text-[#0a0a0a] font-semibold text-sm hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      >
+        {processing ? (
+          <><Loader2 className="size-4 animate-spin" />Traitement…</>
+        ) : (
+          <><Lock className="size-4" />Payer {priceEur} €</>
+        )}
+      </button>
+      <p className="text-xs text-white/30 text-center">
+        Paiement sécurisé Stripe · Carte / Apple Pay / Google Pay selon ton appareil.
+      </p>
+    </form>
+  );
+}

@@ -9,8 +9,17 @@
 ## [Non publié]
 
 Travaux en cours non encore livrés en prod :
-- Câblage final du bouton "Payer avec Stripe" dans `/checkout` (PaymentIntent + webhook).
-- Tests bout-en-bout à refaire après redeploy du fix dépôt (cf. 2026-04-23).
+- Onboarding Stripe Connect pour les artistes (actuellement paiement → plateforme uniquement, redistribution manuelle).
+- Tests bout-en-bout à refaire après redeploy.
+
+## 2026-04-24 — Paiement Stripe câblé (PaymentIntent + webhook + Elements)
+
+- **Nouveau** `POST /api/purchase` : crée un Stripe PaymentIntent pour l'achat d'une œuvre, retourne `client_secret`. Gère auth, doublons, auto-achat.
+- **Nouveau** `POST /api/webhooks/stripe` : vérifie signature, sur `payment_intent.succeeded` marque l'œuvre `sold` + crée `ownership_transfers` + notifications. Idempotent.
+- **Nouveau** `checkout/checkout-client.tsx` : composant client Stripe Elements avec `<PaymentElement />`, gestion du redirect de confirmation, écran succès.
+- **Modifié** `checkout/page.tsx` : intègre `CheckoutClient` si Stripe est configuré ; sinon fallback "contacter l'artiste".
+- Archive : `archives/2026-04-24_stripe-cabling/` (CHANGELOG + 4 fichiers).
+- **Action manuelle requise** : enregistrer le webhook `https://art-core.app/api/webhooks/stripe` dans le dashboard Stripe (events `payment_intent.succeeded` + `payment_intent.payment_failed`), copier le signing secret dans `STRIPE_WEBHOOK_SECRET` sur Vercel.
 
 ## 2026-04-24 — Bouton Acheter + page checkout enrichie
 
