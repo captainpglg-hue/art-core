@@ -8,8 +8,13 @@
 
 ## [Non publié]
 
-- Vérifier que le blocage Supabase pooler (cf. `MIGRATION-LOG.md`) est levé pour pass-core aussi.
 - Tests bout-en-bout du flow certification depuis mobile.
+
+## 2026-04-23 — Alignement sur le fix art-core
+
+- `lib/db.ts` : `cache: "no-store"` ajouté dans `restFetch()` (même fix que art-core — évite le cache infini des server components).
+- `app/api/certify/route.ts` : INSERT artwork enrichi avec `image_url`, `additional_images` (nouveau schéma) et `is_for_sale = true`. Les œuvres certifiées apparaîtront désormais correctement sur la marketplace.
+- Archive : `archives/2026-04-23_pass-core-alignment-artworks/` (CHANGELOG + diff).
 
 ---
 

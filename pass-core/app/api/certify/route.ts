@@ -168,27 +168,34 @@ export async function POST(req: NextRequest) {
     });
 
     // INSERT artwork. Photos est la source unique : JSON.stringify en une seule fois.
+    // Migration 2026-04-23 : on peuple aussi image_url + additional_images (nouveau
+    // schéma) et is_for_sale=true pour que l'œuvre apparaisse sur la marketplace.
     const photosJson = JSON.stringify(photos);
+    const photosArr: string[] = Array.isArray(photos)
+      ? (photos as any[]).filter((p: any) => typeof p === "string")
+      : [];
+    const image_url = photosArr[0] || null;
+    const additional_images = photosArr.slice(1);
     try {
       await sql`
         INSERT INTO artworks (
           id, title, artist_id, owner_id, description, technique, dimensions,
-          creation_date, category, photos, macro_photo,
+          creation_date, category, photos, image_url, additional_images, macro_photo,
           blockchain_hash, blockchain_tx_id, certification_date, certification_status,
           certification_photos,
           status, price, listed_at, macro_position, macro_quality_score,
-          is_public
+          is_public, is_for_sale
         ) VALUES (
           ${id}, ${title}, ${artistId}, ${artistId}, ${description ?? ""},
           ${technique ?? ""}, ${dimensions ?? ""},
           ${creation_date ?? ""}, ${category ?? "painting"},
-          ${photosJson}, ${macroPhotoPath ?? ""},
+          ${photosJson}, ${image_url}, ${additional_images}, ${macroPhotoPath ?? ""},
           ${chainResult.blockchainHash}, ${chainResult.txHash},
           NOW(), 'certified',
           ${photosJson},
           'for_sale', ${price ?? 0}, NOW(),
           ${macroPosition ?? ""}, ${macroQualityScore ?? 0},
-          true
+          true, true
         )
       `;
     } catch (dbErr: any) {

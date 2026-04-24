@@ -51,7 +51,8 @@ Donc toutes les pages et routes prime-core étaient effectivement cassées en pr
 2. **Page `/prime-core/scout`** : l'id demo hardcodé `usr_initie_2` ne matche plus aucun user en Supabase (uuids). La page s'affiche avec les placeholders (points_balance=0, total_earned=0). À remplacer par une vraie session user quand l'auth sera branchée côté prime-core.
 3. **Translator SQL → REST** (fallback) ne supporte pas les GROUP BY / JOINs / `col = col + ?`. Si postgres-js est KO (auth rotée etc.), le leaderboard `topBettors` sera vide (le code dégrade gracieusement au lieu de crasher).
 4. **ID des bets et point_transactions** : auparavant des strings custom `bet_${Date.now()}_...`, maintenant des uuids auto-générés Supabase. Si d'anciennes lignes SQLite avaient été seedées avec l'ancien format, elles coexistent mais l'API ne les génère plus.
-5. **Pas de `npm install` dans ce sandbox** — `package-lock.json` sera régénéré côté Vercel au build.
+5. **Pas de `npm install` dans ce sandbox** — `package-lock.json` sera régénéré côté Vercel au build. Le lockfile a été vidé (réduit au skeleton `{ packages: {} }`) pour forcer Vercel à faire un `npm install` propre plutôt qu'un `npm ci` qui détecterait l'incohérence `better-sqlite3` (ex-lockfile) vs absent (ex-package.json).
+6. **`next.config.mjs`** : `serverComponentsExternalPackages: ["better-sqlite3"]` retiré (devenu `[]`). `postgres` est pur JS, pas besoin de l'externaliser.
 
 ## À faire côté Philippe (PowerShell Windows)
 

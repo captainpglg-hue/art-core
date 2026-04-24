@@ -52,6 +52,11 @@ function restHeaders(extra: Record<string, string> = {}) {
 async function restFetch(path: string, init?: RequestInit): Promise<Response> {
   if (!SUPA_URL || !SUPA_KEY) throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY manquant");
   return fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    // cache: "no-store" — indispensable côté server components (sinon Next.js
+    // cache la réponse REST à l'infini). Même fix appliqué à art-core/lib/db.ts
+    // le 2026-04-23 suite au test bout-en-bout qui révélait que les nouvelles
+    // œuvres n'apparaissaient pas sur la marketplace après INSERT.
+    cache: "no-store",
     ...init,
     headers: { ...restHeaders(), ...(init?.headers as any) },
   });

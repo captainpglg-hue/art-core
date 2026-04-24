@@ -1,0 +1,59 @@
+diff --git a/pass-core/app/api/certify/route.ts b/pass-core/app/api/certify/route.ts
+index 8c87662..d813fe9 100644
+--- a/pass-core/app/api/certify/route.ts
++++ b/pass-core/app/api/certify/route.ts
+@@ -168,27 +168,34 @@ export async function POST(req: NextRequest) {
+     });
+ 
+     // INSERT artwork. Photos est la source unique : JSON.stringify en une seule fois.
++    // Migration 2026-04-23 : on peuple aussi image_url + additional_images (nouveau
++    // schéma) et is_for_sale=true pour que l'œuvre apparaisse sur la marketplace.
+     const photosJson = JSON.stringify(photos);
++    const photosArr: string[] = Array.isArray(photos)
++      ? (photos as any[]).filter((p: any) => typeof p === "string")
++      : [];
++    const image_url = photosArr[0] || null;
++    const additional_images = photosArr.slice(1);
+     try {
+       await sql`
+         INSERT INTO artworks (
+           id, title, artist_id, owner_id, description, technique, dimensions,
+-          creation_date, category, photos, macro_photo,
++          creation_date, category, photos, image_url, additional_images, macro_photo,
+           blockchain_hash, blockchain_tx_id, certification_date, certification_status,
+           certification_photos,
+           status, price, listed_at, macro_position, macro_quality_score,
+-          is_public
++          is_public, is_for_sale
+         ) VALUES (
+           ${id}, ${title}, ${artistId}, ${artistId}, ${description ?? ""},
+           ${technique ?? ""}, ${dimensions ?? ""},
+           ${creation_date ?? ""}, ${category ?? "painting"},
+-          ${photosJson}, ${macroPhotoPath ?? ""},
++          ${photosJson}, ${image_url}, ${additional_images}, ${macroPhotoPath ?? ""},
+           ${chainResult.blockchainHash}, ${chainResult.txHash},
+           NOW(), 'certified',
+           ${photosJson},
+           'for_sale', ${price ?? 0}, NOW(),
+           ${macroPosition ?? ""}, ${macroQualityScore ?? 0},
+-          true
++          true, true
+         )
+       `;
+     } catch (dbErr: any) {
+diff --git a/pass-core/lib/db.ts b/pass-core/lib/db.ts
+index 774ad30..7f0c4f9 100644
+--- a/pass-core/lib/db.ts
++++ b/pass-core/lib/db.ts
+@@ -52,6 +52,11 @@ function restHeaders(extra: Record<string, string> = {}) {
+ async function restFetch(path: string, init?: RequestInit): Promise<Response> {
+   if (!SUPA_URL || !SUPA_KEY) throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY manquant");
+   return fetch(`${SUPA_URL}/rest/v1/${path}`, {
++    // cache: "no-store" — indispensable côté server components (sinon Next.js
++    // cache la réponse REST à l'infini). Même fix appliqué à art-core/lib/db.ts
++    // le 2026-04-23 suite au test bout-en-bout qui révélait que les nouvelles
++    // œuvres n'apparaissaient pas sur la marketplace après INSERT.
++    cache: "no-store",
+     ...init,
+     headers: { ...restHeaders(), ...(init?.headers as any) },
+   });
