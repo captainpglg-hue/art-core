@@ -8,8 +8,15 @@
 
 ## [Non publié]
 
-Travaux en cours non encore livrés en prod (cf. `MIGRATION-LOG.md` racine) :
+Travaux en cours non encore livrés en prod :
+- Câblage final du bouton "Payer avec Stripe" dans `/checkout` (PaymentIntent + webhook).
 - Tests bout-en-bout à refaire après redeploy du fix dépôt (cf. 2026-04-23).
+
+## 2026-04-24 — Bouton Acheter + page checkout enrichie
+
+- `app/(art-core)/art-core/oeuvre/[id]/page.tsx` : ajout d'un bouton **Acheter** (couleur or) à côté du bouton Contacter. Les 2 CTAs sont maintenant en grille 2 colonnes.
+- `app/(art-core)/art-core/checkout/page.tsx` : réécriture pour afficher récap œuvre + détail splits 90/10 + bouton Stripe désactivé (prêt pour câblage). Redirige vers login si non connecté, renvoie vers messages si l'utilisateur tente d'acheter sa propre œuvre.
+- Archive : `archives/2026-04-24_bouton-acheter/` (CHANGELOG + 2 fichiers).
 
 ## 2026-04-23 — Fix complet du flow dépôt d'œuvre (5 bugs)
 
