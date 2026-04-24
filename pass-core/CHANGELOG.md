@@ -10,6 +10,11 @@
 
 - Tests bout-en-bout du flow certification depuis mobile.
 
+## 2026-04-24 — Fix bug latent certification_photos (22P02)
+
+- `app/api/certify/route.ts` : `certification_photos` recevait `photosJson` (string JSON) au lieu d'un array JS. PostgreSQL rejetait avec `malformed array literal (22P02)` dès que le code path était réellement exécuté. Remplacé par `photosArr` (array natif). Bug dormant depuis le 13 avril.
+- Archive : `archives/2026-04-23_pass-core-alignment-artworks/certify-route.ts.2026-04-24-fix-certification-photos`.
+
 ## 2026-04-23 — Alignement sur le fix art-core
 
 - `lib/db.ts` : `cache: "no-store"` ajouté dans `restFetch()` (même fix que art-core — évite le cache infini des server components).
