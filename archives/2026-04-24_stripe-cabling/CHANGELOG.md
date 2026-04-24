@@ -72,6 +72,33 @@ Avant le 21 juin, Philippe doit enregistrer le webhook dans le dashboard Stripe 
 - `checkout-client.tsx`
 - `checkout-page.tsx.after`
 
+## Patch secondaire 2026-04-24 soir : alternative sans webhook
+
+Le webhook Stripe nécessite de configurer `STRIPE_WEBHOOK_SECRET` dans le dashboard Stripe + Vercel, étape que Philippe n'a pas pu mener à bien (dashboard Stripe bloqué côté Claude in Chrome pour raisons de sécurité, et manipulation manuelle complexe). Alternative implémentée pour débloquer le MVP du 21 juin :
+
+### `POST /api/purchase/confirm`
+
+- Appelé par le client **après** la confirmation Stripe côté navigateur.
+- Input : `{ payment_intent_id }`.
+- Le serveur **re-vérifie** le statut directement via `stripe.paymentIntents.retrieve()` (pas de confiance aveugle dans le client).
+- Sécurité : le `buyer_id` dans les metadata du PaymentIntent doit matcher le `user.id` de la session.
+- Si Stripe confirme `succeeded` : mêmes actions que le webhook (UPDATE artwork, INSERT ownership_transfers, 2 notifications).
+- Idempotent.
+
+### `checkout-client.tsx` — appel au confirm
+
+Dans le `useEffect` qui détecte le retour Stripe (`?payment_intent_client_secret=...`), après que `stripe.retrievePaymentIntent` ait confirmé `succeeded`, on POST vers `/api/purchase/confirm` avec le `payment_intent_id`. Échec silencieux non bloquant : le webhook (si jamais configuré plus tard) servira de filet.
+
+### Conséquence
+
+Les 2 mécanismes coexistent sans conflit grâce à l'idempotence :
+- **Chemin principal** : confirm client → DB update immédiate, pas besoin de `STRIPE_WEBHOOK_SECRET`.
+- **Chemin backup** : webhook Stripe reste en place pour capturer les paiements où l'utilisateur aurait fermé l'onglet avant le confirm.
+
+Le flow d'achat fonctionne désormais **sans aucune config externe** à part les clés Stripe déjà présentes sur Vercel.
+
+Fichiers archivés : `confirm-route.ts`, `checkout-client.tsx.with-confirm`.
+
 ## Rappel déploiement
 
 ```powershell

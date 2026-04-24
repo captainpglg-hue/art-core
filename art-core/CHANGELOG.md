@@ -12,6 +12,13 @@ Travaux en cours non encore livrés en prod :
 - Onboarding Stripe Connect pour les artistes (actuellement paiement → plateforme uniquement, redistribution manuelle).
 - Tests bout-en-bout à refaire après redeploy.
 
+## 2026-04-24 — Alternative confirm client-side (pas besoin de webhook)
+
+- **Nouveau** `POST /api/purchase/confirm` : appelé par le client après succès Stripe, re-vérifie le status via `stripe.paymentIntents.retrieve()`, update l'œuvre `sold` + ownership_transfers + notifications. Idempotent. Évite la config webhook Stripe.
+- **Modifié** `checkout-client.tsx` : appelle `/api/purchase/confirm` après le retour Stripe dans le useEffect de confirmation.
+- Le webhook `/api/webhooks/stripe` reste en place en filet (optionnel).
+- Archive : `archives/2026-04-24_stripe-cabling/` (même dossier, nouveau CHANGELOG).
+
 ## 2026-04-24 — Paiement Stripe câblé (PaymentIntent + webhook + Elements)
 
 - **Nouveau** `POST /api/purchase` : crée un Stripe PaymentIntent pour l'achat d'une œuvre, retourne `client_secret`. Gère auth, doublons, auto-achat.
