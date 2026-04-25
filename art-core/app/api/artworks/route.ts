@@ -262,6 +262,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Notification au déposant (best-effort, non bloquante) ──────────────
+    // Schéma DB notifications : type (text) + data (jsonb).
+    try {
+      const sb = getDb();
+      await sb.from("notifications").insert({
+        user_id: user.id,
+        type: "artwork_deposited",
+        title: "Œuvre déposée avec succès",
+        body: `${title} — Pass-Core ${passCoreId ? "actif" : "en attente"}.`,
+        data: {
+          artwork_id: id,
+          pass_core_id: passCoreId,
+          fiche_police_triggered: !!(fichePolice && fichePolice.triggered),
+        },
+      });
+    } catch (e: any) {
+      console.warn("[artworks] notification deposit insert failed:", e?.message);
+    }
+
     return NextResponse.json({
       id,
       success: true,

@@ -246,6 +246,78 @@ def test_5_redirect_pro_inscription():
     record("5. redirect /pro/inscription", False, f"HTTP {code} loc={loc}")
 
 
+def test_7_notification_after_deposit():
+    """Signup antiquaire → POST /api/artworks → vérifie qu'une notification
+    'artwork_deposited' est créée côté DB. Couvre le fix BUG 1 (kind→type)
+    et la nouvelle insertion au dépôt dans /api/artworks."""
+    import re as _re
+    email = f"{EMAIL_PREFIX}.deposit@demo.com"
+    payload = {
+        "role": "antiquaire",
+        "email": email,
+        "password": "Test12345!",
+        "full_name": "E2E Deposit",
+        "merchant": {
+            "raison_sociale": "Antiquaire Deposit E2E",
+            "siret": make_siret(7),
+            "numero_rom": "2026-PAR-9999",
+            "regime_tva": "marge",
+            "nom_gerant": "E2E Gerant Deposit",
+            "telephone": "+33611112233",
+            "adresse": "9 rue Deposit",
+            "code_postal": "75009",
+            "ville": "Paris",
+        },
+        "cahier_police_accepte": True,
+    }
+    code, hdrs, body = http("POST", f"{PASS_CORE_URL}/api/auth/signup", body=payload)
+    if code != 200:
+        record("7. notif post-depot", False, f"signup HTTP {code}: {body[:200]}")
+        return
+    user_id = json.loads(body).get("user_id")
+    set_cookie = hdrs.get("set-cookie") or hdrs.get("Set-Cookie") or ""
+    m = _re.search(r"core_session=([^;]+)", set_cookie)
+    if not m:
+        record("7. notif post-depot", False, f"core_session cookie introuvable: {set_cookie[:80]}")
+        return
+    cookie_value = f"core_session={m.group(1)}"
+
+    # Dépôt artwork sur art-core.app (cookie partagé via header explicite — sessions table commune)
+    artwork_payload = {
+        "title": f"E2E Deposit Test {TS}",
+        "description": "Œuvre test e2e",
+        "technique": "test",
+        "price": 100,
+        "category": "painting",
+        "photos": [],
+    }
+    a_code, _h, a_body = http(
+        "POST",
+        f"{ART_CORE_URL}/api/artworks",
+        body=artwork_payload,
+        headers={"Cookie": cookie_value},
+    )
+    if a_code != 200:
+        record("7. notif post-depot", False, f"deposit HTTP {a_code}: {a_body[:200]}")
+        return
+    artwork_id = json.loads(a_body).get("id")
+
+    # Vérifie la notification en DB
+    sb_code, sb_body = supabase(
+        "GET",
+        f"notifications?user_id=eq.{user_id}&type=eq.artwork_deposited&select=type,title,data,user_id"
+    )
+    rows = json.loads(sb_body) if sb_code == 200 else []
+    if not rows:
+        record("7. notif post-depot", False, f"aucune notification artwork_deposited trouvee (user_id={user_id})")
+        return
+    notif = rows[0]
+    if notif.get("data", {}).get("artwork_id") != artwork_id:
+        record("7. notif post-depot", False, f"data.artwork_id mismatch: {notif}")
+        return
+    record("7. notif post-depot", True, f"notif type={notif['type']} data.artwork_id={notif['data']['artwork_id']}")
+
+
 def test_6_query_param_preselect():
     code, _h, body = http("GET", f"{PASS_CORE_URL}/auth/signup?role=pro")
     if code != 200:
@@ -289,8 +361,12 @@ def cleanup():
     if not user_ids:
         return
 
-    # Sessions / merchants / users (cascade may not exist — purge explicit)
+    # Sessions / merchants / artworks / users (cascade may not exist — purge explicit)
     in_clause = "(" + ",".join(user_ids) + ")"
+    # Purge artworks créés par les users e2e (deux références : owner_id et artist_id)
+    for col in ("owner_id", "artist_id"):
+        code, body = supabase("DELETE", f"artworks?{col}=in.{in_clause}", prefer="return=minimal")
+        print(f"[cleanup] DELETE artworks ({col}) -> {code}")
     for table, col in [("sessions", "user_id"), ("merchants", "user_id"), ("notifications", "user_id"), ("favorites", "user_id"), ("users", "id")]:
         code, body = supabase("DELETE", f"{table}?{col}=in.{in_clause}", prefer="return=minimal")
         print(f"[cleanup] DELETE {table} -> {code}")
@@ -311,6 +387,7 @@ def main():
         test_4_galeriste_no_cdp_required()
         test_5_redirect_pro_inscription()
         test_6_query_param_preselect()
+        test_7_notification_after_deposit()
     finally:
         cleanup()
 

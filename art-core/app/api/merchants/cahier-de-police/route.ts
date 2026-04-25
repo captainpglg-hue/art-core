@@ -287,12 +287,11 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
-    // Audit log
-    // BUG LATENT: la table publique s'appelle `police_register_audit_log`,
-    // pas `audit_log`. Cet insert silencieusement-failed depuis longtemps.
-    // À corriger en migrant l'appel (hors scope TS hardening).
+    // Audit log dans police_register_audit_log (table dédiée au cahier de police).
+    // Schéma : action (text), user_id (uuid), metadata (jsonb), register_entry_id (uuid NULL),
+    // ip_address (text NULL), user_agent (text NULL).
     try {
-      await (sb as any).from("audit_log").insert({
+      await sb.from("police_register_audit_log").insert({
         action: "cahier_de_police_export",
         user_id: user.id,
         metadata: {
@@ -307,7 +306,9 @@ export async function POST(req: NextRequest) {
           exported_at: new Date().toISOString(),
         },
       });
-    } catch {}
+    } catch (e: any) {
+      console.warn("[cahier-de-police] audit log insert failed:", e?.message);
+    }
 
     return NextResponse.json({
       success: true,

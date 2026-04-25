@@ -99,26 +99,33 @@ export async function POST(req: NextRequest) {
         }
 
         // Notifications (best-effort, non bloquantes)
-        // NOTE: champs `kind` et `artwork_id` non typés en DB (schéma a `type` et `data`).
-        // Cast `any` pour préserver le runtime existant — bug latent à corriger : remapper
-        // vers `type` + `data: { artwork_id }` ou ajouter colonne artwork_id en migration.
+        // Schéma DB : type (text) + data (jsonb). Mapping kind→type, artwork_id→data.artwork_id.
         try {
-          await sb.from("notifications").insert([
-            {
-              user_id: artBefore?.owner_id,
-              kind: "artwork_sold",
-              title: "Votre œuvre a été vendue !",
-              body: `Vente de ${finalPrice} €`,
-              artwork_id,
-            },
+          const notifs: Array<{
+            user_id: string;
+            type: string;
+            title: string;
+            body: string;
+            data: { artwork_id: string; final_price: number };
+          }> = [
             {
               user_id: buyer_id,
-              kind: "purchase_confirmed",
+              type: "purchase_confirmed",
               title: "Achat confirmé",
               body: `Votre achat de ${finalPrice} € est confirmé`,
-              artwork_id,
+              data: { artwork_id, final_price: finalPrice },
             },
-          ] as any);
+          ];
+          if (artBefore?.owner_id) {
+            notifs.unshift({
+              user_id: artBefore.owner_id,
+              type: "artwork_sold",
+              title: "Votre œuvre a été vendue !",
+              body: `Vente de ${finalPrice} €`,
+              data: { artwork_id, final_price: finalPrice },
+            });
+          }
+          await sb.from("notifications").insert(notifs);
         } catch (e: any) {
           console.warn("[webhooks/stripe] notifications insert failed (non bloquant):", e?.message);
         }
