@@ -159,16 +159,23 @@ def test_2_antiquaire_with_rom():
         return
     data = json.loads(body)
 
-    # Verify merchant row with numero_rom
+    # Verify merchant row : numero_rom est canonicalisé serveur-side (YYYY-XXX-NNNN)
+    # depuis le cleanup pré-phase A (994816f). Si l'input n'est pas déjà canonique,
+    # le serveur génère depuis ville+SIRET. On vérifie le format, pas l'égalité stricte.
+    import re
     sb_code, sb_body = supabase("GET", f"merchants?user_id=eq.{data['user_id']}&select=numero_rom,regime_tva,actif")
     rows = json.loads(sb_body)
-    if not rows or rows[0].get("numero_rom") != "0001-2025":
-        record("2. signup antiquaire+ROM", False, f"merchant row: {rows}")
+    if not rows:
+        record("2. signup antiquaire+ROM", False, f"no merchant row")
+        return
+    rom = rows[0].get("numero_rom") or ""
+    if not re.match(r"^\d{4}-[A-Z]{3}-\d{4}$", rom):
+        record("2. signup antiquaire+ROM", False, f"numero_rom non canonique: {rom!r}")
         return
     if rows[0].get("regime_tva") != "marge":
         record("2. signup antiquaire+ROM", False, f"regime_tva mismatch: {rows[0]}")
         return
-    record("2. signup antiquaire+ROM", True, f"merchant numero_rom={rows[0]['numero_rom']}")
+    record("2. signup antiquaire+ROM", True, f"merchant numero_rom={rom} (canonique)")
 
 
 def test_3_antiquaire_without_cdp():
