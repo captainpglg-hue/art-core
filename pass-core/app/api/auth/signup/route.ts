@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
 import { getUserByEmail, createSession, getDb } from "@/lib/db";
+import { generateNumeroRom, isCanonicalNumeroRom } from "@/lib/numero-rom";
 
 const PRO_ROLES = new Set(["galeriste", "antiquaire", "brocanteur", "depot_vente"]);
 const ROLES_OBLIG_CDP = new Set(["antiquaire", "brocanteur", "depot_vente"]);
@@ -120,6 +121,11 @@ export async function POST(req: NextRequest) {
     let merchantId: string | undefined;
     if (isPro) {
       const m = data.merchant!;
+      // Le numero_rom canonique YYYY-XXX-NNNN est imposé. Si l'utilisateur saisit
+      // une valeur déjà au bon format, on la respecte ; sinon on génère.
+      const canonicalRom = isCanonicalNumeroRom(m.numero_rom)
+        ? (m.numero_rom as string)
+        : generateNumeroRom({ ville: m.ville, siret: m.siret });
       const merchantRow: Record<string, any> = {
         user_id: userId,
         raison_sociale: m.raison_sociale.trim(),
@@ -131,9 +137,9 @@ export async function POST(req: NextRequest) {
         adresse: m.adresse.trim(),
         code_postal: m.code_postal.trim(),
         ville: m.ville.trim(),
-        numero_rom: m.numero_rom || null,
+        numero_rom: canonicalRom,
+        numero_rom_prefix: canonicalRom,
         regime_tva: m.regime_tva || null,
-        numero_rom_prefix: `ROM-${m.siret.slice(-4)}`,
         abonnement: "gratuit",
         actif: true,
       };

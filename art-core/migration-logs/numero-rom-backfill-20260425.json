@@ -1,0 +1,131 @@
+{
+  "date": "2026-04-25T10:36:16.674Z",
+  "total": 7,
+  "actions": [
+    {
+      "id": "df85d3d6-f40c-46f9-9eee-a5b62906134e",
+      "raison_sociale": "PGLG",
+      "ville": "LE PRADET",
+      "siret": "12345678901236",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "2026-LEP-1236"
+      },
+      "after": {
+        "numero_rom": "2026-LEP-1236",
+        "numero_rom_prefix": "2026-LEP-1236"
+      },
+      "generated_target": "2026-LEP-1236",
+      "changed": true
+    },
+    {
+      "id": "77446acd-312b-4d61-8110-8e73196b1e4e",
+      "raison_sociale": "Hôtel du Casino",
+      "ville": "Trévières",
+      "siret": "12345678908514",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "2026-TRE-8514"
+      },
+      "after": {
+        "numero_rom": "2026-TRE-8514",
+        "numero_rom_prefix": "2026-TRE-8514"
+      },
+      "generated_target": "2026-TRE-8514",
+      "changed": true
+    },
+    {
+      "id": "928f119f-d387-4da3-bbb6-c95ec2179be5",
+      "raison_sociale": "Crêperie de formigny",
+      "ville": "Trévières",
+      "siret": "11111111111111",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "2026-TRE-1111"
+      },
+      "after": {
+        "numero_rom": "2026-TRE-1111",
+        "numero_rom_prefix": "2026-TRE-1111"
+      },
+      "generated_target": "2026-TRE-1111",
+      "changed": true
+    },
+    {
+      "id": "553f128e-cf8b-4a72-911b-9340c32e849b",
+      "raison_sociale": "Antiquite Dupont SARL",
+      "ville": "Paris",
+      "siret": "12345678901234",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "ROM-ANTI-001"
+      },
+      "after": {
+        "numero_rom": "2026-PAR-1234",
+        "numero_rom_prefix": "2026-PAR-1234"
+      },
+      "generated_target": "2026-PAR-1234",
+      "changed": true
+    },
+    {
+      "id": "e307c373-96f7-4572-9ec6-2147b5f5c40f",
+      "raison_sociale": "Galerie Moreau",
+      "ville": "Paris",
+      "siret": "98765432101234",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "ROM-GAL-001"
+      },
+      "after": {
+        "numero_rom": "2026-PAR-1234",
+        "numero_rom_prefix": "2026-PAR-1234"
+      },
+      "generated_target": "2026-PAR-1234",
+      "changed": true
+    },
+    {
+      "id": "779a9080-a517-490b-9097-aa6397645f68",
+      "raison_sociale": "Galerie Aurore SARL",
+      "ville": "Paris",
+      "siret": "89012345600012",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "ROM-0012"
+      },
+      "after": {
+        "numero_rom": "2026-PAR-0012",
+        "numero_rom_prefix": "2026-PAR-0012"
+      },
+      "generated_target": "2026-PAR-0012",
+      "changed": true
+    },
+    {
+      "id": "459a9bc7-7e3c-4510-a50a-703a9422b677",
+      "raison_sociale": "E2E Test Antiq",
+      "ville": "Paris",
+      "siret": "11112222929366",
+      "year": 2026,
+      "before": {
+        "numero_rom": null,
+        "numero_rom_prefix": "ROM-9366"
+      },
+      "after": {
+        "numero_rom": "2026-PAR-9366",
+        "numero_rom_prefix": "2026-PAR-9366"
+      },
+      "generated_target": "2026-PAR-9366",
+      "changed": true
+    }
+  ],
+  "summary": {
+    "total_merchants": 7,
+    "rows_updated": 7,
+    "rows_already_canonical": 0,
+    "non_canonical_after": 0
+  }
+}

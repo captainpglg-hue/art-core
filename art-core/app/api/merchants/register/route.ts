@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, getUserByToken } from "@/lib/db";
+import { generateNumeroRom } from "@/lib/numero-rom";
 
 /**
  * POST /api/merchants/register
@@ -66,8 +67,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ce SIRET est deja enregistre" }, { status: 409 });
     }
 
-    // Generate ROM prefix
-    const romPrefix = `ROM-${cleanSiret.slice(-4)}`;
+    // Generate ROM canonique YYYY-XXX-NNNN (cf. lib/numero-rom.ts)
+    const romPrefix = generateNumeroRom({ ville, siret: cleanSiret });
 
     const { data: merchant, error } = await sb.from("merchants").insert({
       raison_sociale: raison_sociale.trim(),
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       adresse: adresse.trim(),
       code_postal: code_postal.trim(),
       ville: ville.trim(),
+      numero_rom: romPrefix,
       numero_rom_prefix: romPrefix,
       abonnement: "gratuit",
       user_id: user.id,

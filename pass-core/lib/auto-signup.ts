@@ -17,6 +17,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { getDb, getUserByEmail, createSession } from "@/lib/db";
+import { generateNumeroRom } from "@/lib/numero-rom";
 
 export interface AutoSignupArgs {
   email: string;
@@ -103,7 +104,7 @@ export async function autoSignupAndMaybeMerchant(args: AutoSignupArgs): Promise<
       throw new Error("SIRET invalide (14 chiffres requis)");
     }
     const cleanSiret = m.siret.replace(/\s/g, "");
-    const romPrefix = `ROM-${cleanSiret.slice(-4)}`;
+    const romPrefix = generateNumeroRom({ ville: m.ville, siret: cleanSiret });
 
     const { data: merchantData, error: mErr } = await sb.from("merchants").insert({
       raison_sociale: m.raison_sociale.trim(),
@@ -115,6 +116,7 @@ export async function autoSignupAndMaybeMerchant(args: AutoSignupArgs): Promise<
       adresse: m.adresse.trim(),
       code_postal: m.code_postal.trim(),
       ville: m.ville.trim(),
+      numero_rom: romPrefix,
       numero_rom_prefix: romPrefix,
       abonnement: "gratuit",
       user_id: userId,
