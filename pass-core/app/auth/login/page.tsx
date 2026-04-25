@@ -139,12 +139,12 @@ function LoginPageInner() {
 
       <p className="text-center text-sm text-white/40 mt-6">
         Pas encore de compte ?{" "}
-        <a
-          href="https://art-core.app/auth/signup"
+        <Link
+          href="/auth/signup"
           className="text-gold hover:text-gold/80 transition-colors font-medium"
         >
-          S&apos;inscrire sur ART-CORE
-        </a>
+          Devenir déposant sur Pass-Core
+        </Link>
       </p>
     </div>
   );
