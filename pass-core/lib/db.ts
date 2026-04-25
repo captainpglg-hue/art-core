@@ -420,16 +420,17 @@ export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; via?: 
 }
 
 // ── Supabase admin client (pour routes qui en ont besoin : signup, auth, etc.) ──
-import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
-let _sbAdmin: ReturnType<typeof createSupabaseAdminClient> | null = null;
-export function getDb() {
+import { createClient as createSupabaseAdminClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+let _sbAdmin: SupabaseClient<Database> | null = null;
+export function getDb(): SupabaseClient<Database> {
   if (_sbAdmin) return _sbAdmin;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     throw new Error("[db.getDb] SUPABASE_URL / SERVICE_ROLE_KEY manquants");
   }
-  _sbAdmin = createSupabaseAdminClient(url, key, {
+  _sbAdmin = createSupabaseAdminClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return _sbAdmin;

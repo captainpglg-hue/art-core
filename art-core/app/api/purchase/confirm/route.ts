@@ -117,6 +117,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Notifications (best-effort)
+    // NOTE: même bug latent qu'au webhook stripe — `kind` et `artwork_id` hors schéma
+    // notifications (qui a `type` et `data`). Cast pour préserver runtime, à mapper plus tard.
     await sb.from("notifications").insert([
       {
         user_id: artBefore.owner_id,
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
         body: `${artBefore.title} — ${finalPrice} €`,
         artwork_id,
       },
-    ]).then(({ error }) => {
+    ] as any).then(({ error }) => {
       if (error) console.warn("[purchase/confirm] notifications insert failed:", error.message);
     });
 

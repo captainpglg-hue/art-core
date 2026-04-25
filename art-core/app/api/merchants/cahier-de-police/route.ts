@@ -288,8 +288,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Audit log
+    // BUG LATENT: la table publique s'appelle `police_register_audit_log`,
+    // pas `audit_log`. Cet insert silencieusement-failed depuis longtemps.
+    // À corriger en migrant l'appel (hors scope TS hardening).
     try {
-      await sb.from("audit_log").insert({
+      await (sb as any).from("audit_log").insert({
         action: "cahier_de_police_export",
         user_id: user.id,
         metadata: {

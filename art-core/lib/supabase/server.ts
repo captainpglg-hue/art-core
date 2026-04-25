@@ -1,48 +1,51 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "@/types/supabase";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-const isConfigured = () => SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
+function assertPublicConfig() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error(
+      "[Supabase] NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY doivent être définies"
+    );
+  }
+}
+
+function assertAdminConfig() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new Error(
+      "[Supabase] NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définies"
+    );
+  }
+}
 
 // ── Server Components / Route Handlers ────────────────────────
 export const createServerComponentClient = async () => {
-  if (!isConfigured()) {
-    console.warn("[Supabase] Non configuré — NEXT_PUBLIC_SUPABASE_URL ou ANON_KEY manquant");
-    return null;
-  }
+  assertPublicConfig();
   const cookieStore = await cookies();
-  return createServerClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options as any);
-          });
-        },
+  return createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options as any);
+        });
+      },
+    },
+  });
 };
 
 // ── Admin / Service Role (bypass RLS) ─────────────────────────
 export const createAdminClient = () => {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.warn("[Supabase] Admin non configuré — SERVICE_ROLE_KEY manquant");
-    return null;
-  }
-  return createServerClient(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_KEY,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  );
+  assertAdminConfig();
+  return createServerClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    cookies: { getAll: () => [], setAll: () => {} },
+  });
 };
 
 // ── Auth helpers ──────────────────────────────────────────────

@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
         if (!merchant) {
           // Auto-provisioning d'un merchant par défaut : évite le "missing_merchant_profile"
           // au premier dépôt. Compléter SIRET/ROM via pass-core.app/auth/signup ou son profil.
-          merchant = await ensureMerchantForProUser(user as any);
+          merchant = (await ensureMerchantForProUser(user as any)) as any;
         }
         if (!merchant) {
           fichePolice = {

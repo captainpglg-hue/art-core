@@ -99,6 +99,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Notifications (best-effort, non bloquantes)
+        // NOTE: champs `kind` et `artwork_id` non typés en DB (schéma a `type` et `data`).
+        // Cast `any` pour préserver le runtime existant — bug latent à corriger : remapper
+        // vers `type` + `data: { artwork_id }` ou ajouter colonne artwork_id en migration.
         try {
           await sb.from("notifications").insert([
             {
@@ -115,7 +118,7 @@ export async function POST(req: NextRequest) {
               body: `Votre achat de ${finalPrice} € est confirmé`,
               artwork_id,
             },
-          ]);
+          ] as any);
         } catch (e: any) {
           console.warn("[webhooks/stripe] notifications insert failed (non bloquant):", e?.message);
         }
