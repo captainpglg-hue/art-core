@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-04-25T11:20:49.527Z",
+  "action": "delete_orphan_user",
+  "motif": "User pro (antiquaire) sans row merchants — residu de test",
+  "user_id": "7d896297-eb12-4fee-913e-f03d10cfd8a9",
+  "email": "test@rent-sup.com",
+  "role": "antiquaire",
+  "full_name": "Philippe",
+  "created_at": "2026-04-21T07:35:07.327Z",
+  "deps_checked": [
+    "merchants",
+    "artworks",
+    "transactions",
+    "police_register_entries"
+  ],
+  "deps_count": 0,
+  "sessions_purged": 1
+}
