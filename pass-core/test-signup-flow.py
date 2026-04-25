@@ -361,15 +361,25 @@ def cleanup():
     if not user_ids:
         return
 
-    # Sessions / merchants / artworks / users (cascade may not exist — purge explicit)
+    # FK-safe purge order : entries dépendantes de users/merchants → merchants → users
+    # Sans cet ordre, la fiche-police créée au dépôt (test 7) bloque
+    # DELETE merchants en 409 et cascade DELETE users.
     in_clause = "(" + ",".join(user_ids) + ")"
-    # Purge artworks créés par les users e2e (deux références : owner_id et artist_id)
-    for col in ("owner_id", "artist_id"):
-        code, body = supabase("DELETE", f"artworks?{col}=in.{in_clause}", prefer="return=minimal")
-        print(f"[cleanup] DELETE artworks ({col}) -> {code}")
-    for table, col in [("sessions", "user_id"), ("merchants", "user_id"), ("notifications", "user_id"), ("favorites", "user_id"), ("users", "id")]:
+    for table, col in [
+        ("police_register_audit_log", "user_id"),
+        ("police_register_entries", "user_id"),
+        ("pass_core", "current_owner_id"),
+        ("pass_core", "issuer_id"),
+        ("artworks", "owner_id"),
+        ("artworks", "artist_id"),
+        ("merchants", "user_id"),
+        ("sessions", "user_id"),
+        ("notifications", "user_id"),
+        ("favorites", "user_id"),
+        ("users", "id"),
+    ]:
         code, body = supabase("DELETE", f"{table}?{col}=in.{in_clause}", prefer="return=minimal")
-        print(f"[cleanup] DELETE {table} -> {code}")
+        print(f"[cleanup] DELETE {table} ({col}) -> {code}")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
