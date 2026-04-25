@@ -303,11 +303,13 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
 
 export interface FicheEmailResult {
   success: boolean;
-  mode?: "smtp" | "resend-api" | "resend-smtp" | "resend-fallback";
+  mode?: "smtp" | "resend-api" | "resend-smtp" | "resend-fallback" | "storage-fallback";
   error?: string;
   to?: string;
   from?: string;
   recipient_fallback?: boolean;
+  storage_url?: string;
+  note?: string;
 }
 
 export async function sendFicheEmail(args: {
