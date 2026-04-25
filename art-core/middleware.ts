@@ -8,6 +8,17 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   const adminToken = request.cookies.get(ADMIN_COOKIE)?.value;
 
+  // Legacy /pro/inscription (et variante /art-core/pro/inscription) → pass-core
+  if (pathname === "/pro/inscription"
+      || pathname.startsWith("/pro/inscription/")
+      || pathname === "/art-core/pro/inscription"
+      || pathname.startsWith("/art-core/pro/inscription/")) {
+    return NextResponse.redirect(
+      "https://pass-core.app/auth/signup?role=pro",
+      { status: 301 }
+    );
+  }
+
   // Admin routes requiring admin session
   if (pathname === "/art-core/admin" || pathname.startsWith("/art-core/admin/") && !pathname.startsWith("/art-core/admin/login")) {
     if (!adminToken) {

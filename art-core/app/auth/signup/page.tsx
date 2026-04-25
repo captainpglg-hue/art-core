@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Mail, Lock, Eye, EyeOff, User, Palette, Users, ShoppingBag, Building2, Landmark, Store, Package } from "lucide-react";
+import {
+  ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShoppingBag,
+  Sparkles, User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +22,7 @@ const schema = z
     email: z.string().email("Email invalide"),
     password: z.string().min(6, "Minimum 6 caractères"),
     confirmPassword: z.string(),
-    role: z.enum(["artist", "galeriste", "antiquaire", "brocanteur", "depot_vente", "initiate", "client"]),
+    role: z.enum(["client", "initiate"]),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
@@ -28,14 +31,9 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-const ROLES = [
-  { value: "artist" as const, label: "Artiste", desc: "Exposez et vendez vos œuvres", icon: Palette },
-  { value: "galeriste" as const, label: "Galeriste", desc: "Gérez votre galerie en ligne", icon: Building2 },
-  { value: "antiquaire" as const, label: "Antiquaire", desc: "Vendez antiquités et objets d'art", icon: Landmark },
-  { value: "brocanteur" as const, label: "Brocanteur", desc: "Proposez vos trouvailles", icon: Store },
-  { value: "depot_vente" as const, label: "Dépôt-Vente", desc: "Vendez pour le compte de tiers", icon: Package },
-  { value: "initiate" as const, label: "Initié", desc: "Investissez sur les œuvres (+15 pts)", icon: Users },
-  { value: "client" as const, label: "Client", desc: "Achetez des œuvres d'art", icon: ShoppingBag },
+const BUYER_ROLES = [
+  { value: "client" as const, label: "Acheteur", desc: "J'achète des œuvres d'art certifiées", icon: ShoppingBag },
+  { value: "initiate" as const, label: "Initié", desc: "J'investis sur les œuvres (+15 points)", icon: Sparkles },
 ];
 
 export default function SignupPage() {
@@ -59,18 +57,11 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       const result = await res.json();
-
       if (!res.ok) {
-        toast({
-          title: "Erreur d'inscription",
-          description: result.error,
-          variant: "destructive",
-        });
+        toast({ title: "Erreur d'inscription", description: result.error, variant: "destructive" });
         return;
       }
-
       toast({ title: "Compte créé !", description: "Bienvenue sur ART-CORE." });
       router.push("/art-core");
       router.refresh();
@@ -82,37 +73,53 @@ export default function SignupPage() {
   return (
     <div className="animate-fade-in">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-white">Créer un compte</h2>
+        <h2 className="text-2xl font-semibold text-white">Créer un compte acheteur</h2>
         <p className="text-white/50 text-sm mt-1">
-          Rejoignez la plateforme d&apos;art exclusif
+          Découvrez et achetez l&apos;art certifié sur ART-CORE
         </p>
       </div>
 
-      {/* Role selection */}
-      <div className="mb-6">
+      {/* CTA vendeur — redirige vers pass-core */}
+      <a
+        href="https://pass-core.app/auth/signup"
+        className="block mb-6 p-4 rounded-xl border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-lg bg-gold/20 flex items-center justify-center text-gold shrink-0">
+            <Sparkles className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white">Vous voulez vendre ?</p>
+            <p className="text-xs text-white/50">Artistes, galeristes, antiquaires : passez par Pass-Core pour certifier vos œuvres.</p>
+          </div>
+          <ArrowRight className="size-4 text-gold group-hover:translate-x-0.5 transition-transform shrink-0" />
+        </div>
+      </a>
+
+      {/* Buyer role selection */}
+      <div className="mb-4">
         <Label className="mb-2 block">Type de compte</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {ROLES.map((r) => {
+        <div className="grid grid-cols-2 gap-2">
+          {BUYER_ROLES.map((r) => {
             const Icon = r.icon;
             return (
               <button
                 key={r.value}
                 type="button"
                 onClick={() => setValue("role", r.value)}
-                className={`p-3 rounded-xl border text-center transition-all ${
+                className={`p-3 rounded-xl border text-left transition-all ${
                   selectedRole === r.value
                     ? "border-gold bg-gold/10 text-gold"
                     : "border-white/10 text-white/50 hover:border-white/20"
                 }`}
               >
-                <Icon className="size-5 mx-auto mb-1" />
-                <p className="text-xs font-medium">{r.label}</p>
-                <p className="text-[10px] opacity-60 mt-0.5">{r.desc}</p>
+                <Icon className="size-5 mb-1" />
+                <p className="text-sm font-medium">{r.label}</p>
+                <p className="text-[11px] opacity-60 mt-0.5">{r.desc}</p>
               </button>
             );
           })}
         </div>
-        {errors.role && <p className="text-xs text-destructive mt-1">{errors.role.message}</p>}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
@@ -135,10 +142,9 @@ export default function SignupPage() {
               className="pl-8"
               {...register("username", {
                 onChange: (e) => {
-                  // Auto-nettoyage : minuscules + suppression des caractères interdits
                   e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
                   setValue("username", e.target.value, { shouldValidate: false });
-                }
+                },
               })}
             />
           </div>
@@ -193,7 +199,7 @@ export default function SignupPage() {
       </form>
 
       <p className="text-center text-sm text-white/40 mt-4">
-        Déjê un compte ?{" "}
+        Déjà un compte ?{" "}
         <Link href="/auth/login" className="text-gold hover:text-gold/80 transition-colors font-medium">
           Se connecter
         </Link>

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { getUserByEmail, createSession, query, queryOne } from "@/lib/db";
+import { getUserByEmail, createSession, queryOne } from "@/lib/db";
+
+// art-core/auth/signup ne crée plus que des comptes ACHETEURS (client/initiate).
+// Tout déposant (artist + 4 statuts pros) doit passer par pass-core.app/auth/signup.
+const BUYER_ROLES = new Set(["client", "initiate"]);
+const SELLER_REDIRECT = "https://pass-core.app/auth/signup";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +16,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tous les champs sont requis" }, { status: 400 });
     }
 
+    const userRole = role || "client";
+    if (!BUYER_ROLES.has(userRole)) {
+      return NextResponse.json(
+        {
+          error: "Les comptes vendeurs / déposants se créent sur Pass-Core.",
+          redirect_to: SELLER_REDIRECT,
+        },
+        { status: 400 }
+      );
+    }
+
     const ALLOW_OVERWRITE = process.env.ALLOW_SIGNUP_OVERWRITE === "1";
 
     const existing = await getUserByEmail(email);
@@ -18,14 +34,9 @@ export async function POST(req: NextRequest) {
       if (!ALLOW_OVERWRITE) {
         return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
       }
-      // Mode test : purge l'ancien compte + toutes ses dépendances avant de recréer
       console.log("[signup] ALLOW_SIGNUP_OVERWRITE=1 → purge user", existing.id, email);
       const sbAdmin = (await import("@/lib/db")).getDb();
       await sbAdmin.from("sessions").delete().eq("user_id", existing.id);
-      await sbAdmin.from("police_register_entries").delete().eq("user_id", existing.id);
-      await sbAdmin.from("cahier_police").delete().eq("user_id", existing.id);
-      await sbAdmin.from("merchants").delete().eq("user_id", existing.id);
-      await sbAdmin.from("artworks").delete().eq("artist_id", existing.id);
       await sbAdmin.from("notifications").delete().eq("user_id", existing.id);
       await sbAdmin.from("favorites").delete().eq("user_id", existing.id);
       await sbAdmin.from("users").delete().eq("id", existing.id);
@@ -39,25 +50,17 @@ export async function POST(req: NextRequest) {
       if (!ALLOW_OVERWRITE) {
         return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
       }
-      // Purge aussi le user qui squatte le username
       const sbAdmin = (await import("@/lib/db")).getDb();
       const uid = (existingUsername as any).id;
       await sbAdmin.from("sessions").delete().eq("user_id", uid);
-      await sbAdmin.from("police_register_entries").delete().eq("user_id", uid);
-      await sbAdmin.from("merchants").delete().eq("user_id", uid);
-      await sbAdmin.from("artworks").delete().eq("artist_id", uid);
       await sbAdmin.from("users").delete().eq("id", uid);
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
-    const userRole = role || "client";
     const isInitie = userRole === "initiate";
     const initialPoints = isInitie ? 15 : 0;
 
-    // Schéma déployé Supabase : colonne `full_name` (pas `name`) ; `is_initie`
-    // est BOOLEAN (pas integer). Insert direct via client Supabase pour éviter
-    // les ambiguïtés de type du translator SQL→REST.
     const sbAdmin = (await import("@/lib/db")).getDb();
     const { error: insErr } = await sbAdmin.from("users").insert({
       id: userId,

@@ -80,8 +80,8 @@ function safeJson(s: string): any[] {
 
 // ── Auto-provisioning d'un profil merchant par défaut pour les pros ────────
 // Nécessaire pour que le hook fiche-police fonctionne dès le 1er dépôt, sans
-// que l'antiquaire ait à passer par /pro/inscription. Les champs SIRET/ROM
-// restent à compléter par l'utilisateur mais le merchant existe avec l'email.
+// que l'antiquaire ait à repasser par pass-core.app/auth/signup. Les champs
+// SIRET/ROM restent à compléter par l'utilisateur mais le merchant existe.
 async function ensureMerchantForProUser(user: { id: string; email: string; role: string; full_name?: string; name?: string }) {
   const sb = getDb();
   const existing = await sb.from("merchants").select("*").eq("user_id", user.id).eq("actif", true).maybeSingle();
@@ -91,7 +91,7 @@ async function ensureMerchantForProUser(user: { id: string; email: string; role:
   const nom_gerant = user.full_name || user.name || user.email.split("@")[0];
   const raison_sociale = `${nom_gerant} (${user.role})`;
   const activite = user.role;
-  // Placeholder SIRET clairement faux — à compléter par l'user via /pro/inscription.
+  // Placeholder SIRET clairement faux — à compléter via pass-core.app/auth/signup.
   // On n'utilise pas "00000000000000" pour éviter toute collision accidentelle.
   const siret = `SIRET-PENDING-${user.id.slice(0, 8)}`;
 
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
         let merchant = await getMerchantForUser(user.id);
         if (!merchant) {
           // Auto-provisioning d'un merchant par défaut : évite le "missing_merchant_profile"
-          // au premier dépôt, l'utilisateur pourra compléter SIRET/ROM depuis /pro/inscription.
+          // au premier dépôt. Compléter SIRET/ROM via pass-core.app/auth/signup ou son profil.
           merchant = await ensureMerchantForProUser(user as any);
         }
         if (!merchant) {
