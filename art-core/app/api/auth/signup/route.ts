@@ -27,19 +27,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ALLOW_OVERWRITE = process.env.ALLOW_SIGNUP_OVERWRITE === "1";
-
     const existing = await getUserByEmail(email);
     if (existing) {
-      if (!ALLOW_OVERWRITE) {
-        return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
-      }
-      console.log("[signup] ALLOW_SIGNUP_OVERWRITE=1 → purge user", existing.id, email);
-      const sbAdmin = (await import("@/lib/db")).getDb();
-      await sbAdmin.from("sessions").delete().eq("user_id", existing.id);
-      await sbAdmin.from("notifications").delete().eq("user_id", existing.id);
-      await sbAdmin.from("favorites").delete().eq("user_id", existing.id);
-      await sbAdmin.from("users").delete().eq("id", existing.id);
+      return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
     }
 
     const existingUsername = await queryOne(
@@ -47,13 +37,7 @@ export async function POST(req: NextRequest) {
       [username]
     );
     if (existingUsername) {
-      if (!ALLOW_OVERWRITE) {
-        return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
-      }
-      const sbAdmin = (await import("@/lib/db")).getDb();
-      const uid = (existingUsername as any).id;
-      await sbAdmin.from("sessions").delete().eq("user_id", uid);
-      await sbAdmin.from("users").delete().eq("id", uid);
+      return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 409 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
