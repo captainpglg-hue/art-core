@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       const { email, password, full_name, username, role, telephone } = identity;
       const userId = crypto.randomUUID();
       const passwordHash = await bcrypt.hash(password, 10);
+      // Note: telephone vit sur merchants.telephone, pas users.* (pas de colonne).
       const { error: userErr } = await sb.from("users").insert({
         id: userId,
         email,
@@ -119,7 +120,6 @@ export async function POST(req: NextRequest) {
         full_name,
         username,
         role,
-        telephone: telephone || null,
         is_initie: false,
         points_balance: 0,
       });
