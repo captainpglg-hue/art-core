@@ -137,6 +137,9 @@ export function CertificationCamera({ onCapture, onCancel }: CertificationCamera
   }
 
   const allQualityOk = quality.every((q) => q.ok);
+  // Kill switch : mode permissif par défaut. NEXT_PUBLIC_STRICT_CAPTURE_QUALITY=1 réactive le blocage.
+  const strictQuality = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
+  const captureBlocked = strictQuality && !allQualityOk;
 
   return (
     <div className="rounded-2xl border border-gold/20 bg-[#0A0A0A] overflow-hidden">
@@ -221,6 +224,16 @@ export function CertificationCamera({ onCapture, onCancel }: CertificationCamera
         ))}
       </div>
 
+      {/* Bandeau warning non bloquant en mode permissif */}
+      {!allQualityOk && !strictQuality && capturedDataUrl && (
+        <div className="mx-4 mb-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 flex items-start gap-2">
+          <AlertTriangle className="size-3.5 text-yellow-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-yellow-200/80 leading-tight">
+            Qualité faible mais on continue. Vous pourrez reprendre une meilleure photo plus tard.
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="px-4 pb-4 flex gap-3">
         <Button variant="outline" size="sm" onClick={onCancel} className="flex-none">
@@ -246,7 +259,7 @@ export function CertificationCamera({ onCapture, onCancel }: CertificationCamera
             <Button
               size="sm"
               className="flex-1"
-              disabled={!allQualityOk}
+              disabled={captureBlocked}
               onClick={confirmCapture}
             >
               <CheckCircle2 className="size-4" />

@@ -44,6 +44,10 @@ export default function CertifierPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
 
+  // Kill switch : mode permissif par défaut. NEXT_PUBLIC_STRICT_CAPTURE_QUALITY=1 réactive l'ancien blocage.
+  const strictQuality = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
+  const block = (cond: boolean) => strictQuality && cond;
+
   const [step, setStep] = useState<Step>("intro");
   const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -403,7 +407,7 @@ export default function CertifierPage() {
           )}
           {analyzingPhoto && <p className="text-center text-white/30 text-sm mb-4"><Loader2 className="size-4 inline animate-spin mr-2" />Analyse en cours...</p>}
 
-          <NavButtons back="intro" next={() => setStep("zone_select")} nextDisabled={!photo1} />
+          <NavButtons back="intro" next={() => setStep("zone_select")} nextDisabled={block(!photo1)} />
         </div>
       )}
 
@@ -504,7 +508,7 @@ export default function CertifierPage() {
             </div>
           )}
 
-          <NavButtons back="zone_select" next={() => setStep("photo2b")} nextDisabled={!photo2} />
+          <NavButtons back="zone_select" next={() => setStep("photo2b")} nextDisabled={block(!photo2)} />
         </div>
       )}
 
@@ -566,7 +570,7 @@ export default function CertifierPage() {
             </div>
           )}
 
-          <NavButtons back="photo2" next={() => setStep("photo2c")} nextDisabled={!photo2b} />
+          <NavButtons back="photo2" next={() => setStep("photo2c")} nextDisabled={block(!photo2b)} />
         </div>
       )}
 
@@ -627,7 +631,7 @@ export default function CertifierPage() {
           )}
           {/* Quality gauge appears instantly via instantQuality() — no manual button needed */}
 
-          <NavButtons back="photo2b" next={() => setStep("photo3")} nextDisabled={!photo2c} />
+          <NavButtons back="photo2b" next={() => setStep("photo3")} nextDisabled={block(!photo2c)} />
         </div>
       )}
 
@@ -667,7 +671,7 @@ export default function CertifierPage() {
             )}
           </div>
 
-          <NavButtons back="photo2" next={() => setStep("f_title")} nextDisabled={!photo3} />
+          <NavButtons back="photo2" next={() => setStep("f_title")} nextDisabled={block(!photo3)} />
         </div>
       )}
 
@@ -678,7 +682,7 @@ export default function CertifierPage() {
           <p className="text-white/30 text-sm mb-6">Le titre apparaitra sur votre fiche de vente</p>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Crepuscule Dore" autoFocus
             className="w-full h-14 rounded-xl bg-white/5 border border-white/10 text-white text-lg px-4 focus:outline-none focus:border-[#C9A84C]/40" />
-          <NavButtons back="photo3" next={() => setStep("f_technique")} nextDisabled={!title.trim()} />
+          <NavButtons back="photo3" next={() => setStep("f_technique")} nextDisabled={block(!title.trim())} />
         </div>
       )}
 
@@ -695,7 +699,7 @@ export default function CertifierPage() {
               </button>
             ))}
           </div>
-          <NavButtons back="f_title" next={() => setStep("f_dimensions")} nextDisabled={!technique} />
+          <NavButtons back="f_title" next={() => setStep("f_dimensions")} nextDisabled={block(!technique)} />
         </div>
       )}
 
@@ -718,7 +722,7 @@ export default function CertifierPage() {
             </div>
             <span className="text-white/30 text-sm mt-5">cm</span>
           </div>
-          <NavButtons back="f_technique" next={() => setStep("f_year")} nextDisabled={!dimW || !dimH} />
+          <NavButtons back="f_technique" next={() => setStep("f_year")} nextDisabled={block(!dimW || !dimH)} />
         </div>
       )}
 
@@ -728,7 +732,7 @@ export default function CertifierPage() {
           <h2 className="font-display text-2xl font-semibold text-white mb-2">Annee de creation ?</h2>
           <input type="number" inputMode="numeric" value={year} onChange={e => setYear(e.target.value)} placeholder="2024"
             className="w-full h-14 rounded-xl bg-white/5 border border-white/10 text-white text-xl text-center focus:outline-none focus:border-[#C9A84C]/40" />
-          <NavButtons back="f_dimensions" next={() => setStep("f_description")} nextDisabled={!year} />
+          <NavButtons back="f_dimensions" next={() => setStep("f_description")} nextDisabled={block(!year)} />
         </div>
       )}
 

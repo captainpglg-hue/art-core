@@ -99,6 +99,8 @@ export default function DeposerPage() {
   }, []);
 
   const isPro = PRO_ROLES.includes(userRole);
+  const strictQualityUI = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
+  const requiredMark = strictQualityUI ? " *" : "";
 
   async function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -131,13 +133,23 @@ export default function DeposerPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Kill switch qualité photo : mode permissif par défaut.
+    const strictQuality = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
     if (!form.title || !form.price) {
-      toast({ title: "Titre et prix requis", variant: "destructive" });
-      return;
+      if (strictQuality) {
+        toast({ title: "Titre et prix requis", variant: "destructive" });
+        return;
+      }
+      console.warn("[deposer] missing title/price, accepted in permissive mode");
+      toast({ title: "Champs incomplets — on continue", description: "Titre/prix manquants, valeurs par défaut côté serveur." });
     }
     if (photos.length === 0) {
-      toast({ title: "Au moins une photo requise", variant: "destructive" });
-      return;
+      if (strictQuality) {
+        toast({ title: "Au moins une photo requise", variant: "destructive" });
+        return;
+      }
+      console.warn("[deposer] no photo, accepted in permissive mode");
+      toast({ title: "Aucune photo — on continue", description: "Vous pourrez ajouter une photo plus tard." });
     }
     if (isPro) {
       // Vérif champs vendeur pour la fiche de police
@@ -196,7 +208,7 @@ export default function DeposerPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photos */}
         <div>
-          <Label>Photos *</Label>
+          <Label>Photos{requiredMark}</Label>
           <div className="mt-2 flex flex-wrap gap-3">
             {photos.map((p, i) => (
               <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#111111]">
@@ -240,7 +252,7 @@ export default function DeposerPage() {
         {/* Title & Price */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="title">Titre *</Label>
+            <Label htmlFor="title">Titre{requiredMark}</Label>
             <Input
               id="title"
               value={form.title}
@@ -250,7 +262,7 @@ export default function DeposerPage() {
             />
           </div>
           <div>
-            <Label htmlFor="price">Prix (€) *</Label>
+            <Label htmlFor="price">Prix (€){requiredMark}</Label>
             <Input
               id="price"
               type="number"

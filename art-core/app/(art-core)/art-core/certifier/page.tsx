@@ -14,6 +14,10 @@ const TECHNIQUES = ["Huile", "Acrylique", "Aquarelle", "Mixte", "Pastel", "Encre
 
 export default function CertifierPage() {
   const router = useRouter();
+  // Kill switch : mode permissif par défaut. NEXT_PUBLIC_STRICT_CAPTURE_QUALITY=1 réactive l'ancien blocage.
+  const strictQuality = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
+  const block = (cond: boolean) => strictQuality && cond;
+
   const [step, setStep] = useState<Step>("intro");
   const [photos, setPhotos] = useState<{ file: File; preview: string; label: string }[]>([]);
   const [macroZone, setMacroZone] = useState({ x: 40, y: 60, w: 20, h: 25 });
@@ -197,7 +201,7 @@ export default function CertifierPage() {
 
           <div className="flex gap-3">
             <button onClick={() => setStep("intro")} className="flex-1 py-4 rounded-xl border border-white/10 text-white/50 font-medium">Retour</button>
-            <button onClick={() => setStep("info")} disabled={takenRequired < requiredPhotos}
+            <button onClick={() => setStep("info")} disabled={block(takenRequired < requiredPhotos)}
               className="flex-1 py-4 rounded-xl bg-[#D4AF37] text-[#121212] font-semibold disabled:opacity-30 flex items-center justify-center gap-2">
               Continuer <ChevronRight className="size-5" />
             </button>
@@ -270,7 +274,7 @@ export default function CertifierPage() {
 
           <div className="flex gap-3 mt-6">
             <button onClick={() => setStep("photos")} className="flex-1 py-4 rounded-xl border border-white/10 text-white/50 font-medium">Retour</button>
-            <button onClick={() => setStep("review")} disabled={!form.title || !form.technique || !form.width || !form.height || !form.year}
+            <button onClick={() => setStep("review")} disabled={block(!form.title || !form.technique || !form.width || !form.height || !form.year)}
               className="flex-1 py-4 rounded-xl bg-[#D4AF37] text-[#121212] font-semibold disabled:opacity-30 flex items-center justify-center gap-2">
               Continuer <ChevronRight className="size-5" />
             </button>
