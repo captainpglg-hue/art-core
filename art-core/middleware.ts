@@ -34,7 +34,9 @@ export function middleware(request: NextRequest) {
     "/art-core/profile",
     "/art-core/favoris",
     "/art-core/orders",
-    "/art-core/deposer",
+    // /art-core/deposer accessible aux non-authentifies : la page integre
+    // l'etape Identite (signup inline) + soumet a /api/deposit-with-signup
+    // qui cree user+merchant+artwork dans une transaction.
     "/art-core/dashboard",
     "/art-core/notifications",
     "/art-core/messages",

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Loader2, Image as ImageIcon, X, Camera } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, X, ChevronRight, ChevronLeft, Check, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,12 +18,18 @@ const CATEGORIES = [
   { label: "Céramique", value: "ceramics" },
 ];
 
-const PRO_ROLES = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
+const STATUTS = [
+  { value: "artist", label: "Artiste", desc: "Je crée mes propres œuvres" },
+  { value: "galeriste", label: "Galeriste", desc: "Je gère une galerie d'art" },
+  { value: "antiquaire", label: "Antiquaire", desc: "Je vends des œuvres anciennes" },
+  { value: "brocanteur", label: "Brocanteur", desc: "Brocante / vente d'art" },
+  { value: "depot_vente", label: "Dépôt-vente", desc: "Espace de dépôt-vente" },
+];
 
-/**
- * Compresse une image côté client (max 2048x2048, JPEG 0.85) avant upload.
- * Même logique que ConfirmStep pass-core pour rester sous la limite serverless.
- */
+const PRO_ROLES = ["galeriste", "antiquaire", "brocanteur", "depot_vente"];
+const ROLES_CAHIER_OBLIGATOIRE = ["antiquaire", "brocanteur", "depot_vente"];
+type Step = "identite_status" | "identite_details" | "identite_account" | "photos" | "oeuvre" | "recap" | "submitting" | "done";
+
 async function compressImage(file: File, maxDim = 2048, quality = 0.85): Promise<Blob> {
   if (file.size < 1_500_000) return file;
   return new Promise((resolve, reject) => {
@@ -38,21 +44,13 @@ async function compressImage(file: File, maxDim = 2048, quality = 0.85): Promise
         height = Math.round(height * ratio);
       }
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) return reject(new Error("Canvas 2D indisponible"));
+      if (!ctx) return reject(new Error("Canvas indisponible"));
       ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (out) => (out ? resolve(out) : reject(new Error("Compression echouee"))),
-        "image/jpeg",
-        quality
-      );
+      canvas.toBlob((out) => (out ? resolve(out) : reject(new Error("Compression échouée"))), "image/jpeg", quality);
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Image illisible"));
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image illisible")); };
     img.src = url;
   });
 }
@@ -61,47 +59,60 @@ export default function DeposerPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authedUser, setAuthedUser] = useState<{ id: string; role: string; full_name?: string; email?: string } | null>(null);
+  const [step, setStep] = useState<Step>("identite_status");
+
+  // Identité (signup inline si non auth)
+  const [identity, setIdentity] = useState({
+    role: "",
+    full_name: "",
+    username: "",
+    email: "",
+    password: "",
+    telephone: "",
+  });
+
+  // Merchant (si statut pro)
+  const [merchant, setMerchant] = useState({
+    raison_sociale: "",
+    siret: "",
+    nom_gerant: "",
+    adresse: "",
+    code_postal: "",
+    ville: "",
+    cahier_police: false,
+  });
+
+  // Artwork
   const [photos, setPhotos] = useState<string[]>([]);
-  const [userRole, setUserRole] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    technique: "",
-    dimensions: "",
-    creation_date: "",
-    category: "painting",
-    price: "",
+    title: "", description: "", technique: "", dimensions: "",
+    creation_date: "", category: "painting", price: "",
   });
 
-  // Champs vendeur (uniquement pour les pros qui déposent l'œuvre d'un vendeur tiers)
-  const [seller, setSeller] = useState({
-    seller_type: "physical", // "physical" | "company"
-    seller_last_name: "",
-    seller_first_name: "",
-    seller_address: "",
-    seller_id_type: "CNI",
-    seller_id_number: "",
-    seller_company_name: "",
-    seller_company_siret: "",
-    payment_method: "virement",
-  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  // Récupère le rôle de l'utilisateur pour afficher les champs pro si besoin
+  // Détection auth au mount
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d) => {
-        if (d?.user?.role) setUserRole(d.user.role);
+        if (d?.user?.id) {
+          setAuthedUser(d.user);
+          setStep("photos"); // skip identité
+        }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
   }, []);
 
-  const isPro = PRO_ROLES.includes(userRole);
-  const strictQualityUI = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
-  const requiredMark = strictQualityUI ? " *" : "";
+  const isPro = PRO_ROLES.includes(identity.role || authedUser?.role || "");
+  const cahierObligatoire = ROLES_CAHIER_OBLIGATOIRE.includes(identity.role || authedUser?.role || "");
 
+  // Upload photos
   async function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -115,7 +126,7 @@ export default function DeposerPage() {
           fd.append("photo", compressed, file.name);
           const res = await fetch("/api/upload-photo", { method: "POST", body: fd });
           const json = await res.json();
-          if (!res.ok) throw new Error(json.error || `Upload ${file.name} échoué`);
+          if (!res.ok) throw new Error(json.error || `Upload échoué`);
           uploaded.push(json.url);
         } catch (err: any) {
           toast({ title: `Upload ${file.name}`, description: err.message, variant: "destructive" });
@@ -131,371 +142,311 @@ export default function DeposerPage() {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    // Kill switch qualité photo : mode permissif par défaut.
-    const strictQuality = process.env.NEXT_PUBLIC_STRICT_CAPTURE_QUALITY === "1";
-    if (!form.title || !form.price) {
-      if (strictQuality) {
-        toast({ title: "Titre et prix requis", variant: "destructive" });
-        return;
-      }
-      console.warn("[deposer] missing title/price, accepted in permissive mode");
-      toast({ title: "Champs incomplets — on continue", description: "Titre/prix manquants, valeurs par défaut côté serveur." });
-    }
-    if (photos.length === 0) {
-      if (strictQuality) {
-        toast({ title: "Au moins une photo requise", variant: "destructive" });
-        return;
-      }
-      console.warn("[deposer] no photo, accepted in permissive mode");
-      toast({ title: "Aucune photo — on continue", description: "Vous pourrez ajouter une photo plus tard." });
-    }
-    if (isPro) {
-      // Vérif champs vendeur pour la fiche de police
-      if (seller.seller_type === "physical" && !seller.seller_last_name) {
-        toast({ title: "Nom du vendeur requis (obligation fiche de police)", variant: "destructive" });
-        return;
-      }
-      if (seller.seller_type === "company" && !seller.seller_company_name) {
-        toast({ title: "Raison sociale du vendeur requise", variant: "destructive" });
-        return;
-      }
-    }
-
+  // Submit unifié vers endpoint atomique
+  async function handleFinalSubmit() {
     setLoading(true);
+    setStep("submitting");
     try {
       const body: any = {
-        ...form,
-        price: parseFloat(form.price),
-        photos,
+        artwork: {
+          ...form,
+          price: parseFloat(form.price) || 0,
+          photos,
+          is_public: true,
+        },
       };
-      if (isPro) Object.assign(body, seller);
+      if (!authedUser) {
+        body.identity = identity;
+        if (PRO_ROLES.includes(identity.role)) body.merchant = merchant;
+      } else if (PRO_ROLES.includes(authedUser.role || "")) {
+        // user déjà auth pro : merchant probablement déjà créé, on envoie quand même
+        // les champs au cas où il n'a pas encore de merchant.
+        if (merchant.raison_sociale || merchant.siret) body.merchant = merchant;
+      }
 
-      const res = await fetch("/api/artworks", {
+      const res = await fetch("/api/deposit-with-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      let desc = "Elle est maintenant visible sur le marketplace.";
-      if (data.fiche_police?.triggered) {
-        desc += ` Fiche de police N°${data.fiche_police.entry_number} générée` +
-          (data.fiche_police.email_sent ? " et envoyée par email." : " (email non envoyé).");
-      } else if (data.fiche_police?.reason === "missing_merchant_profile") {
-        desc += " ATTENTION : profil pro incomplet, fiche de police non générée.";
-      }
-      toast({ title: "Œuvre déposée !", description: desc });
-      router.push(`/art-core/oeuvre/${data.id}`);
+      if (!res.ok) throw new Error(data.error || "Erreur soumission");
+      setResult(data);
+      setStep("done");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      setStep("recap");
     } finally {
       setLoading(false);
     }
   }
 
+  // Helpers nav
+  function NavBar({ onBack, onNext, nextLabel = "Continuer", nextDisabled = false }: any) {
+    return (
+      <div className="flex gap-3 mt-6">
+        {onBack && (
+          <button onClick={onBack} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-medium flex items-center justify-center gap-2 active:bg-white/5">
+            <ChevronLeft className="size-4" /> Retour
+          </button>
+        )}
+        <button onClick={onNext} disabled={nextDisabled}
+          className="flex-1 py-3 rounded-xl bg-gold text-black font-semibold disabled:opacity-30 flex items-center justify-center gap-2">
+          {nextLabel} <ChevronRight className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (!authChecked) {
+    return <div className="max-w-2xl mx-auto px-4 py-8 text-white/40 text-sm">Chargement...</div>;
+  }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
       <h1 className="font-playfair text-3xl font-semibold text-white mb-2">Déposer une œuvre</h1>
-      <p className="text-white/40 text-sm mb-8">
-        {isPro
-          ? "Formulaire professionnel avec génération automatique de la fiche de police."
-          : "En 3 clics : photo, titre, prix."}
-      </p>
+      {!authedUser && step.startsWith("identite") && (
+        <p className="text-white/40 text-sm mb-8">
+          Vous n'êtes pas encore inscrit. On crée votre compte en même temps que votre dépôt.
+        </p>
+      )}
+      {(authedUser || !step.startsWith("identite")) && (
+        <p className="text-white/40 text-sm mb-8">
+          {authedUser ? `Bonjour ${authedUser.full_name || ""}` : ""} — déposez votre œuvre en quelques étapes.
+        </p>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Photos */}
+      {/* ─── Étape 1.A : Choix du statut ─── */}
+      {step === "identite_status" && !authedUser && (
         <div>
-          <Label>Photos{requiredMark}</Label>
-          <div className="mt-2 flex flex-wrap gap-3">
-            {photos.map((p, i) => (
-              <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#111111]">
-                <img src={p} alt="" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"
-                >
-                  <X className="size-3 text-white" />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-24 h-24 rounded-xl border-2 border-dashed border-white/15 flex flex-col items-center justify-center text-white/30 hover:border-gold/40 hover:text-gold/60 transition-colors disabled:opacity-40"
-            >
-              {uploading ? (
-                <Loader2 className="size-6 mb-1 animate-spin" />
-              ) : (
-                <ImageIcon className="size-6 mb-1" />
-              )}
-              <span className="text-[10px]">{uploading ? "Upload..." : "Ajouter"}</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleFilesSelected}
-            />
-          </div>
-          <p className="text-[11px] text-white/25 mt-1">
-            Formats : JPG, PNG, WEBP. Max 10 Mo par photo. Compression automatique.
-          </p>
-        </div>
-
-        {/* Title & Price */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="title">Titre{requiredMark}</Label>
-            <Input
-              id="title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Titre de l'œuvre"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="price">Prix (€){requiredMark}</Label>
-            <Input
-              id="price"
-              type="number"
-              min="1"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              placeholder="5000"
-              className="mt-1.5"
-            />
-          </div>
-        </div>
-
-        {/* Category */}
-        <div>
-          <Label>Catégorie</Label>
-          <div className="flex flex-wrap gap-2 mt-1.5">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => setForm({ ...form, category: c.value })}
-                className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
-                  form.category === c.value
-                    ? "bg-gold text-black font-semibold"
-                    : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                {c.label}
+          <h2 className="text-xl font-semibold text-white mb-1">Quel est votre statut ?</h2>
+          <p className="text-white/40 text-sm mb-6">5 statuts possibles. Choisissez celui qui correspond.</p>
+          <div className="space-y-2">
+            {STATUTS.map((s) => (
+              <button key={s.value} onClick={() => { setIdentity({ ...identity, role: s.value }); setStep("identite_details"); }}
+                className="w-full text-left px-4 py-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/5 active:bg-white/10 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">{s.label}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{s.desc}</p>
+                  </div>
+                  <ChevronRight className="size-5 text-white/30" />
+                </div>
               </button>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="technique">Technique</Label>
-            <Input
-              id="technique"
-              value={form.technique}
-              onChange={(e) => setForm({ ...form, technique: e.target.value })}
-              placeholder="Huile sur toile"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="dimensions">Dimensions</Label>
-            <Input
-              id="dimensions"
-              value={form.dimensions}
-              onChange={(e) => setForm({ ...form, dimensions: e.target.value })}
-              placeholder="80x120 cm"
-              className="mt-1.5"
-            />
-          </div>
-        </div>
+      {/* ─── Étape 1.B : Détails (champs adaptés au statut) ─── */}
+      {step === "identite_details" && !authedUser && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-white mb-1">Vos coordonnées</h2>
+          <p className="text-white/40 text-sm">
+            Statut : <span className="text-gold">{STATUTS.find(s => s.value === identity.role)?.label}</span>
+          </p>
 
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <textarea
-            id="description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={4}
-            placeholder="Décrivez votre œuvre..."
-            className="w-full mt-1.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 p-3 resize-none focus:outline-none focus:border-gold/40"
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nom complet *</Label><Input value={identity.full_name} onChange={e => setIdentity({ ...identity, full_name: e.target.value })} className="mt-1.5" /></div>
+            <div><Label>Identifiant *</Label><Input value={identity.username} onChange={e => setIdentity({ ...identity, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })} placeholder="ex: marie_galerie" className="mt-1.5" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Email *</Label><Input type="email" value={identity.email} onChange={e => setIdentity({ ...identity, email: e.target.value })} className="mt-1.5" /></div>
+            <div><Label>Téléphone</Label><Input value={identity.telephone} onChange={e => setIdentity({ ...identity, telephone: e.target.value })} className="mt-1.5" /></div>
+          </div>
+
+          {isPro && (
+            <div className="rounded-xl border border-gold/30 bg-gold/5 p-4 space-y-3">
+              <p className="text-gold text-sm font-medium">Informations professionnelles (obligation légale Art. R.321-1)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Raison sociale *</Label><Input value={merchant.raison_sociale} onChange={e => setMerchant({ ...merchant, raison_sociale: e.target.value })} className="mt-1.5" /></div>
+                <div><Label>SIRET (14 chiffres) *</Label><Input value={merchant.siret} onChange={e => setMerchant({ ...merchant, siret: e.target.value.replace(/\D/g, "").slice(0, 14) })} className="mt-1.5" /></div>
+              </div>
+              <div><Label>Nom du gérant *</Label><Input value={merchant.nom_gerant} onChange={e => setMerchant({ ...merchant, nom_gerant: e.target.value })} className="mt-1.5" /></div>
+              <div><Label>Adresse *</Label><Input value={merchant.adresse} onChange={e => setMerchant({ ...merchant, adresse: e.target.value })} className="mt-1.5" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Code postal *</Label><Input value={merchant.code_postal} onChange={e => setMerchant({ ...merchant, code_postal: e.target.value.replace(/\D/g, "").slice(0, 5) })} className="mt-1.5" /></div>
+                <div><Label>Ville *</Label><Input value={merchant.ville} onChange={e => setMerchant({ ...merchant, ville: e.target.value })} className="mt-1.5" /></div>
+              </div>
+
+              <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                <input type="checkbox" checked={merchant.cahier_police} onChange={e => setMerchant({ ...merchant, cahier_police: e.target.checked })} className="size-4 accent-gold" />
+                <span className="text-sm text-white/70">
+                  Je tiens un cahier de police {cahierObligatoire ? <span className="text-red-400">(obligatoire)</span> : <span className="text-white/40">(optionnel pour galeriste)</span>}
+                </span>
+              </label>
+            </div>
+          )}
+
+          <NavBar
+            onBack={() => setStep("identite_status")}
+            onNext={() => {
+              const baseOk = identity.full_name && identity.username && identity.email;
+              const proOk = !isPro || (merchant.raison_sociale && merchant.siret.length === 14 && merchant.nom_gerant && merchant.adresse && merchant.code_postal && merchant.ville);
+              const cahierOk = !cahierObligatoire || merchant.cahier_police;
+              if (!baseOk || !proOk || !cahierOk) {
+                toast({ title: "Champs manquants", description: !cahierOk ? "Cahier de police obligatoire pour ce statut" : "Complétez les champs marqués *", variant: "destructive" });
+                return;
+              }
+              setStep("identite_account");
+            }}
           />
         </div>
+      )}
 
-        {/* Section vendeur (pros uniquement) */}
-        {isPro && (
-          <div className="rounded-xl border border-gold/30 bg-gold/5 p-4 space-y-4">
-            <div>
-              <h2 className="text-gold font-semibold text-sm mb-1">
-                Informations vendeur (fiche de police)
-              </h2>
-              <p className="text-white/50 text-xs">
-                Obligation légale Art. 321-7 Code pénal. Ces informations seront intégrées à la
-                fiche PDF envoyée par email.
-              </p>
-            </div>
+      {/* ─── Étape 1.C : Mot de passe ─── */}
+      {step === "identite_account" && !authedUser && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-white mb-1">Sécurité du compte</h2>
+          <p className="text-white/40 text-sm mb-6">Choisissez un mot de passe pour vous reconnecter plus tard.</p>
+          <div>
+            <Label>Mot de passe (min. 8 caractères) *</Label>
+            <Input type="password" value={identity.password} onChange={e => setIdentity({ ...identity, password: e.target.value })} className="mt-1.5" autoComplete="new-password" />
+          </div>
+          <NavBar
+            onBack={() => setStep("identite_details")}
+            onNext={() => {
+              if (identity.password.length < 8) {
+                toast({ title: "Mot de passe trop court", description: "Min. 8 caractères", variant: "destructive" });
+                return;
+              }
+              setStep("photos");
+            }}
+          />
+        </div>
+      )}
 
-            <div>
-              <Label>Type de vendeur</Label>
-              <div className="flex gap-2 mt-1.5">
-                {[
-                  { v: "physical", l: "Particulier" },
-                  { v: "company", l: "Entreprise" },
-                ].map((t) => (
-                  <button
-                    key={t.v}
-                    type="button"
-                    onClick={() => setSeller({ ...seller, seller_type: t.v })}
-                    className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
-                      seller.seller_type === t.v
-                        ? "bg-gold text-black font-semibold"
-                        : "bg-white/5 text-white/50"
-                    }`}
-                  >
-                    {t.l}
-                  </button>
-                ))}
+      {/* ─── Étape 2 : Photos ─── */}
+      {step === "photos" && (
+        <div>
+          <h2 className="text-xl font-semibold text-white mb-1">Photos de l'œuvre</h2>
+          <p className="text-white/40 text-sm mb-6">Ajoutez au moins une photo (recommandé). Formats JPG/PNG/WEBP, max 10 Mo.</p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {photos.map((p, i) => (
+              <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#111111]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                  <X className="size-3 text-white" />
+                </button>
               </div>
-            </div>
+            ))}
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className="w-24 h-24 rounded-xl border-2 border-dashed border-white/15 flex flex-col items-center justify-center text-white/30 hover:border-gold/40 hover:text-gold/60 disabled:opacity-40">
+              {uploading ? <Loader2 className="size-6 mb-1 animate-spin" /> : <ImageIcon className="size-6 mb-1" />}
+              <span className="text-[10px]">{uploading ? "Upload..." : "Ajouter"}</span>
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelected} />
+          </div>
+          <NavBar
+            onBack={authedUser ? undefined : () => setStep("identite_account")}
+            onNext={() => setStep("oeuvre")}
+          />
+        </div>
+      )}
 
-            {seller.seller_type === "physical" ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="seller_last_name">Nom *</Label>
-                    <Input
-                      id="seller_last_name"
-                      value={seller.seller_last_name}
-                      onChange={(e) =>
-                        setSeller({ ...seller, seller_last_name: e.target.value })
-                      }
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="seller_first_name">Prénom</Label>
-                    <Input
-                      id="seller_first_name"
-                      value={seller.seller_first_name}
-                      onChange={(e) =>
-                        setSeller({ ...seller, seller_first_name: e.target.value })
-                      }
-                      className="mt-1.5"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="seller_address">Adresse</Label>
-                  <Input
-                    id="seller_address"
-                    value={seller.seller_address}
-                    onChange={(e) => setSeller({ ...seller, seller_address: e.target.value })}
-                    placeholder="Rue, code postal, ville"
-                    className="mt-1.5"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Pièce d'identité</Label>
-                    <div className="flex gap-2 mt-1.5">
-                      {["CNI", "Passeport", "Permis"].map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setSeller({ ...seller, seller_id_type: t })}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs ${
-                            seller.seller_id_type === t
-                              ? "bg-gold text-black font-semibold"
-                              : "bg-white/5 text-white/50"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="seller_id_number">N° de pièce</Label>
-                    <Input
-                      id="seller_id_number"
-                      value={seller.seller_id_number}
-                      onChange={(e) =>
-                        setSeller({ ...seller, seller_id_number: e.target.value })
-                      }
-                      className="mt-1.5"
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="seller_company_name">Raison sociale *</Label>
-                  <Input
-                    id="seller_company_name"
-                    value={seller.seller_company_name}
-                    onChange={(e) =>
-                      setSeller({ ...seller, seller_company_name: e.target.value })
-                    }
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="seller_company_siret">SIRET</Label>
-                  <Input
-                    id="seller_company_siret"
-                    value={seller.seller_company_siret}
-                    onChange={(e) =>
-                      setSeller({ ...seller, seller_company_siret: e.target.value })
-                    }
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <Label>Mode de paiement</Label>
-              <div className="flex gap-2 mt-1.5 flex-wrap">
-                {[
-                  { v: "virement", l: "Virement" },
-                  { v: "cheque", l: "Chèque" },
-                  { v: "especes", l: "Espèces" },
-                  { v: "carte", l: "Carte" },
-                ].map((p) => (
-                  <button
-                    key={p.v}
-                    type="button"
-                    onClick={() => setSeller({ ...seller, payment_method: p.v })}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs ${
-                      seller.payment_method === p.v
-                        ? "bg-gold text-black font-semibold"
-                        : "bg-white/5 text-white/50"
-                    }`}
-                  >
-                    {p.l}
-                  </button>
-                ))}
-              </div>
+      {/* ─── Étape 3 : Œuvre ─── */}
+      {step === "oeuvre" && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-white mb-1">Détails de l'œuvre</h2>
+          <p className="text-white/40 text-sm mb-2">Titre et prix recommandés. Tout est modifiable plus tard.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Titre</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="mt-1.5" /></div>
+            <div><Label>Prix (€)</Label><Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="mt-1.5" /></div>
+          </div>
+          <div>
+            <Label>Catégorie</Label>
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {CATEGORIES.map((c) => (
+                <button key={c.value} type="button" onClick={() => setForm({ ...form, category: c.value })}
+                  className={`px-3 py-1.5 rounded-lg text-xs ${form.category === c.value ? "bg-gold text-black font-semibold" : "bg-white/5 text-white/50"}`}>
+                  {c.label}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Technique</Label><Input value={form.technique} onChange={e => setForm({ ...form, technique: e.target.value })} placeholder="Huile sur toile" className="mt-1.5" /></div>
+            <div><Label>Dimensions</Label><Input value={form.dimensions} onChange={e => setForm({ ...form, dimensions: e.target.value })} placeholder="80x120 cm" className="mt-1.5" /></div>
+          </div>
+          <div>
+            <Label>Description</Label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+              className="w-full mt-1.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white p-3 resize-none focus:outline-none focus:border-gold/40" />
+          </div>
+          <NavBar onBack={() => setStep("photos")} onNext={() => setStep("recap")} nextLabel="Récapitulatif" />
+        </div>
+      )}
 
-        <Button type="submit" size="lg" className="w-full gap-2" disabled={loading || uploading}>
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          Déposer l&apos;œuvre
-        </Button>
-      </form>
+      {/* ─── Étape 4 : Récap + Submit ─── */}
+      {step === "recap" && (
+        <div>
+          <h2 className="text-xl font-semibold text-white mb-1">Vérification</h2>
+          <p className="text-white/40 text-sm mb-6">Un seul clic crée votre compte (si nouveau) et publie l'œuvre.</p>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-2 mb-4 text-sm">
+            {!authedUser && (
+              <>
+                <div className="flex justify-between"><span className="text-white/40">Statut</span><span className="text-white">{STATUTS.find(s => s.value === identity.role)?.label}</span></div>
+                <div className="flex justify-between"><span className="text-white/40">Nom</span><span className="text-white">{identity.full_name}</span></div>
+                <div className="flex justify-between"><span className="text-white/40">Email</span><span className="text-white">{identity.email}</span></div>
+                {isPro && <div className="flex justify-between"><span className="text-white/40">Raison sociale</span><span className="text-white">{merchant.raison_sociale}</span></div>}
+              </>
+            )}
+            {authedUser && <div className="flex justify-between"><span className="text-white/40">Compte</span><span className="text-white">{authedUser.full_name || authedUser.email}</span></div>}
+            <div className="flex justify-between"><span className="text-white/40">Photos</span><span className="text-white">{photos.length}</span></div>
+            <div className="flex justify-between"><span className="text-white/40">Titre</span><span className="text-white">{form.title || <em className="text-white/30">Sans titre</em>}</span></div>
+            {form.price && <div className="flex justify-between"><span className="text-white/40">Prix</span><span className="text-gold">{form.price} €</span></div>}
+          </div>
+
+          {isPro && (
+            <div className="rounded-xl bg-gold/5 border border-gold/20 p-3 flex items-start gap-2 mb-4">
+              <ShieldCheck className="size-4 text-gold shrink-0 mt-0.5" />
+              <p className="text-[11px] text-white/60">
+                Une fiche de police PDF sera générée automatiquement et envoyée à votre email.
+              </p>
+            </div>
+          )}
+
+          <NavBar
+            onBack={() => setStep("oeuvre")}
+            onNext={handleFinalSubmit}
+            nextLabel={loading ? "Envoi..." : (authedUser ? "Déposer" : "Créer compte + Déposer")}
+            nextDisabled={loading}
+          />
+        </div>
+      )}
+
+      {/* ─── Submitting ─── */}
+      {step === "submitting" && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="size-12 text-gold animate-spin mb-4" />
+          <p className="text-white/60">Création en cours...</p>
+        </div>
+      )}
+
+      {/* ─── Done ─── */}
+      {step === "done" && result && (
+        <div className="text-center py-8">
+          <div className="w-20 h-20 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center mx-auto mb-6">
+            <Check className="size-10 text-green-400" />
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-2">Œuvre déposée !</h2>
+          <p className="text-white/40 text-sm mb-6">
+            {result.created?.user && "Compte créé. "}
+            {result.created?.merchant && "Profil pro créé. "}
+            Œuvre visible sur la marketplace.
+          </p>
+          {result.fiche_police?.triggered && (
+            <p className="text-gold text-xs mb-4">Fiche de police N°{result.fiche_police.entry_number} envoyée par email.</p>
+          )}
+          <div className="space-y-2">
+            <Button size="lg" onClick={() => router.push(`/art-core/oeuvre/${result.artwork_id}`)} className="w-full">Voir mon œuvre</Button>
+            <button onClick={() => router.push("/art-core")} className="w-full py-3 rounded-xl border border-white/10 text-white/60 text-sm">Retour à la marketplace</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
