@@ -492,7 +492,7 @@ export default function CertifierPage() {
                   Qualité macro : {qualityScore2.score}/100
                 </p>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                  {qualityScore2.score >= 70 ? "Validée" : "Insuffisante"}
+                  {qualityScore2.score >= 70 ? "Validée" : (strictQuality ? "Insuffisante" : "Acceptée")}
                 </span>
               </div>
               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -554,7 +554,7 @@ export default function CertifierPage() {
                   Qualité macro : {qualityScore2b.score}/100
                 </p>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2b.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                  {qualityScore2b.score >= 70 ? "Validée" : "Insuffisante"}
+                  {qualityScore2b.score >= 70 ? "Validée" : (strictQuality ? "Insuffisante" : "Acceptée")}
                 </span>
               </div>
               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -616,7 +616,7 @@ export default function CertifierPage() {
                   Qualité macro : {qualityScore2c.score}/100
                 </p>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${qualityScore2c.score >= 70 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                  {qualityScore2c.score >= 70 ? "Validée" : "Insuffisante"}
+                  {qualityScore2c.score >= 70 ? "Validée" : (strictQuality ? "Insuffisante" : "Acceptée")}
                 </span>
               </div>
               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">

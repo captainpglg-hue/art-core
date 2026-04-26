@@ -96,11 +96,15 @@ export async function POST(req: NextRequest) {
 
     if (resolutionScore < 50) tips.push("Utilisez la meilleure résolution de votre caméra");
 
+    // Kill switch : en mode permissif, on accepte toutes les photos.
+    // Le score reste informatif mais le wording ne doit pas suggérer un rejet.
+    const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
     let status: "excellent" | "acceptable" | "insufficient";
     let message: string;
     if (globalScore >= 80) { status = "excellent"; message = "Photo excellente — détail suffisant pour certification"; }
     else if (globalScore >= 50) { status = "acceptable"; message = "Photo correcte mais perfectible — rapprochez-vous"; }
-    else { status = "insufficient"; message = "Photo insuffisante — recommencez"; }
+    else if (strictQuality) { status = "insufficient"; message = "Photo insuffisante — recommencez"; }
+    else { status = "acceptable"; message = "Photo acceptée (qualité faible — info seulement)"; }
 
     return NextResponse.json({
       score: globalScore,
