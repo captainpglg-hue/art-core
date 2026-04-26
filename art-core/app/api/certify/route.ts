@@ -9,12 +9,18 @@ import path from "path";
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
-    let artistId = "usr_artist_1";
-
-    if (token) {
-      const user = await getUserByToken(token);
-      if (user && (user.role === "artist" || user.role === "admin")) artistId = user.id;
+    if (!token) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
+    const user = await getUserByToken(token);
+    if (!user) {
+      return NextResponse.json({ error: "Session invalide" }, { status: 401 });
+    }
+    const ALLOWED_ROLES = ["artist", "admin", "antiquaire", "galeriste", "brocanteur", "depot_vente"];
+    if (!ALLOWED_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: "Votre rôle ne permet pas de certifier des œuvres" }, { status: 403 });
+    }
+    const artistId = user.id;
 
     const contentType = req.headers.get("content-type") || "";
 
