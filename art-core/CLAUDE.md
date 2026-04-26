@@ -50,8 +50,15 @@ npx vercel --prod  # Déployer (CLI uniquement, JAMAIS via Git push)
 
 - **Projet Vercel** : `prj_XK8uVcpwz84z0STo03QZZ85XXPUy`
 - **Domaines** : art-core.app, pass-core.app, prime-core.app
-- **⚠️ INTERDIT** : ne jamais connecter Git à Vercel, ne jamais faire de deploy auto
 - **⚠️ INTERDIT** : ne jamais créer de nouveau projet Vercel
+
+### Sprint « kill switch qualité photo » (avril 2026) — exception temporaire
+
+Auto-deploy Vercel via `git push origin main` est **explicitement autorisé**
+le temps de ce sprint pour itérer rapidement sur le parcours de dépôt
+(transformation des validations qualité photo en warnings non bloquants,
+test terrain Xiaomi). À la fin du sprint, restaurer la règle "deploy CLI
+uniquement" et déconnecter Git de Vercel.
 
 ## Organisation des fichiers
 
