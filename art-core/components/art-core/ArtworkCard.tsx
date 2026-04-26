@@ -19,11 +19,35 @@ type Artwork = {
   blockchain_hash?: string;
   artist_name?: string;
   artist_username?: string;
+  artist_role?: string | null;
+  merchant_raison_sociale?: string | null;
+  merchant_ville?: string | null;
   boost_active?: number;
   highlight_active?: number;
   category?: string;
   creation_date?: string;
 };
+
+// Format des coordonnees du deposant selon son statut.
+function formatDepositLine(a: Artwork): string {
+  const role = a.artist_role || "artist";
+  const merchant = a.merchant_raison_sociale;
+  const name = a.artist_name || "Artiste";
+  switch (role) {
+    case "artist":
+      return `Par ${name}`;
+    case "galeriste":
+      return merchant ? `Présentée par ${merchant}` : `Galerie — ${name}`;
+    case "antiquaire":
+      return merchant ? `Antiquaire ${merchant}` : `Antiquaire — ${name}`;
+    case "brocanteur":
+      return merchant ? `Brocante ${merchant}` : `Brocanteur — ${name}`;
+    case "depot_vente":
+      return merchant ? `Dépôt-vente ${merchant}` : `Dépôt-vente — ${name}`;
+    default:
+      return name;
+  }
+}
 
 interface ArtworkCardProps {
   artwork: Artwork;
@@ -39,6 +63,7 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
   const initialUrl = resolveFirstPhoto(artwork.photos);
   const imageUrl = imageError ? PLACEHOLDER_ART : initialUrl;
   const artistName = artwork.artist_name ?? "Artiste";
+  const depositLine = formatDepositLine(artwork);
   const isPromoted = promoted || artwork.boost_active === 1 || artwork.highlight_active === 1;
 
   return (
@@ -98,7 +123,7 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
           <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-medium text-white/50 shrink-0">
             {artistName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
           </div>
-          <span className="text-[11px] text-white/40 truncate">{artistName}</span>
+          <span className="text-[11px] text-white/40 truncate">{depositLine}</span>
           {artwork.category && <span className="ml-auto text-[10px] text-white/20 shrink-0 capitalize">{artwork.category}</span>}
         </div>
 

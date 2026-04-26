@@ -44,26 +44,44 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message, artworks: [], total: 0, limit, offset }, { status: 500 });
     }
 
-    // Enrichissement avec données artiste (full_name, username, avatar_url)
+    // Enrichissement avec données artiste (role + full_name + username + avatar_url)
     const artistIds = Array.from(new Set((artworks || []).map((a: any) => a.artist_id).filter(Boolean)));
     let usersById: Record<string, any> = {};
     if (artistIds.length) {
       const { data: users, error: usersErr } = await sb
         .from("users")
-        .select("id, full_name, username, avatar_url")
+        .select("id, full_name, username, avatar_url, role")
         .in("id", artistIds);
       if (usersErr) console.error("[GET /api/artworks] users enrichment failed:", usersErr.message);
       usersById = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
     }
 
+    // Enrichissement merchants pour les déposants pro (galeriste/antiquaire/etc.)
+    const proUserIds = Object.entries(usersById)
+      .filter(([, u]) => ["galeriste", "antiquaire", "brocanteur", "depot_vente"].includes((u as any)?.role))
+      .map(([id]) => id);
+    let merchantsByUserId: Record<string, any> = {};
+    if (proUserIds.length) {
+      const { data: merchants } = await sb
+        .from("merchants")
+        .select("user_id, raison_sociale, nom_gerant, ville, numero_rom_prefix")
+        .in("user_id", proUserIds)
+        .eq("actif", true);
+      merchantsByUserId = Object.fromEntries((merchants || []).map((m: any) => [m.user_id, m]));
+    }
+
     const parsed = (artworks || []).map((a: any) => {
       const u = usersById[a.artist_id] || {};
+      const m = merchantsByUserId[a.artist_id] || null;
       return {
         ...a,
         photos: typeof a.photos === "string" ? safeJson(a.photos) : (a.photos || []),
         artist_name: u.full_name || null,
         artist_username: u.username || null,
         artist_avatar: u.avatar_url || null,
+        artist_role: u.role || null,
+        merchant_raison_sociale: m?.raison_sociale || null,
+        merchant_ville: m?.ville || null,
       };
     });
 
