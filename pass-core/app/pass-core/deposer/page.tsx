@@ -76,18 +76,35 @@ export default function PassCoreDeposerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
+  // Detection auth au mount.
+  // ATTENTION : ne PAS sauter automatiquement les sous-etapes Identite.
+  // Si un cookie de session existe, on stocke l'utilisateur, mais on laisse
+  // l'ecran "identite_status" s'afficher pour qu'une banniere de confirmation
+  // demande explicitement "Continuer avec ce compte" / "Ce n'est pas moi".
+  // Cela evite tout rattachement silencieux d'une oeuvre a un compte demo
+  // ou a une session oubliee.
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (d?.user?.id) {
           setAuthedUser(d.user);
-          setStep("photos");
+          // Pas de setStep ici. La banniere (cf. JSX plus bas) prend le relais.
         }
       })
       .catch(() => {})
       .finally(() => setAuthChecked(true));
   }, []);
+
+  async function handleLogoutAndContinueAsGuest() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    setAuthedUser(null);
+    setIdentity({ role: "", full_name: "", username: "", email: "", password: "", telephone: "" });
+    setMerchant({ raison_sociale: "", siret: "", nom_gerant: "", adresse: "", code_postal: "", ville: "", cahier_police: false });
+    setStep("identite_status");
+  }
 
   const isPro = PRO_ROLES.includes(identity.role || authedUser?.role || "");
   const cahierObligatoire = ROLES_CAHIER_OBLIGATOIRE.includes(identity.role || authedUser?.role || "");
@@ -183,6 +200,35 @@ export default function PassCoreDeposerPage() {
         <p className="text-white/40 text-sm mb-8">
           {authedUser ? `Bonjour ${authedUser.full_name || ""}` : ""} — déposez votre œuvre en quelques étapes.
         </p>
+      )}
+
+      {/* Banniere de confirmation d'identite (si user deja connecte) */}
+      {authedUser && step.startsWith("identite") && (
+        <div className="mb-6 rounded-xl border border-gold-DEFAULT/30 bg-gold-DEFAULT/5 p-4">
+          <p className="text-sm text-white">
+            Vous êtes connecté en tant que{" "}
+            <span className="text-gold-DEFAULT font-medium">
+              {authedUser.full_name || authedUser.email}
+            </span>.
+          </p>
+          <p className="text-xs text-white/60 mt-1">
+            L&apos;œuvre déposée sera attribuée à ce compte.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+            <button
+              onClick={() => setStep("photos")}
+              className="flex-1 py-2 rounded-lg bg-gold-DEFAULT text-navy-DEFAULT text-sm font-semibold"
+            >
+              Continuer avec ce compte
+            </button>
+            <button
+              onClick={handleLogoutAndContinueAsGuest}
+              className="flex-1 py-2 rounded-lg border border-white/15 text-white/70 text-sm hover:bg-white/5"
+            >
+              Ce n&apos;est pas moi — déposer en visiteur
+            </button>
+          </div>
+        </div>
       )}
 
       {step === "identite_status" && !authedUser && (

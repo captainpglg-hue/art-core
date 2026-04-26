@@ -27,6 +27,19 @@ export async function POST(req: NextRequest) {
   let createdMerchantId: string | null = null;
   let sessionToken: string | null = null;
 
+  // Garde-fou anti-rattachement silencieux : si le client envoie un payload
+  // identity ET qu'un user est detecte via cookie ET que les emails different,
+  // on refuse plutot que de faire silencieusement confiance au cookie.
+  // Le client a un cookie perime (typiquement compte demo), il doit logout.
+  if (user && identity?.email && (user as any).email
+      && String(identity.email).trim().toLowerCase() !== String((user as any).email).trim().toLowerCase()) {
+    return NextResponse.json({
+      error: "Conflit d'identite : vous etes connecte avec un autre compte. Deconnectez-vous d'abord.",
+      code: "IDENTITY_CONFLICT",
+      authenticated_as: (user as any).email,
+    }, { status: 400 });
+  }
+
   const sb = getDb();
 
   if (!artwork) return NextResponse.json({ error: "Données artwork manquantes" }, { status: 400 });
