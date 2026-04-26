@@ -129,10 +129,26 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, technique, dimensions, creation_date, category, price, photos } = body;
+    let { title, description, technique, dimensions, creation_date, category, price, photos } = body;
+
+    // ── Kill switch qualité photo ────────────────────────────────────────
+    // STRICT_CAPTURE_QUALITY=1 → bloque comme avant. Sinon : warnings.
+    const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
+    const warnings: string[] = [];
 
     if (!title || !price) {
-      return NextResponse.json({ error: "Titre et prix requis" }, { status: 400 });
+      if (strictQuality) {
+        return NextResponse.json({ error: "Titre et prix requis" }, { status: 400 });
+      }
+      console.warn("[artworks] warning: missing title/price, accepted in permissive mode", { title, price });
+      if (!title) {
+        warnings.push("Titre manquant — valeur par défaut 'Sans titre'.");
+        title = "Sans titre";
+      }
+      if (!price) {
+        warnings.push("Prix manquant — valeur par défaut 0€.");
+        price = 0;
+      }
     }
 
     // Schema déployé : id UUID (pas TEXT), owner_id NOT NULL sans default.
@@ -287,6 +303,7 @@ export async function POST(req: NextRequest) {
       pass_core_id: passCoreId,
       blockchain_hash: blockchainHash,
       fiche_police: fichePolice,
+      warnings,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

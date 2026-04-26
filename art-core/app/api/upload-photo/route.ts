@@ -28,15 +28,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Fichier 'photo' manquant" }, { status: 400 });
     }
 
+    // ── Kill switch qualité photo ────────────────────────────────────────
+    // STRICT_CAPTURE_QUALITY=1 → ancien comportement bloquant.
+    // Sinon (défaut) : warnings non bloquants.
+    const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
+    const warnings: string[] = [];
+
     // Garde-fou : taille max 10MB (au-delà => probablement abuse)
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "Fichier > 10MB. Compressez avant upload." }, { status: 413 });
+      if (strictQuality) {
+        return NextResponse.json({ error: "Fichier > 10MB. Compressez avant upload." }, { status: 413 });
+      }
+      console.warn("[upload-photo] warning: file size > 10MB, accepted in permissive mode", file.size);
+      warnings.push("Fichier > 10MB — compression recommandée.");
     }
 
     // Garde-fou : mime image uniquement
     const contentType = file.type || "";
     if (!contentType.startsWith("image/")) {
-      return NextResponse.json({ error: "Type de fichier non supporté (attendu: image/*)" }, { status: 400 });
+      if (strictQuality) {
+        return NextResponse.json({ error: "Type de fichier non supporté (attendu: image/*)" }, { status: 400 });
+      }
+      console.warn("[upload-photo] warning: non-image MIME type, accepted in permissive mode", contentType);
+      warnings.push(`Type de fichier "${contentType || "inconnu"}" — image attendue.`);
     }
 
     const folderOverride = formData.get("folder") as string | null;
@@ -48,7 +62,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const publicUrl = await uploadPhoto(buffer, folder, name);
 
-    return NextResponse.json({ url: publicUrl, size: file.size, name });
+    return NextResponse.json({ url: publicUrl, size: file.size, name, warnings });
   } catch (error: any) {
     console.error("[upload-photo] error:", error?.message);
     return NextResponse.json({ error: error?.message || "Upload error" }, { status: 500 });

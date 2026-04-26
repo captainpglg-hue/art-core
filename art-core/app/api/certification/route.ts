@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
 
     const formData = await req.formData();
-    const title = formData.get("title") as string || "";
+    let title = formData.get("title") as string || "";
     const technique = formData.get("technique") as string || "";
     const dimensions = formData.get("dimensions") as string || "";
     const year = formData.get("year") as string || "";
@@ -53,7 +53,18 @@ export async function POST(req: NextRequest) {
     const price = parseFloat(formData.get("price") as string || "0");
     const macroZone = formData.get("macro_zone") as string || "";
 
-    if (!title) return NextResponse.json({ error: "Titre requis" }, { status: 400 });
+    // Kill switch qualité photo : STRICT_CAPTURE_QUALITY=1 → bloquant. Sinon : warning.
+    const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
+    const warnings: string[] = [];
+
+    if (!title) {
+      if (strictQuality) {
+        return NextResponse.json({ error: "Titre requis" }, { status: 400 });
+      }
+      console.warn("[certification] warning: missing title, accepted in permissive mode");
+      warnings.push("Titre manquant — valeur par défaut 'Sans titre'.");
+      title = "Sans titre";
+    }
 
     // Save certification photos to Supabase Storage
     const certPhotos: string[] = [];
@@ -87,7 +98,7 @@ export async function POST(req: NextRequest) {
       [nId, 'usr_admin_1', `${user.name} soumet "${title}" pour certification.`]
     );
 
-    return NextResponse.json({ id, success: true, photos_count: certPhotos.length });
+    return NextResponse.json({ id, success: true, photos_count: certPhotos.length, warnings });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     const contentType = req.headers.get("content-type") || "";
 
-    let title = "", description = "", technique = "", dimensions = "";
+    let title: string = "", description = "", technique = "", dimensions = "";
     let creation_date = "", category = "painting", price = 0;
     let photos: string[] = [];
     let macroFingerprint = "";
@@ -110,8 +110,17 @@ export async function POST(req: NextRequest) {
       macroPhotoPath = body.macro_photo || "";
     }
 
+    // Kill switch qualité photo : STRICT_CAPTURE_QUALITY=1 → bloquant. Sinon : warning.
+    const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
+    const warnings: string[] = [];
+
     if (!title) {
-      return NextResponse.json({ error: "Titre requis" }, { status: 400 });
+      if (strictQuality) {
+        return NextResponse.json({ error: "Titre requis" }, { status: 400 });
+      }
+      console.warn("[certify] warning: missing title, accepted in permissive mode");
+      warnings.push("Titre manquant — valeur par défaut 'Sans titre'.");
+      title = "Sans titre";
     }
 
     const id = `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -243,6 +252,7 @@ export async function POST(req: NextRequest) {
         to: emailTo,
       } : null,
       success: true,
+      warnings,
     });
   } catch (error: any) {
     console.error("Certification error:", error);
