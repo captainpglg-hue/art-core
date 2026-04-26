@@ -17,10 +17,9 @@ import { getUserByToken } from "@/lib/db";
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
-    if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-
-    const user = await getUserByToken(token);
-    if (!user) return NextResponse.json({ error: "Session invalide" }, { status: 401 });
+    // Auth est OPTIONNELLE : le parcours dépôt avec signup intégré (deposit-with-signup)
+    // upload les photos AVANT de créer le compte. Folder = "anonymous" si non auth.
+    const user = token ? await getUserByToken(token) : null;
 
     const formData = await req.formData();
     const file = formData.get("photo") as File | null;
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const folderOverride = formData.get("folder") as string | null;
-    const folder = folderOverride || `artworks/${user.id}`;
+    const folder = folderOverride || (user ? `artworks/${user.id}` : `artworks/pending`);
     // Nom unique : timestamp + random + extension
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const name = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext || "jpg"}`;

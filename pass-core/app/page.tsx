@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, TrendingUp, Lock, ArrowRight, Award, Star } from "lucide-react";
+import { ShieldCheck, TrendingUp, Lock, ArrowRight, Award, Star, Upload } from "lucide-react";
 
 export default function PassCoreHome() {
   return (
@@ -11,17 +11,29 @@ export default function PassCoreHome() {
             <ShieldCheck className="size-9 text-[#C9A84C]" />
           </div>
           <h1 className="font-display text-3xl md:text-4xl font-semibold text-white leading-tight mb-4">
-            Certifiez votre œuvre.<br />
+            Déposez votre œuvre.<br />
             <span className="text-[#C9A84C]">Vendez-la plus cher.</span>
           </h1>
           <p className="text-white/50 text-base mb-8">
-            Les œuvres certifiées se vendent en moyenne <span className="text-[#C9A84C] font-semibold">40% plus cher</span> sur ART-CORE
+            Œuvres certifiées vendues en moyenne <span className="text-[#C9A84C] font-semibold">40% plus cher</span> sur ART-CORE
           </p>
 
-          <Link href="/pass-core/certifier"
+          <Link href="/pass-core/deposer"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#C9A84C] text-navy-DEFAULT font-semibold text-base active:brightness-90 transition-all shadow-[0_0_30px_rgba(201,168,76,0.2)]">
-            Certifier mon œuvre maintenant <ArrowRight className="size-5" />
+            <Upload className="size-5" />
+            Déposer une œuvre à vendre <ArrowRight className="size-5" />
           </Link>
+          <p className="text-white/30 text-[11px] mt-3">
+            Inscription + dépôt en une étape (artiste, galeriste, antiquaire, brocanteur, dépôt-vente).
+          </p>
+
+          <div className="mt-5">
+            <Link href="/pass-core/certifier"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#C9A84C]/30 text-[#C9A84C] text-sm font-medium active:bg-[#C9A84C]/10">
+              <ShieldCheck className="size-4" />
+              J&apos;ai déjà mon œuvre — la certifier
+            </Link>
+          </div>
 
           {/* 3 benefits */}
           <div className="mt-10 space-y-3 text-left max-w-sm mx-auto">
