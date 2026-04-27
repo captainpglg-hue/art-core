@@ -4,6 +4,7 @@ import { certifyOnChain, getConfig } from "@/lib/blockchain";
 import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
 import { uploadPhoto } from "@/lib/supabase-storage";
+import { autoSignupAndMaybeMerchant } from "@/lib/auto-signup";
 
 /**
  * POST /api/certify
@@ -21,6 +22,7 @@ import { uploadPhoto } from "@/lib/supabase-storage";
  */
 export async function POST(req: NextRequest) {
   const uploads: { field: string; url?: string; error?: string }[] = [];
+  let sessionTokenToSet: string | null = null;
   try {
     const token = req.cookies.get("core_session")?.value;
     let artistId: string | null = null;
@@ -30,14 +32,74 @@ export async function POST(req: NextRequest) {
       authUser = await getUserByToken(token);
       if (authUser?.id) artistId = authUser.id;
     }
+
+    // Parse le payload une fois — necessaire avant l'auth pour permettre
+    // l'auto-signup si pas de cookie mais user_email/user_name/user_role fournis.
+    const contentType = req.headers.get("content-type") || "";
+    const isMultipart = contentType.includes("multipart/form-data");
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+    if (isMultipart) {
+      formData = await req.formData();
+    } else {
+      try { jsonBody = await req.json(); } catch { jsonBody = null; }
+    }
+
+    // Auto-signup fallback : si pas de cookie mais user_email + user_name + user_role
+    // sont presents dans le payload, on cree le compte (et merchant si pro+infos)
+    // a la volee, on attache la session, et on continue. Le cookie est pose sur
+    // la reponse en fin de handler.
+    if (!artistId) {
+      const getField = (k: string): string => {
+        if (formData) return ((formData.get(k) as string) || "").trim();
+        if (jsonBody) return ((jsonBody[k] as string) || "").trim();
+        return "";
+      };
+      const userEmail = getField("user_email");
+      const userName = getField("user_name");
+      const userRole = getField("user_role");
+      if (userEmail && userName && userRole) {
+        try {
+          const sociale = getField("merchant_raison_sociale");
+          const merchantPayload = sociale
+            ? {
+                raison_sociale: sociale,
+                siret: getField("merchant_siret"),
+                activite: getField("merchant_activite") || userRole,
+                nom_gerant: getField("merchant_nom_gerant") || userName,
+                email: userEmail,
+                telephone: getField("user_phone"),
+                adresse: getField("merchant_adresse"),
+                code_postal: getField("merchant_code_postal"),
+                ville: getField("merchant_ville"),
+              }
+            : null;
+          const result = await autoSignupAndMaybeMerchant({
+            email: userEmail,
+            name: userName,
+            phone: getField("user_phone"),
+            role: userRole,
+            merchant: merchantPayload as any,
+          });
+          artistId = result.userId;
+          authUser = { id: result.userId, email: userEmail, name: userName, full_name: userName, role: userRole };
+          sessionTokenToSet = result.sessionToken;
+        } catch (e: any) {
+          console.error("[certify] auto-signup failed:", e?.message);
+          return NextResponse.json({
+            error: `Impossible de creer le compte : ${e?.message || "erreur inconnue"}.`,
+            code: "AUTO_SIGNUP_FAILED",
+          }, { status: 400 });
+        }
+      }
+    }
+
     if (!artistId) {
       return NextResponse.json(
-        { error: "Connexion requise pour certifier une œuvre. Connecte-toi sur /auth/login." },
+        { error: "Connexion requise pour certifier une œuvre. Renseigne tes coordonnees ou connecte-toi sur /auth/login." },
         { status: 401 }
       );
     }
-
-    const contentType = req.headers.get("content-type") || "";
 
     let title = "", description = "", technique = "", dimensions = "";
     let creation_date = "", category = "painting", price = 0;
@@ -71,8 +133,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await req.formData();
+    if (isMultipart && formData) {
       title = (formData.get("title") as string) || "";
       description = (formData.get("description") as string) || "";
       technique = (formData.get("technique") as string) || "";
@@ -129,7 +190,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // JSON fallback (tests desktop)
-      const body = await req.json();
+      const body = jsonBody || {};
       title = body.title || "";
       description = body.description || "";
       technique = body.technique || "";
@@ -262,9 +323,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const finalResponse = NextResponse.json({
       id,
       success: true,
+      auto_signup: sessionTokenToSet ? { user_id: artistId } : undefined,
       photos,
       photos_count: photos.length,
       macro_photo: macroPhotoPath,
@@ -291,6 +353,16 @@ export async function POST(req: NextRequest) {
       uploads_summary: uploads, // diag : chaque field et son URL ou son erreur
       artcore_url: artcoreUrl,
     });
+    if (sessionTokenToSet) {
+      finalResponse.cookies.set("core_session", sessionTokenToSet, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60,
+        path: "/",
+      });
+    }
+    return finalResponse;
   } catch (error: any) {
     console.error("Certification error:", error);
     return NextResponse.json({
