@@ -51,16 +51,29 @@ export default function CertifierPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [authUser, setAuthUser] = useState<any | null | "loading">("loading");
+  const [authUser, setAuthUser] = useState<any | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Check auth on mount — certify requires a valid user.id (UUID) on pass-core
   useEffect(() => {
     let alive = true;
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (alive) setAuthUser(j?.user || null); })
-      .catch(() => { if (alive) setAuthUser(null); });
-    return () => { alive = false; };
+      .then((j) => {
+        if (!alive) return;
+        setAuthUser(j?.user || null);
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setAuthUser(null);
+        setAuthChecked(true);
+      });
+    // Fallback : si pour une raison X la requete reste bloquee, on debloque l'UI apres 4s
+    const timeout = setTimeout(() => {
+      if (alive) setAuthChecked(true);
+    }, 4000);
+    return () => { alive = false; clearTimeout(timeout); };
   }, []);
   const [qualityScore, setQualityScore] = useState<any>(null);
   const [qualityScore2, setQualityScore2] = useState<any>(null);
@@ -503,23 +516,17 @@ export default function CertifierPage() {
         </div>
       )}
 
-      {/* ═══ AUTH LOADING ═══ */}
-      {step === "intro" && authUser === "loading" && (
-        <div className="animate-fade-in text-center pt-20">
-          <Loader2 className="size-8 text-[#C9A84C] animate-spin mx-auto mb-3" />
-          <p className="text-white/50 text-sm">Chargement…</p>
-        </div>
-      )}
-
-      {/* ═══ INTRO ═══ (connecté OU non — on identifie au step f_identification si null) */}
-      {step === "intro" && authUser !== "loading" && (
+      {/* ═══ INTRO ═══ — affichee immediatement, le statut auth se met a jour en arriere-plan */}
+      {step === "intro" && (
         <div className="animate-fade-in text-center pt-6">
           <div className="w-20 h-20 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center mx-auto mb-6">
             <ShieldCheck className="size-10 text-[#C9A84C]" />
           </div>
-          {authUser?.email
-            ? <p className="text-xs text-[#C9A84C]/70 mb-2">Connecté en tant que {authUser.name || authUser.email}</p>
-            : <p className="text-xs text-white/40 mb-2">Pas de compte ? Pas de problème — on le crée à la fin.</p>}
+          {!authChecked
+            ? <p className="text-xs text-white/30 mb-2"><Loader2 className="size-3 inline animate-spin mr-1" />Verification de la session…</p>
+            : authUser?.email
+              ? <p className="text-xs text-[#C9A84C]/70 mb-2">Connecté en tant que {authUser.name || authUser.email}</p>
+              : <p className="text-xs text-white/40 mb-2">Pas de compte ? Pas de problème — on le crée à la fin.</p>}
           <h1 className="font-display text-2xl font-semibold text-white mb-3">Certifiez votre œuvre en 5 minutes</h1>
           <p className="text-white/40 text-sm mb-8 leading-relaxed">
             ART-CORE vérifie que votre œuvre est originale. Ce processus protège votre travail et rassure les acheteurs.
