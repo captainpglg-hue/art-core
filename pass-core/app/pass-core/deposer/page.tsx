@@ -348,7 +348,14 @@ export default function PassCoreDeposerPage() {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelected} />
           </div>
-          <NavBar onBack={authedUser ? undefined : () => setStep("identite_account")} onNext={() => setStep("oeuvre")} />
+          {photos.length === 0 && (
+            <p className="text-xs text-amber-300/70 mb-2">Ajoutez au moins une photo pour continuer.</p>
+          )}
+          <NavBar
+            onBack={authedUser ? undefined : () => setStep("identite_account")}
+            onNext={() => setStep("oeuvre")}
+            nextDisabled={photos.length === 0}
+          />
         </div>
       )}
 

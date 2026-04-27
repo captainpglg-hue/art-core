@@ -56,6 +56,15 @@ export async function POST(req: NextRequest) {
     if (!price) { warnings.push("Prix manquant — défaut 0€."); price = 0; }
   }
 
+  // Au moins 1 photo obligatoire (qualite reste permissive, juste le nombre).
+  const photosCheck: string[] = Array.isArray(photos) ? photos.filter((p: any) => typeof p === "string" && p.trim()) : [];
+  if (photosCheck.length === 0) {
+    return NextResponse.json({
+      error: "Au moins une photo de l'oeuvre est obligatoire pour le depot.",
+      code: "PHOTO_REQUIRED",
+    }, { status: 400 });
+  }
+
   let plannedRole: string | null = user?.role || null;
   let cleanSiret: string | null = null;
 
