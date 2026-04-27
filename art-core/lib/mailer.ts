@@ -269,3 +269,81 @@ export async function sendCertificateEmail(
 
   return { success: true, previewUrl: localUrl };
 }
+
+// ── Magic Link Email ─────────────────────────────────────
+interface MagicLinkEmailParams {
+  to: string;
+  recipientName?: string;
+  verifyUrl: string;
+  intent: "login" | "signup";
+}
+
+export async function sendMagicLinkEmail(
+  params: MagicLinkEmailParams
+): Promise<{ success: boolean; error?: string; previewUrl?: string }> {
+  const trans = await getTransporter();
+
+  const greeting = params.recipientName
+    ? `Bonjour ${params.recipientName},`
+    : "Bonjour,";
+
+  const action = params.intent === "signup"
+    ? "Bienvenue sur ART-CORE. Cliquez sur le bouton ci-dessous pour finaliser votre inscription :"
+    : "Cliquez sur le bouton ci-dessous pour vous connecter à votre compte ART-CORE :";
+
+  const subject = params.intent === "signup"
+    ? "Bienvenue — finalisez votre inscription ART-CORE"
+    : "Votre lien de connexion ART-CORE";
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+    <div style="background:#1a1a1a;border:1px solid #D4AF37;border-radius:12px;padding:40px;">
+      <div style="text-align:center;margin-bottom:30px;">
+        <div style="font-size:28px;font-weight:bold;color:#D4AF37;margin-bottom:10px;">ART-CORE</div>
+        <p style="font-size:14px;color:#999;margin:0;">Marketplace d'art certifie</p>
+      </div>
+      <div style="font-size:18px;color:#fff;line-height:1.6;margin-bottom:20px;">${greeting}</div>
+      <p style="color:#ccc;line-height:1.6;margin-bottom:30px;">${action}</p>
+      <div style="text-align:center;margin:30px 0;">
+        <a href="${params.verifyUrl}" style="display:inline-block;padding:14px 32px;background:#D4AF37;color:#0a0a0a;font-weight:600;text-decoration:none;border-radius:8px;">Acceder a mon compte</a>
+      </div>
+      <p style="color:#888;font-size:12px;line-height:1.6;margin-top:30px;">
+        Ce lien est valable 15 minutes. Si vous n'avez pas demande cette connexion, ignorez ce message.
+      </p>
+      <div style="border-top:1px solid #333;margin-top:30px;padding-top:20px;text-align:center;">
+        <p style="color:#666;font-size:11px;margin:0;">Lien direct (au cas ou le bouton ne marche pas) :</p>
+        <p style="color:#999;font-size:11px;word-break:break-all;margin:6px 0 0;">${params.verifyUrl}</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:#555;font-size:11px;margin-top:20px;">ART-CORE &middot; Authenticate the Real</p>
+  </div>
+</body>
+</html>`;
+
+  const textContent = `${greeting}\n\n${action}\n\n${params.verifyUrl}\n\nLien valable 15 minutes. Ignorez si vous n'avez pas demande cette connexion.`;
+
+  const localUrl = await saveEmailLocally("magic-link", params.to, htmlContent);
+
+  if (trans) {
+    try {
+      await trans.sendMail({
+        from: process.env.SMTP_FROM || "noreply@art-core.app",
+        to: params.to,
+        subject,
+        html: htmlContent,
+        text: textContent,
+      });
+      return { success: true, previewUrl: localUrl };
+    } catch (error: any) {
+      console.error(`[mailer] magic-link SMTP failed: ${error.message}`);
+      return { success: false, error: error.message, previewUrl: localUrl };
+    }
+  }
+
+  // Pas de transport configure : on log mais on echoue (pas d'auth possible)
+  console.error("[mailer] no transport configured for magic-link email");
+  return { success: false, error: "no_email_transport_configured", previewUrl: localUrl };
+}
