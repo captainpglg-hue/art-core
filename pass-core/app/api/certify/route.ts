@@ -5,6 +5,14 @@ import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
 import { uploadPhoto } from "@/lib/supabase-storage";
 import { autoSignupAndMaybeMerchant } from "@/lib/auto-signup";
+import {
+  getMerchantForUser,
+  createPoliceRegisterEntry,
+  generateSingleFichePDF,
+  sendFicheEmail,
+} from "@/lib/fiche-police";
+
+const ROLES_FICHE_POLICE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
 
 /**
  * POST /api/certify
@@ -264,6 +272,59 @@ export async function POST(req: NextRequest) {
       throw new Error(`DB insert artwork failed: ${dbErr.message} (code=${dbErr.code ?? "n/a"})`);
     }
 
+    // Fiche de police pour les pros concernes (non bloquant)
+    // Aligne avec art-core/deposit-with-signup : meme logique, meme helpers.
+    let fichePolice: any = null;
+    const userRoleForFiche = (authUser as any)?.role || "";
+    if (ROLES_FICHE_POLICE.includes(userRoleForFiche)) {
+      try {
+        const merchant = await getMerchantForUser(artistId as string);
+        if (merchant) {
+          const photosArrFp: string[] = Array.isArray(photos)
+            ? (photos as any[]).filter((p: any) => typeof p === "string")
+            : [];
+          const artworkPayload = {
+            id, title, description, technique, dimensions,
+            creation_date, category,
+            price: Number(price) || 0,
+            photos: photosArrFp,
+          };
+          const created = await createPoliceRegisterEntry({
+            user: authUser as any,
+            merchant,
+            artwork: artworkPayload,
+            body: { source: "pass-core/certify" },
+          });
+          if (created) {
+            const pdfBuffer = await generateSingleFichePDF({
+              merchant,
+              entry: created.entry,
+              artwork: artworkPayload,
+              user: authUser as any,
+            });
+            const emailResult = await sendFicheEmail({
+              merchant,
+              entry: created.entry,
+              artwork: artworkPayload,
+              user: authUser as any,
+              pdfBuffer,
+            });
+            fichePolice = {
+              triggered: true,
+              entry_number: created.entryNumber,
+              email_sent: emailResult.success,
+              email_to: emailResult.to,
+            };
+          }
+        } else {
+          fichePolice = { triggered: false, reason: "merchant_introuvable" };
+        }
+      } catch (e: any) {
+        console.warn("[certify] fiche-police non bloquant:", e?.message);
+        fichePolice = { triggered: false, error: e?.message };
+      }
+    }
+
     // Betting markets — non-fatal si fail
     const mktTime = (globalThis.crypto?.randomUUID?.() as string) || `mkt-${Date.now()}-t`;
     const questionTime = `"${title}" sera-t-elle vendue en moins de 30 jours ?`;
@@ -327,6 +388,7 @@ export async function POST(req: NextRequest) {
       id,
       success: true,
       auto_signup: sessionTokenToSet ? { user_id: artistId } : undefined,
+      fiche_police: fichePolice,
       photos,
       photos_count: photos.length,
       macro_photo: macroPhotoPath,
