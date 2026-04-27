@@ -212,12 +212,17 @@ export async function POST(req: NextRequest) {
                 user: user as any,
                 pdfBuffer,
               });
+              const realEmailSent = emailResult.success
+                && emailResult.mode !== "storage-fallback";
               fichesPolice.push({
                 artwork_id: artwork.id,
                 triggered: true,
                 entry_number: created.entryNumber,
-                email_sent: emailResult.success,
+                email_sent: realEmailSent,
                 email_to: emailResult.to,
+                mode: emailResult.mode,
+                storage_url: (emailResult as any).storage_url,
+                note: (emailResult as any).note,
               });
             }
           } catch (e: any) {
