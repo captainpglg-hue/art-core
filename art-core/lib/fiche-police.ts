@@ -15,6 +15,31 @@ import PDFDocument from "pdfkit";
 import { getDb } from "@/lib/db";
 
 const CC_ADMIN = "captainpglg@gmail.com";
+
+// Lit un secret de plateforme depuis :
+//   1. process.env si defini, sinon
+//   2. la table Supabase platform_secrets (fallback runtime)
+// Permet de configurer RESEND_API_KEY/SMTP_PASS sans toucher Vercel env vars.
+let _secretsCache: Record<string, string> | null = null;
+async function getPlatformSecret(key: string): Promise<string> {
+  const fromEnv = process.env[key];
+  if (fromEnv && fromEnv.length > 6 && !fromEnv.includes("REMPLACE") && !fromEnv.includes("TO_FILL") && !fromEnv.toLowerCase().includes("placeholder")) {
+    return fromEnv;
+  }
+  if (_secretsCache && _secretsCache[key]) return _secretsCache[key];
+  try {
+    const sb = getDb();
+    const { data } = await sb.from("platform_secrets").select("key, value");
+    _secretsCache = {};
+    for (const row of (data || [])) {
+      _secretsCache[(row as any).key] = (row as any).value;
+    }
+    return _secretsCache[key] || "";
+  } catch (e) {
+    console.warn("[platform_secrets] read failed:", (e as any)?.message);
+    return "";
+  }
+}
 const NAVY = "#0D1B2A";
 const GOLD = "#B8960C";
 const DARK = "#1a1a1a";
@@ -330,7 +355,9 @@ export async function sendFicheEmail(args: {
     smtpPass.length > 6 &&
     !smtpPass.includes("COLLE_TON_MOT_DE_PASSE") &&
     !smtpPass.includes("TO_FILL");
-  const RESEND = String(process.env.RESEND_API_KEY || "");
+  // RESEND : on regarde d'abord process.env, sinon on lit la table
+  // platform_secrets dans Supabase (fallback runtime).
+  const RESEND = String(await getPlatformSecret("RESEND_API_KEY") || "");
   // On rejette uniquement les placeholders evidents. Tout le reste tentera
   // l'appel Resend qui renverra une erreur claire si invalide.
   const hasResend =
