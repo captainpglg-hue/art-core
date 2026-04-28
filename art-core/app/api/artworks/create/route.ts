@@ -10,13 +10,22 @@
 //   - Si user n'a pas encore de seller_profile : oeuvre marquee
 //     pending_seller_profile=true, n'est PAS publiee tant que le formulaire 2
 //     (caracteristiques vendeur) n'est pas valide
+//   - Si user a deja un seller_profile pro : declenche la fiche police PDF +
+//     email immediatement (CC admin captainpglg@gmail.com)
 // =============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getDb, getUserByToken } from "@/lib/db";
 import { generateFingerprint, compareFingerprintsHamming } from "@/lib/fingerprint";
+import {
+  getMerchantForUser,
+  createPoliceRegisterEntry,
+  generateSingleFichePDF,
+  sendFicheEmail,
+} from "@/lib/fiche-police";
 
 const DUPLICATE_THRESHOLD = 99;
+const ROLES_FICHE_POLICE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
 
 async function downloadImage(url: string): Promise<Buffer> {
   const res = await fetch(url, { redirect: "follow" });
@@ -174,11 +183,51 @@ export async function POST(req: NextRequest) {
       console.log("[artworks/create] geo for " + artworkId + ":", JSON.stringify(geolocation));
     }
 
+    // Fiche police automatique pour les pros (rôle dans seller_profile).
+    let fichePolice: any = null;
+    if (hasProfile && profile && ROLES_FICHE_POLICE.includes((profile as any).role)) {
+      try {
+        const merchant = await getMerchantForUser(userId);
+        if (merchant) {
+          const artworkPayload = {
+            id: artworkId, title, description, technique, dimensions,
+            creation_date, category,
+            price: Number(price) || 0, photos: photosArr,
+          };
+          const created = await createPoliceRegisterEntry({
+            user: user as any, merchant, artwork: artworkPayload,
+            body: { source: "artworks/create" },
+          });
+          if (created) {
+            const pdfBuffer = await generateSingleFichePDF({
+              merchant, entry: created.entry, artwork: artworkPayload, user: user as any,
+            });
+            const emailResult = await sendFicheEmail({
+              merchant, entry: created.entry, artwork: artworkPayload, user: user as any, pdfBuffer,
+            });
+            const realEmailSent = emailResult.success && emailResult.mode !== "storage-fallback";
+            fichePolice = {
+              triggered: true,
+              entry_number: created.entryNumber,
+              email_sent: realEmailSent,
+              email_to: emailResult.to,
+              mode: emailResult.mode,
+              storage_url: (emailResult as any).storage_url,
+            };
+          }
+        }
+      } catch (e: any) {
+        console.warn("[artworks/create] fiche-police non bloquant:", e?.message);
+        fichePolice = { triggered: false, error: e?.message };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       artwork_id: artworkId,
       pending_seller_profile: !hasProfile,
       next_step: hasProfile ? "published" : "seller_profile",
+      fiche_police: fichePolice,
       certification: {
         status: "certified",
         fingerprint_version: 1,
