@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getUserByToken, query, queryAll } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -30,7 +31,10 @@ export async function POST(req: NextRequest) {
     const ids = [user.id, receiver_id].sort();
     const conversationId = artwork_id ? `conv_${ids[0]}_${ids[1]}_${artwork_id}` : `conv_${ids[0]}_${ids[1]}`;
 
-    const msgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // messages.id est de type uuid en DB. Avant 2026-04-29, on passait
+    // un id format "msg_<ts>_<rand>" qui faisait crasher Postgres avec
+    // 22P02 "invalid input syntax for type uuid". Fix : générer un vrai UUID.
+    const msgId = crypto.randomUUID();
     await query(
       "INSERT INTO messages (id, conversation_id, sender_id, receiver_id, artwork_id, content) VALUES (?, ?, ?, ?, ?, ?)",
       [msgId, conversationId, user.id, receiver_id, artwork_id || null, content]

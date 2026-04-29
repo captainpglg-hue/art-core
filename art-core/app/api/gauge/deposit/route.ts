@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { query, queryOne, getUserByToken } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     if (locked) {
       // Notify artist
-      const nId = `notif_${Date.now()}`;
+      const nId = crypto.randomUUID();
       await query("INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'gauge_locked', 'Jauge verrouillée !', ?, ?)", [nId, artwork.artist_id, `La jauge de "${artwork.title}" a atteint 100 points ! Vente garantie.`, `/art-core/oeuvre/${artwork_id}`]);
     }
 

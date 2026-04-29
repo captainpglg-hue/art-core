@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const shortId = user.id.replace(/-/g, "").slice(0, 4).toUpperCase();
     const senderTag = isOwner ? `Propriétaire_${shortId}` : `Initié_${shortId}`;
 
-    const msgId = `pcmsg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const msgId = crypto.randomUUID();
 
     await query(
       "INSERT INTO pass_core_messages (id, pass_core_id, sender_id, content, is_owner, sender_tag) VALUES (?, ?, ?, ?, ?, ?)",

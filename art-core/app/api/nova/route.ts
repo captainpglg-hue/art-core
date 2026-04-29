@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getUserByToken, query, queryOne } from "@/lib/db";
 
 function generateNovaNumber(type: string): string {
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Notification
-    const nId = `notif_${Date.now()}`;
+    const nId = crypto.randomUUID();
     await query("INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'nova', ?, ?, '/art-core/nova-bank')",
       [nId, user.id, `Bienvenue chez Nova Bank !`,
         `Votre compte ${novaNumber} est ouvert. ${bonusAmount}€ crédités !`]);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { query, queryOne, getUserByToken } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     for (const entryId of entryIds) {
       const entry = await queryOne("SELECT initiate_id FROM gauge_entries WHERE id = ?", [entryId]) as any;
       if (entry) {
-        const nId = `notif_${Date.now()}`;
+        const nId = crypto.randomUUID();
         await query("INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'gauge_empty', 'Jauge annulée', ?, ?)", [nId, entry.initiate_id, `La jauge de "${artwork.title}" a été annulée. Vos points sont remboursés.`, `/art-core/oeuvre/${artwork_id}`]);
       }
     }

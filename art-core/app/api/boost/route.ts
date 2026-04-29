@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getUserByToken, query, queryOne } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // Notify artist at milestones
     if ([10, 25, 50, 100].includes(newCount)) {
-      const nId = `notif_${Date.now()}`;
+      const nId = crypto.randomUUID();
       const msg = newCount >= 50
         ? `"${artwork.title}" a reçu ${newCount} boosts ! Mise en avant algorithmique activée.`
         : `"${artwork.title}" a reçu ${newCount} boosts communautaires !`;

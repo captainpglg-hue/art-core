@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Notify admin
-    const nId = `notif_${Date.now()}`;
+    const nId = crypto.randomUUID();
     await query(
       "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Nouvelle certification', ?, '/admin/certifications')",
       [nId, 'usr_admin_1', `${user.name} soumet "${title}" pour certification.`]
@@ -123,7 +123,7 @@ export async function PUT(req: NextRequest) {
         "UPDATE artworks SET certification_status = ?, status = ?, blockchain_hash = ?, blockchain_tx_id = ?, certification_date = NOW() WHERE id = ?",
         ["approved", "for_sale", hash, txId, artwork_id]
       );
-      const nId = `notif_${Date.now()}`;
+      const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Oeuvre certifiee !', ?, ?)",
         [nId, artwork.artist_id, `"${artwork.title}" est maintenant certifiee. Le badge est actif.`, `/art-core/oeuvre/${artwork_id}`]
@@ -132,14 +132,14 @@ export async function PUT(req: NextRequest) {
       // awardPoints(artwork.artist_id, 100, "certification_bonus", artwork_id, `Certification approuvee : ${artwork.title}`);
     } else if (action === "reject") {
       await query("UPDATE artworks SET certification_status = ? WHERE id = ?", ["rejected", artwork_id]);
-      const nId = `notif_${Date.now()}`;
+      const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Certification refusee', ?, ?)",
         [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Photos insuffisantes."}`, `https://pass-core.app/pass-core/certifier`]
       );
     } else if (action === "revision") {
       await query("UPDATE artworks SET certification_status = ? WHERE id = ?", ["revision", artwork_id]);
-      const nId = `notif_${Date.now()}`;
+      const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Retouche demandee', ?, ?)",
         [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Merci de reprendre les photos."}`, `https://pass-core.app/pass-core/certifier`]

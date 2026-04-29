@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
 
 export async function GET() {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Notify
-    const nId = `notif_${Date.now()}`;
+    const nId = crypto.randomUUID();
     await query(
       "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'promo', 'Promotion activée !', ?, '/art-core/boutique-promotion')",
       [nId, user.id, `"${item.name}" est maintenant active.`]
