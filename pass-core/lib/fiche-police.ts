@@ -289,7 +289,10 @@ function getFirstPhotoUrl(photos: any): string | null {
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
-    const res = await fetch(url);
+    // Timeout 5 s pour ne jamais figer la génération PDF si la photo (Cloudinary,
+    // Supabase Storage, externe) ne répond pas. Identifié comme cause probable
+    // du hang historique de /api/deposit-with-signup pour les comptes pros.
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     const ab = await res.arrayBuffer();
     return Buffer.from(ab);
@@ -425,6 +428,11 @@ export async function sendFicheEmail(args: {
         port: parseInt(process.env.SMTP_PORT || "587"),
         secure: process.env.SMTP_SECURE === "true",
         auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
+        // Timeouts explicites — par défaut nodemailer attend ~10 min, ce qui
+        // faisait pendre /api/deposit-with-signup quand SMTP était mal configuré.
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 7000,
       });
       await transporter.sendMail({
         from, to, cc: CC_ADMIN, subject, html,
@@ -456,6 +464,7 @@ export async function sendFicheEmail(args: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(7000),
       });
       if (resp.ok) {
         const j = await resp.json().catch(() => ({}));
@@ -484,6 +493,7 @@ export async function sendFicheEmail(args: {
               </p>${html}`,
               attachments: [{ filename: attachmentName, content: pdfBuffer.toString("base64") }],
             }),
+            signal: AbortSignal.timeout(7000),
           });
           if (fallback.ok) {
             console.log(`[fiche-police] fallback admin envoye a ${CC_ADMIN} via onboarding@resend.dev`);

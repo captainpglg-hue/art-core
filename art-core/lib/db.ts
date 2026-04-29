@@ -36,6 +36,19 @@ export const sql =
 
 if (process.env.NODE_ENV !== "production") globalThis.__pg = sql;
 
+// Plafond de temps pour CHAQUE appel postgres-js : si le pooler est injoignable,
+// on lève une erreur synthétique au bout de 6 s pour basculer sur le fallback REST.
+// Sans ce garde-fou, /api/deposit-with-signup pendait 40 s+ en production.
+const PG_QUERY_TIMEOUT_MS = 6000;
+function withPgTimeout<T>(p: Promise<T>, label: string): Promise<T> {
+  return Promise.race<T>([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`postgres timeout (${PG_QUERY_TIMEOUT_MS}ms) on ${label}`)), PG_QUERY_TIMEOUT_MS)
+    ),
+  ]);
+}
+
 // ----------------------------------------------------------------------------
 // REST helpers (PostgREST via Supabase)
 // ----------------------------------------------------------------------------
@@ -261,11 +274,11 @@ export async function query(text: string, params: any[] = []): Promise<number> {
   if (globalThis.__pgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const result = await sql.unsafe(pgText, params);
+      const result = await withPgTimeout(sql.unsafe(pgText, params), "query");
       globalThis.__pgOk = true;
       return result.count ?? 0;
     } catch (e: any) {
-      if (isAuthError(e)) globalThis.__pgOk = false;
+      if (isAuthError(e) || isTimeoutError(e)) globalThis.__pgOk = false;
       else throw e;
     }
   }
@@ -277,11 +290,11 @@ export async function queryOne<T = any>(text: string, params: any[] = []): Promi
   if (globalThis.__pgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const rows = await sql.unsafe<T[]>(pgText, params);
+      const rows = await withPgTimeout(sql.unsafe<T[]>(pgText, params), "queryOne");
       globalThis.__pgOk = true;
       return rows[0];
     } catch (e: any) {
-      if (isAuthError(e)) globalThis.__pgOk = false;
+      if (isAuthError(e) || isTimeoutError(e)) globalThis.__pgOk = false;
       else throw e;
     }
   }
@@ -293,16 +306,20 @@ export async function queryAll<T = any>(text: string, params: any[] = []): Promi
   if (globalThis.__pgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const rows = await sql.unsafe<T[]>(pgText, params);
+      const rows = await withPgTimeout(sql.unsafe<T[]>(pgText, params), "queryAll");
       globalThis.__pgOk = true;
       return rows;
     } catch (e: any) {
-      if (isAuthError(e)) globalThis.__pgOk = false;
+      if (isAuthError(e) || isTimeoutError(e)) globalThis.__pgOk = false;
       else throw e;
     }
   }
   const { rows } = await sqlViaRest(text, params);
   return rows as T[];
+}
+
+function isTimeoutError(e: any): boolean {
+  return /postgres timeout/i.test(e?.message || "");
 }
 
 function isAuthError(e: any): boolean {

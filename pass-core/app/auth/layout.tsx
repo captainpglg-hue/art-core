@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: { default: "Authentification", template: "%s | ART-CORE" },
+  title: { default: "Authentification", template: "%s | PASS-CORE" },
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -34,40 +34,30 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Logo */}
           <div>
             <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide">
-              ART-CORE
+              PASS-CORE
             </span>
             <p className="text-white/40 text-xs mt-1 tracking-[0.2em] uppercase">
-              Unveil the Unique
+              Authenticate the Real
             </p>
           </div>
 
           {/* Central text */}
           <div className="max-w-md">
             <h1 className="text-4xl xl:text-5xl font-display font-light text-white leading-tight mb-6">
-              L&apos;art d&apos;exception,{" "}
-              <span className="text-gold-gradient font-normal">certifié.</span>
+              Certifiez vos œuvres,{" "}
+              <span className="text-gold-gradient font-normal">en un clic.</span>
             </h1>
             <p className="text-white/50 text-base leading-relaxed">
-              Achetez, vendez et louez des œuvres d&apos;art uniques avec
-              certification blockchain via Pass-Core.
+              Inscription + dépôt en une seule étape. Génération automatique de la
+              fiche de police pour les antiquaires, brocanteurs, galeristes et
+              dépôts-vente.
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="flex gap-10">
-            {[
-              { value: "2 400+", label: "Œuvres certifiées" },
-              { value: "340", label: "Artistes actifs" },
-              { value: "€12M", label: "Volume échangé" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-2xl font-bold text-gold tabular-nums">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-white/40 mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+          {/* Hint vers le parcours rapide */}
+          <p className="text-xs text-white/40">
+            Conforme Art. 321-7 du Code pénal — Registre des objets mobiliers.
+          </p>
         </div>
       </div>
 
@@ -77,7 +67,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Mobile logo */}
           <div className="lg:hidden mb-10 text-center">
             <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide">
-              ART-CORE
+              PASS-CORE
             </span>
           </div>
           {children}
