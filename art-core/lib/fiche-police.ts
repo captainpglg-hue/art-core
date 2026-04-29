@@ -17,26 +17,49 @@ import { getDb } from "@/lib/db";
 const CC_ADMIN = "captainpglg@gmail.com";
 
 // Lit un secret de plateforme depuis :
-//   1. process.env si defini, sinon
+//   1. process.env si défini ET non-placeholder, sinon
 //   2. la table Supabase platform_secrets (fallback runtime)
 // Permet de configurer RESEND_API_KEY/SMTP_PASS sans toucher Vercel env vars.
+//
+// Logging explicite pour pouvoir diagnostiquer en prod sans exposer la valeur.
 let _secretsCache: Record<string, string> | null = null;
 async function getPlatformSecret(key: string): Promise<string> {
   const fromEnv = process.env[key];
-  if (fromEnv && fromEnv.length > 6 && !fromEnv.includes("REMPLACE") && !fromEnv.includes("TO_FILL") && !fromEnv.toLowerCase().includes("placeholder")) {
+  const envLen = fromEnv?.length ?? 0;
+  const envIsPlaceholder = !!fromEnv && (
+    fromEnv.includes("REMPLACE") ||
+    fromEnv.includes("TO_FILL") ||
+    fromEnv.toLowerCase().includes("placeholder")
+  );
+  if (fromEnv && envLen > 6 && !envIsPlaceholder) {
+    console.log(`[platform_secrets] ${key} RESEND_KEY_FROM_ENV (len=${envLen})`);
     return fromEnv;
   }
-  if (_secretsCache && _secretsCache[key]) return _secretsCache[key];
+  console.log(`[platform_secrets] ${key} env rejected: present=${!!fromEnv} len=${envLen} placeholder=${envIsPlaceholder} → tries DB fallback`);
+
+  if (_secretsCache && _secretsCache[key]) {
+    console.log(`[platform_secrets] ${key} RESEND_KEY_FROM_CACHE`);
+    return _secretsCache[key];
+  }
   try {
     const sb = getDb();
-    const { data } = await sb.from("platform_secrets").select("key, value");
+    const { data, error } = await sb.from("platform_secrets").select("key, value");
+    if (error) {
+      console.warn(`[platform_secrets] DB select error: ${error.message} (table absent ?)`);
+    }
     _secretsCache = {};
     for (const row of (data || [])) {
       _secretsCache[(row as any).key] = (row as any).value;
     }
-    return _secretsCache[key] || "";
+    const found = _secretsCache[key] || "";
+    if (found) {
+      console.log(`[platform_secrets] ${key} RESEND_KEY_FROM_DB (len=${found.length})`);
+    } else {
+      console.warn(`[platform_secrets] ${key} NOT FOUND anywhere — env_rejected AND db_empty`);
+    }
+    return found;
   } catch (e) {
-    console.warn("[platform_secrets] read failed:", (e as any)?.message);
+    console.warn(`[platform_secrets] ${key} DB read threw: ${(e as any)?.message}`);
     return "";
   }
 }
@@ -314,7 +337,9 @@ function getFirstPhotoUrl(photos: any): string | null {
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
-    const res = await fetch(url);
+    // Timeout 5 s pour ne jamais figer la génération PDF si la photo (Cloudinary,
+    // Supabase Storage, externe) ne répond pas.
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     const ab = await res.arrayBuffer();
     return Buffer.from(ab);
@@ -370,8 +395,19 @@ export async function sendFicheEmail(args: {
   // Storage : le PDF est stocké dans Supabase Storage pour que l'admin le récupère
   // manuellement depuis /admin/fiches-pending.
   if (!hasSmtp && !hasResend) {
-    const keyPreview = RESEND ? `${RESEND.slice(0, 3)}...(${RESEND.length} chars)` : "(missing)";
-    console.warn(`[fiche-police] aucune config email, bascule sur Storage fallback. RESEND_API_KEY=${keyPreview}`);
+    const keyPreview = RESEND ? `${RESEND.slice(0, 3)}…(${RESEND.length} chars)` : "(missing)";
+    // Diagnostique précisément quelle vérif a fait basculer en storage-fallback.
+    const reasons: string[] = [];
+    if (!process.env.SMTP_HOST) reasons.push("SMTP_HOST missing");
+    if (!process.env.SMTP_USER) reasons.push("SMTP_USER missing");
+    if (smtpPass.length <= 6) reasons.push(`SMTP_PASS too short (${smtpPass.length})`);
+    if (smtpPass.includes("COLLE_TON_MOT_DE_PASSE")) reasons.push("SMTP_PASS placeholder");
+    if (smtpPass.includes("TO_FILL")) reasons.push("SMTP_PASS TO_FILL");
+    if (RESEND.length <= 6) reasons.push(`RESEND too short (${RESEND.length})`);
+    if (RESEND.includes("REMPLACE")) reasons.push("RESEND placeholder REMPLACE");
+    if (RESEND.includes("TO_FILL")) reasons.push("RESEND placeholder TO_FILL");
+    if (RESEND.toLowerCase().includes("placeholder")) reasons.push("RESEND literal 'placeholder'");
+    console.warn(`[fiche-police] STORAGE_FALLBACK reasons=[${reasons.join(", ")}] RESEND_API_KEY=${keyPreview}`);
     try {
       const { uploadFichePDF } = await import("@/lib/fiches-storage");
       const storageUrl = await uploadFichePDF(entry.id, pdfBuffer);
@@ -382,7 +418,7 @@ export async function sendFicheEmail(args: {
         to: merchant.email || user.email || "",
         from: process.env.SMTP_FROM || process.env.EMAIL_FROM || "noreply@core-ecosystem.art",
         storage_url: storageUrl,
-        note: "Email indisponible — fiche disponible dans /admin/fiches-pending pour envoi manuel",
+        note: `Email indisponible (${reasons.join(", ") || "no transport configured"}) — fiche disponible dans /admin/fiches-pending pour envoi manuel`,
       };
     } catch (e: any) {
       console.error("[fiche-police] Storage fallback failed:", e.message);
@@ -392,6 +428,7 @@ export async function sendFicheEmail(args: {
       };
     }
   }
+  console.log(`[fiche-police] transport choice: hasSmtp=${hasSmtp} hasResend=${hasResend} RESEND_len=${RESEND.length}`);
 
   const priceFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(entry.purchase_price) || 0);
   const photoUrl = getFirstPhotoUrl(artwork.photos);
@@ -452,6 +489,11 @@ export async function sendFicheEmail(args: {
         port: parseInt(process.env.SMTP_PORT || "587"),
         secure: process.env.SMTP_SECURE === "true",
         auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
+        // Timeouts explicites — par défaut nodemailer attend ~10 min, ce qui
+        // faisait pendre /api/deposit-with-signup quand SMTP était mal configuré.
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 7000,
       });
       await transporter.sendMail({
         from, to, cc: CC_ADMIN, subject, html,
@@ -483,14 +525,15 @@ export async function sendFicheEmail(args: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(7000),
       });
       if (resp.ok) {
         const j = await resp.json().catch(() => ({}));
-        console.log(`[fiche-police] email Resend API envoye a ${to}, id=${j?.id}`);
+        console.log(`[fiche-police] RESEND_SDK_OK to=${to} id=${j?.id}`);
         return { success: true, mode: "resend-api", to, from };
       }
       const errTxt = await resp.text();
-      console.warn(`[fiche-police] Resend API ${resp.status}:`, errTxt);
+      console.warn(`[fiche-police] RESEND_SDK_ERROR status=${resp.status} body=${errTxt.slice(0, 200)}`);
 
       // ── Dernier recours : envoyer uniquement au CC_ADMIN depuis onboarding@resend.dev ──
       // Resend autorise toujours onboarding@resend.dev → owner du compte (captainpglg@gmail.com).
@@ -511,6 +554,7 @@ export async function sendFicheEmail(args: {
               </p>${html}`,
               attachments: [{ filename: attachmentName, content: pdfBuffer.toString("base64") }],
             }),
+            signal: AbortSignal.timeout(7000),
           });
           if (fallback.ok) {
             console.log(`[fiche-police] fallback admin envoye a ${CC_ADMIN} via onboarding@resend.dev`);
@@ -524,7 +568,7 @@ export async function sendFicheEmail(args: {
       }
       return { success: false, mode: "resend-api", error: errTxt.slice(0, 300), to, from };
     } catch (e: any) {
-      console.warn("[fiche-police] Resend API exception:", e.message);
+      console.warn(`[fiche-police] RESEND_SDK_EXCEPTION ${e.message}`);
       return { success: false, mode: "resend-api", error: e.message, to, from };
     }
   }
