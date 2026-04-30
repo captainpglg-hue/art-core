@@ -406,23 +406,72 @@ export async function getArtworkById(id: string) {
   }
 }
 
-export async function getArtworks(opts: { artistId?: string; limit?: number } = {}) {
-  const { artistId, limit = 50 } = opts;
+export interface GetArtworksOpts {
+  artistId?: string;
+  /** Filtre par catégorie (peinture, sculpture, ...). "all" ou undefined = pas de filtre. */
+  category?: string;
+  /** Filtre par statut (available, sold, reserved, ...). undefined = pas de filtre. */
+  status?: string;
+  /** Recherche full-text sur title (case-insensitive). undefined = pas de filtre. */
+  search?: string;
+  /** Tri : "newest" (default), "oldest", "price_asc", "price_desc". */
+  sort?: "newest" | "oldest" | "price_asc" | "price_desc";
+  limit?: number;
+}
+
+export async function getArtworks(opts: GetArtworksOpts = {}) {
+  const { artistId, category, status, search, sort = "newest", limit = 50 } = opts;
+
+  const orderBy =
+    sort === "price_asc" || sort === "price_desc" ? "price" : "created_at";
+  const orderDir: "asc" | "desc" =
+    sort === "oldest" || sort === "price_asc" ? "asc" : "desc";
+
   try {
-    const filters: any = {};
-    if (artistId) filters.artist_id = artistId;
-    const arts = await restSelect("artworks", filters, { limit, orderBy: "created_at", orderDir: "desc" });
-    // Enrichir avec user infos
-    const artistIds = [...new Set(arts.map((a: any) => a.artist_id))];
-    const users = artistIds.length ? await restSelect("users", {}, { columns: "id,full_name,username,avatar_url" }) : [];
-    const byId: any = {};
-    for (const u of users) byId[u.id] = u;
-    return arts.map((a: any) => ({ ...a, artist_name: byId[a.artist_id]?.full_name, artist_username: byId[a.artist_id]?.username, artist_avatar: byId[a.artist_id]?.avatar_url }));
+    // PostgREST : filtres supplémentaires (category eq, status eq, ilike sur title)
+    const qs: string[] = ["select=*"];
+    if (artistId) qs.push(`artist_id=eq.${encodeURIComponent(artistId)}`);
+    if (category) qs.push(`category=eq.${encodeURIComponent(category)}`);
+    if (status) qs.push(`status=eq.${encodeURIComponent(status)}`);
+    if (search) qs.push(`title=ilike.${encodeURIComponent(`%${search}%`)}`);
+    qs.push(`order=${orderBy}.${orderDir}`);
+    qs.push(`limit=${limit}`);
+    const r = await restFetch(`artworks?${qs.join("&")}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!r.ok) throw new Error(`REST select artworks ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const arts: Array<Record<string, unknown>> = await r.json();
+
+    const artistIds = [...new Set(arts.map((a) => a.artist_id as string))];
+    const users = artistIds.length
+      ? await restSelect("users", {}, { columns: "id,full_name,username,avatar_url" })
+      : [];
+    const byId: Record<string, { full_name?: string; username?: string; avatar_url?: string }> = {};
+    for (const u of users) byId[u.id as string] = u;
+    return arts.map((a) => ({
+      ...a,
+      artist_name: byId[a.artist_id as string]?.full_name,
+      artist_username: byId[a.artist_id as string]?.username,
+      artist_avatar: byId[a.artist_id as string]?.avatar_url,
+    }));
   } catch {
-    const join = `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-                  FROM artworks a JOIN users u ON a.artist_id = u.id`;
-    if (artistId) return queryAll<any>(`${join} WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`, [artistId, limit]);
-    return queryAll<any>(`${join} ORDER BY a.created_at DESC LIMIT ?`, [limit]);
+    // Fallback SQL direct via postgres-js. Construit la WHERE et l'ORDER dynamiquement.
+    const where: string[] = [];
+    const params: unknown[] = [];
+    if (artistId) { where.push("a.artist_id = ?"); params.push(artistId); }
+    if (category) { where.push("a.category = ?"); params.push(category); }
+    if (status) { where.push("a.status = ?"); params.push(status); }
+    if (search) { where.push("a.title ILIKE ?"); params.push(`%${search}%`); }
+    const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const orderColumn = orderBy === "price" ? "a.price" : "a.created_at";
+    const sqlText = `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+                     FROM artworks a JOIN users u ON a.artist_id = u.id
+                     ${whereClause}
+                     ORDER BY ${orderColumn} ${orderDir.toUpperCase()}
+                     LIMIT ?`;
+    params.push(limit);
+    return queryAll<Record<string, unknown>>(sqlText, params);
   }
 }
 

@@ -1,6 +1,8 @@
-const CACHE_NAME = "passcore-v2";
+// SW v3 — ne cache PAS /api/, /_next/, ni les pages HTML.
+// Voir art-core/public/sw.js pour le diagnostic complet (ChunkLoadError + React #423).
+
+const CACHE_NAME = "passcore-v3";
 const STATIC_ASSETS = [
-  "/pass-core/certifier",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
 ];
@@ -24,15 +26,29 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const accept = request.headers.get("accept") || "";
+  const isHtml = request.mode === "navigate" || accept.includes("text/html");
+  const isApi = url.pathname.startsWith("/api/");
+  const isNext = url.pathname.startsWith("/_next/");
+
+  if (isApi || isNext || isHtml) {
+    return;
+  }
+
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok && request.url.startsWith(self.location.origin)) {
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      })
-      .catch(() => caches.match(request))
+      });
+    })
   );
 });

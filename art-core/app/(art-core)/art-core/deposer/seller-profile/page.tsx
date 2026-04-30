@@ -35,12 +35,19 @@ function SellerProfileForm() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let alive = true;
+    // Garde-fou 4s contre hang silencieux de /api/auth/me (cf. CLAUDE.md).
+    const timer = setTimeout(() => { if (alive) setAuthChecked(true); }, 4000);
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d) => {
+        if (!alive) return;
         if (!d?.user?.id) router.replace("/auth/login?redirectTo=/art-core/deposer/seller-profile");
+        setAuthChecked(true);
       })
-      .finally(() => setAuthChecked(true));
+      .catch(() => { if (alive) setAuthChecked(true); })
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); };
   }, [router]);
 
   const isPro = STATUTS.find((s) => s.value === role)?.isPro || false;

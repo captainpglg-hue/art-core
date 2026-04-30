@@ -84,14 +84,24 @@ export default function DeposerPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let alive = true;
+    // Garde-fou 4s contre hang silencieux de /api/auth/me (cf. CLAUDE.md).
+    const timer = setTimeout(() => { if (alive) setAuthChecked(true); }, 4000);
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d) => {
+        if (!alive) return;
         if (d?.user?.id) setAuthedUser(d.user);
         else router.replace("/auth/login?redirectTo=/art-core/deposer");
+        setAuthChecked(true);
       })
-      .catch(() => router.replace("/auth/login?redirectTo=/art-core/deposer"))
-      .finally(() => setAuthChecked(true));
+      .catch(() => {
+        if (!alive) return;
+        router.replace("/auth/login?redirectTo=/art-core/deposer");
+        setAuthChecked(true);
+      })
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); };
   }, [router]);
 
   function captureGeo() {

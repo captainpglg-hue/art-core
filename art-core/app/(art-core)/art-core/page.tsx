@@ -28,13 +28,18 @@ interface PageProps {
 }
 
 async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["searchParams"]> }) {
+  const sortValue = searchParams.sort;
+  const sort: "newest" | "oldest" | "price_asc" | "price_desc" =
+    sortValue === "oldest" || sortValue === "price_asc" || sortValue === "price_desc"
+      ? sortValue
+      : "newest";
   const artworks = await getArtworks({
     status: searchParams.status || undefined,
     category: searchParams.category && searchParams.category !== "all" ? searchParams.category : undefined,
     search: searchParams.q || undefined,
-    sort: searchParams.sort || "newest",
+    sort,
     limit: 60,
-  } as any);
+  });
 
   let parsed = artworks.map((a) => ({
     ...a,

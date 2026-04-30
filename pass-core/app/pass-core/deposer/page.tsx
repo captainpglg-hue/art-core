@@ -84,16 +84,20 @@ export default function PassCoreDeposerPage() {
   // Cela evite tout rattachement silencieux d'une oeuvre a un compte demo
   // ou a une session oubliee.
   useEffect(() => {
+    let alive = true;
+    // Garde-fou : si /api/auth/me hang silencieusement (réseau, edge timeout),
+    // on débloque l'UI au bout de 4s pour éviter d'être coincé sur "Chargement...".
+    const timer = setTimeout(() => { if (alive) setAuthChecked(true); }, 4000);
     fetch("/api/auth/me")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
-        if (d?.user?.id) {
-          setAuthedUser(d.user);
-          // Pas de setStep ici. La banniere (cf. JSX plus bas) prend le relais.
-        }
+        if (!alive) return;
+        if (d?.user?.id) setAuthedUser(d.user);
+        setAuthChecked(true);
       })
-      .catch(() => {})
-      .finally(() => setAuthChecked(true));
+      .catch(() => { if (alive) setAuthChecked(true); })
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); };
   }, []);
 
   async function handleLogoutAndContinueAsGuest() {
