@@ -11,6 +11,7 @@
 // ============================================================================
 
 import postgres from "postgres";
+import type { Tables } from "@/types/supabase";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 const SUPA_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -352,16 +353,16 @@ export async function deleteSession(token: string) {
   catch { await query("DELETE FROM sessions WHERE token = ?", [token]); }
 }
 
-export async function getUserByToken(token: string) {
+export async function getUserByToken(token: string): Promise<Tables<"users"> | undefined> {
   try {
     const sessions = await restSelect("sessions", { token }, { limit: 1 });
     const s = sessions[0];
     if (!s) return undefined;
     if (new Date(s.expires_at) <= new Date()) return undefined;
     const users = await restSelect("users", { id: s.user_id }, { limit: 1 });
-    return users[0];
+    return users[0] as Tables<"users"> | undefined;
   } catch {
-    return queryOne<any>(
+    return queryOne<Tables<"users">>(
       `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
       [token]
     );

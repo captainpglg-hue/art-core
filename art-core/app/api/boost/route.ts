@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const BOOST_COST = 1; // 1 point per boost
 
-    if (user.points_balance < BOOST_COST) {
+    if ((user.points_balance ?? 0) < BOOST_COST) {
       return NextResponse.json({ error: "Points insuffisants (1 pt requis)" }, { status: 400 });
     }
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       boost_count: newCount,
       auto_highlighted: autoHighlight === 1,
-      new_balance: user.points_balance - BOOST_COST,
+      new_balance: (user.points_balance ?? 0) - BOOST_COST,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

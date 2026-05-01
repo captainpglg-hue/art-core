@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserByToken(token);
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     const allowedRoles = ["artist", "admin", "antiquaire", "galeriste", "brocanteur", "depot_vente"];
-    if (!allowedRoles.includes(user.role)) {
+    if (!user.role || !allowedRoles.includes(user.role)) {
       return NextResponse.json({ error: "Votre rôle ne permet pas de déposer des oeuvres" }, { status: 403 });
     }
 
@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
 
     // ── Déclenchement automatique fiche de police (pros uniquement) ──────
     let fichePolice: any = null;
-    if (ROLES_FICHE_POLICE.includes(user.role)) {
+    if (user.role && ROLES_FICHE_POLICE.includes(user.role)) {
       try {
         let merchant = await getMerchantForUser(user.id);
         if (!merchant) {

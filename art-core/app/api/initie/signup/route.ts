@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       [nId, user.id]
     );
 
-    return NextResponse.json({ success: true, points_balance: user.points_balance + 15 });
+    return NextResponse.json({ success: true, points_balance: (user.points_balance ?? 0) + 15 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

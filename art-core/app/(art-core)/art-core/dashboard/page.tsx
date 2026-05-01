@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="font-playfair text-3xl font-semibold text-white mb-2">Dashboard</h1>
-      <p className="text-white/40 text-sm mb-8">Bonjour {user.name} — {user.role === "artist" ? "Artiste" : user.is_initie ? "Initié" : "Client"}</p>
+      <p className="text-white/40 text-sm mb-8">Bonjour {user.full_name || user.username} — {user.role === "artist" ? "Artiste" : user.is_initie ? "Initié" : "Client"}</p>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">

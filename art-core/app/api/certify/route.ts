@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Session invalide" }, { status: 401 });
     }
     const ALLOWED_ROLES = ["artist", "admin", "antiquaire", "galeriste", "brocanteur", "depot_vente"];
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!user.role || !ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: "Votre rôle ne permet pas de certifier des œuvres" }, { status: 403 });
     }
     const artistId = user.id;
@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
       const artistUser = token ? await getUserByToken(token) : null;
       emailResult = await sendCertificateEmail({
         recipientEmail: emailTo,
-        recipientName: artistUser?.name || "Artiste",
+        recipientName: artistUser?.full_name || artistUser?.username || "Artiste",
         artworkTitle: title,
         artworkId: id,
         blockchainHash: chainResult.blockchainHash,

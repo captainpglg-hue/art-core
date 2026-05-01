@@ -10,8 +10,8 @@ export async function PUT(req: NextRequest) {
 
     const { name, username, bio } = await req.json();
     await query(
-      "UPDATE users SET name = ?, username = ?, bio = ?, updated_at = NOW() WHERE id = ?",
-      [name || user.name, username || user.username, bio || "", user.id]
+      "UPDATE users SET full_name = ?, username = ?, bio = ?, updated_at = NOW() WHERE id = ?",
+      [name || user.full_name, username || user.username, bio || "", user.id]
     );
 
     return NextResponse.json({ success: true });

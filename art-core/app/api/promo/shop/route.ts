@@ -23,8 +23,9 @@ export async function POST(req: NextRequest) {
     const payWith = pay_with || "points";
 
     if (payWith === "points") {
-      if (user.points_balance < item.cost_points) {
-        return NextResponse.json({ error: `Points insuffisants (${user.points_balance}/${item.cost_points})` }, { status: 400 });
+      const balance = user.points_balance ?? 0;
+      if (balance < item.cost_points) {
+        return NextResponse.json({ error: `Points insuffisants (${balance}/${item.cost_points})` }, { status: 400 });
       }
       await query("UPDATE users SET points_balance = points_balance - ? WHERE id = ?", [item.cost_points, user.id]);
 
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       paid_with: payWith,
       amount: payWith === "points" ? item.cost_points : item.cost_euros,
       expires_at: expiresAt,
-      new_balance: payWith === "points" ? user.points_balance - item.cost_points : user.points_balance,
+      new_balance: payWith === "points" ? (user.points_balance ?? 0) - item.cost_points : (user.points_balance ?? 0),
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

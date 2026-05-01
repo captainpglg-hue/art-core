@@ -214,7 +214,7 @@ async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<Nex
     log("user inserted", { userId });
   }
   const userId = user!.id;
-  const userRole = user!.role;
+  const userRole: string = user!.role || "";
 
   if (needsMerchantInsert && merchantPayload && cleanSiret) {
     log("insert merchant");

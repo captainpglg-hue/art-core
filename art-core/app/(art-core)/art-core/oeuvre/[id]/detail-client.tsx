@@ -17,9 +17,9 @@ interface Props {
   communityBoosts: number;
   currentUser: {
     id: string;
-    is_initie: number;
-    points_balance: number;
-    role: string;
+    is_initie: boolean | null;
+    points_balance: number | null;
+    role: string | null;
   } | null;
   isArtist: boolean;
   artistId: string;
@@ -135,7 +135,7 @@ export function ArtworkDetailClient({
             Déposez des points (solde: <span className="text-gold font-semibold">{currentUser.points_balance} pts</span>)
           </p>
           <div className="flex gap-2">
-            <Input type="number" min="1" max={Math.min(currentUser.points_balance, 100 - gaugePoints)} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="Points" className="flex-1 h-9 text-sm" />
+            <Input type="number" min="1" max={Math.min(currentUser.points_balance ?? 0, 100 - gaugePoints)} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="Points" className="flex-1 h-9 text-sm" />
             <Button size="sm" onClick={handleDeposit} disabled={loading === "deposit"} className="gap-1.5">
               {loading === "deposit" ? <Loader2 className="size-3.5 animate-spin" /> : <Coins className="size-3.5" />}Déposer
             </Button>

@@ -6,14 +6,14 @@ export async function GET(req: NextRequest) {
   const token = req.cookies.get("core_session")?.value;
   if (!token) return NextResponse.json({ user: null });
 
-  const user: any = await getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) return NextResponse.json({ user: null });
 
   return NextResponse.json({
     user: {
       id: user.id,
       email: user.email,
-      name: user.name || user.full_name,
+      name: user.full_name,
       username: user.username,
       role: user.role,
       avatar_url: user.avatar_url,

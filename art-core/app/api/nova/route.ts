@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       bonus_amount: bonusAmount,
       bonus_type: bonusType,
       kit_tracking: kitTracking,
-      new_balance: user.points_balance + bonusAmount,
+      new_balance: (user.points_balance ?? 0) + bonusAmount,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

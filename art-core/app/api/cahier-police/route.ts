@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     const user = await getUserByToken(token);
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-    if (!ROLES_CAHIER.includes(user.role)) {
+    if (!user.role || !ROLES_CAHIER.includes(user.role)) {
       return NextResponse.json({ error: "Accès réservé aux professionnels (antiquaire, brocanteur, galeriste, dépôt-vente)" }, { status: 403 });
     }
 
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     const user = await getUserByToken(token);
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-    if (!ROLES_CAHIER.includes(user.role)) {
+    if (!user.role || !ROLES_CAHIER.includes(user.role)) {
       return NextResponse.json({ error: "Accès réservé aux professionnels" }, { status: 403 });
     }
 

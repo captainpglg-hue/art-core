@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'offer', 'Nouvelle offre', ?, ?)",
-        [nId, artwork.artist_id, `${user.name} propose ${amount}€ pour "${artwork.title}".`, `/art-core/oeuvre/${artwork_id}`]
+        [nId, artwork.artist_id, `${user.full_name || user.username} propose ${amount}€ pour "${artwork.title}".`, `/art-core/oeuvre/${artwork_id}`]
       );
     }
 

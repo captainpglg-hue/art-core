@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Garde le rôle existant s'il est déjà pro ; sinon "galeriste" par défaut
     const PRO_ROLES = ["galeriste", "antiquaire", "brocanteur", "depot_vente", "admin"];
-    if (!PRO_ROLES.includes(user.role)) {
+    if (!user.role || !PRO_ROLES.includes(user.role)) {
       await sb.from("users").update({ role: "galeriste" }).eq("id", user.id);
     }
 

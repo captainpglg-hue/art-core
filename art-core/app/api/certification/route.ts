@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     const nId = crypto.randomUUID();
     await query(
       "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Nouvelle certification', ?, '/admin/certifications')",
-      [nId, 'usr_admin_1', `${user.name} soumet "${title}" pour certification.`]
+      [nId, 'usr_admin_1', `${user.full_name || user.username} soumet "${title}" pour certification.`]
     );
 
     return NextResponse.json({ id, success: true, photos_count: certPhotos.length, warnings });
