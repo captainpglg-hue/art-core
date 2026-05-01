@@ -1,6 +1,79 @@
 # Rapport Claude Code — sessions du 2026-04-30 et 2026-05-01
 
-## Session 2026-05-01 (cette session)
+## Session 2026-05-01 (deuxième passe, autonome)
+
+### Statut par étape
+
+| Étape | Statut | Détail |
+|-------|--------|--------|
+| 1. Récupérer les 7 patches | OK | Patches ALL.patch absents du disque (autre machine). Reproduits / déjà en place depuis les sessions précédentes (`af3a8c1`). |
+| 2. Build + typecheck | **OK** | `npx tsc --noEmit` : 0 erreur sur art-core et pass-core. `npm run build` : OK sur les 2 apps (60+ routes art-core, 9 routes pass-core). |
+| 3. Smoke tests dev | **OK** | Dev server lancé sur :3000. `/auth/login` rend bien le formulaire (input email présent). `/api/artworks?category=ceramics` = 13 IDs uniques, `/api/artworks` (sans filtre) = 20 IDs uniques. **Filtre marketplace OK.** |
+| 4. Commit + push | **OK** | Commit `0b86091` (typer getUserByToken + 19 vrais bugs) poussé sur origin/main. Les 2 commits en attente de la session précédente (`efe1ab3`, `8d462f7`) sont également partis avec ce push. |
+| 5. Cleanup repo | NA | Déjà fait dans les sessions précédentes (commits `e56c1a6`). Plus rien à supprimer à la racine. |
+| 6. Anti-régression `as any` | **OK partiel** | Le typage strict de `getUserByToken` a fait surface 19 vrais bugs (voir détail ci-dessous), tous corrigés. Reste ~120 occurrences `as any` dans le code pour audit ultérieur — mais l'entrée la plus critique (User retourné par auth) est désormais typée. |
+| 7. Rapport | OK | Ce fichier. |
+
+### Ce qui a été corrigé cette session (commit `0b86091`)
+
+**Cause racine éliminée** : `getUserByToken` retournait `Promise<unknown>`
+(via `return users[0]` sans annotation), ce qui forçait tous les call-sites
+à faire `(user as any).x` ou à ignorer silencieusement les bugs. Désormais
+signé `Promise<Tables<"users"> | undefined>`. Le compilateur a immédiatement
+mis en évidence 19 vrais bugs :
+
+**Bugs runtime qui auraient explosé en prod :**
+1. **`/api/profile`** : `UPDATE users SET name = ?` — la colonne s'appelle
+   `full_name`, pas `name`. Le PUT plantait silencieusement à chaque
+   modification de profil.
+2. **`/api/auth/login` + `/api/auth/me`** : retournaient `name: user.name ||
+   user.full_name` → `user.name` est undefined, donc le client recevait
+   bien le `full_name`, mais via un fallback fragile. Simplifié.
+
+**Bugs logiques (rejets ou crashs silencieux) :**
+3. **`/api/{artworks, certify, merchants/register, cahier-police}`** :
+   `ROLES.includes(user.role)` sans null-guard. Si l'user n'a pas de rôle
+   (colonne nullable), `null` ne match pas, donc rejet 403 silencieux.
+   Fix : `user.role && ROLES.includes(user.role)`.
+4. **`/api/{boost, nova, promo/shop, initie/signup}`** : opérations
+   arithmétiques sur `user.points_balance` (nullable). En cas de null,
+   `null < 1` → `false` (pas de blocage), `null + 5` → `NaN` écrit en DB.
+   Fix : `(user.points_balance ?? 0)`.
+
+**Bugs cosmétiques mais visibles utilisateur :**
+5. **`/api/{certify, certification, offers}`** : notifications/emails
+   contenant `${user.name}` → la chaîne sortait littéralement
+   `"undefined propose 250€..."`. Remplacé par `full_name || username`.
+6. **`/dashboard/page.tsx`** : `Bonjour {user.name}` affichait `Bonjour `
+   tout court.
+7. **`oeuvre/[id]/detail-client.tsx`** : interface locale `currentUser`
+   exigeait `is_initie: number / points_balance: number / role: string`
+   alors que la DB renvoie `boolean | null / number | null / string | null`.
+   L'écart vivait depuis le début et ne crashait pas seulement parce que
+   les valeurs étaient toujours non-null en pratique. Aligné sur le schéma.
+
+### État final du build
+
+```
+art-core
+  npx tsc --noEmit  →  0 erreur
+  npm run build     →  60+ routes prod, 0 erreur
+
+pass-core
+  npx tsc --noEmit  →  0 erreur
+  npm run build     →  9 routes prod, 0 erreur
+```
+
+### État final de prod (à confirmer par Philippe)
+
+- Push poussé : oui (`0b86091` sur `origin/main`).
+- Auto-deploy Vercel sur push (sprint kill-switch) : devrait se déclencher
+  automatiquement. À vérifier sur le dashboard Vercel dans les minutes qui
+  suivent.
+
+---
+
+## Session 2026-05-01 (première passe — préservée pour historique)
 
 ### Statut par étape
 
