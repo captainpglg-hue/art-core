@@ -18,6 +18,7 @@
 
 import crypto from "crypto";
 import { getDb } from "@/lib/db";
+import type { Json } from "@/types/supabase";
 
 const TOKEN_TTL_MINUTES = 15;
 
@@ -65,7 +66,7 @@ export async function createMagicLink(args: CreateMagicLinkArgs): Promise<string
     token_hash: hash,
     email: args.email.trim().toLowerCase(),
     intent: args.intent,
-    signup_data: args.signupData || null,
+    signup_data: (args.signupData ?? null) as Json | null,
     expires_at: expiresAt.toISOString(),
     ip_address: args.ipAddress || null,
     user_agent: args.userAgent || null,

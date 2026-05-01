@@ -25,7 +25,16 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ["better-sqlite3"],
+    serverComponentsExternalPackages: ["better-sqlite3", "sharp", "pdfkit"],
+    outputFileTracingIncludes: {
+      "/api/**/*": ["./node_modules/pdfkit/js/data/**/*"],
+    },
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), "pdfkit"];
+    }
+    return config;
   },
 };
 

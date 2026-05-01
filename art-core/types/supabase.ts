@@ -1599,6 +1599,114 @@ export interface Database {
         };
         Relationships: [];
       };
+      magic_links: {
+        Row: {
+          id: string;
+          token_hash: string;
+          email: string;
+          signup_data: Json | null;
+          intent: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          id?: string;
+          token_hash: string;
+          email: string;
+          signup_data?: Json | null;
+          intent?: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+        };
+        Update: {
+          id?: string;
+          token_hash?: string;
+          email?: string;
+          signup_data?: Json | null;
+          intent?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+        };
+        Relationships: [];
+      };
+      platform_secrets: {
+        Row: {
+          key: string;
+          value: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          key: string;
+          value: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          key?: string;
+          value?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      seller_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: string;
+          raison_sociale: string | null;
+          siret: string | null;
+          nom_gerant: string | null;
+          adresse: string | null;
+          code_postal: string | null;
+          ville: string | null;
+          telephone_pro: string | null;
+          cahier_police: boolean;
+          merchant_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: string;
+          raison_sociale?: string | null;
+          siret?: string | null;
+          nom_gerant?: string | null;
+          adresse?: string | null;
+          code_postal?: string | null;
+          ville?: string | null;
+          telephone_pro?: string | null;
+          cahier_police?: boolean;
+          merchant_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: string;
+          raison_sociale?: string | null;
+          siret?: string | null;
+          nom_gerant?: string | null;
+          adresse?: string | null;
+          code_postal?: string | null;
+          ville?: string | null;
+          telephone_pro?: string | null;
+          cahier_police?: boolean;
+          merchant_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       merchants: {
         Row: {
           id: string;

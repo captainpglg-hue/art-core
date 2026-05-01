@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
     const enriched = await Promise.all(
       pending.map(async (p) => {
         const entry = (entries || []).find((e: any) => e.id === p.id);
-        const merchant = entry ? merchantsById[entry.merchant_id] : null;
-        const artwork = entry ? artworksById[entry.artwork_id] : null;
+        const merchant = entry?.merchant_id ? merchantsById[entry.merchant_id] : null;
+        const artwork = entry?.artwork_id ? artworksById[entry.artwork_id] : null;
         let downloadUrl = null;
         try { downloadUrl = await getFicheDownloadUrl(p.id, "pending"); } catch {}
         return {

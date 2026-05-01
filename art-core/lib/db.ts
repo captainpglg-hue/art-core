@@ -11,6 +11,7 @@
 // ============================================================================
 
 import postgres from "postgres";
+import type { Tables } from "@/types/supabase";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 const SUPA_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -419,7 +420,13 @@ export interface GetArtworksOpts {
   limit?: number;
 }
 
-export async function getArtworks(opts: GetArtworksOpts = {}) {
+export type ArtworkWithArtist = Tables<"artworks"> & {
+  artist_name?: string;
+  artist_username?: string;
+  artist_avatar?: string;
+};
+
+export async function getArtworks(opts: GetArtworksOpts = {}): Promise<ArtworkWithArtist[]> {
   const { artistId, category, status, search, sort = "newest", limit = 50 } = opts;
 
   const orderBy =
@@ -441,19 +448,19 @@ export async function getArtworks(opts: GetArtworksOpts = {}) {
       headers: { Accept: "application/json" },
     });
     if (!r.ok) throw new Error(`REST select artworks ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    const arts: Array<Record<string, unknown>> = await r.json();
+    const arts = (await r.json()) as Tables<"artworks">[];
 
-    const artistIds = [...new Set(arts.map((a) => a.artist_id as string))];
+    const artistIds = [...new Set(arts.map((a) => a.artist_id))];
     const users = artistIds.length
       ? await restSelect("users", {}, { columns: "id,full_name,username,avatar_url" })
       : [];
     const byId: Record<string, { full_name?: string; username?: string; avatar_url?: string }> = {};
     for (const u of users) byId[u.id as string] = u;
-    return arts.map((a) => ({
+    return arts.map<ArtworkWithArtist>((a) => ({
       ...a,
-      artist_name: byId[a.artist_id as string]?.full_name,
-      artist_username: byId[a.artist_id as string]?.username,
-      artist_avatar: byId[a.artist_id as string]?.avatar_url,
+      artist_name: byId[a.artist_id]?.full_name,
+      artist_username: byId[a.artist_id]?.username,
+      artist_avatar: byId[a.artist_id]?.avatar_url,
     }));
   } catch {
     // Fallback SQL direct via postgres-js. Construit la WHERE et l'ORDER dynamiquement.
@@ -471,7 +478,7 @@ export async function getArtworks(opts: GetArtworksOpts = {}) {
                      ORDER BY ${orderColumn} ${orderDir.toUpperCase()}
                      LIMIT ?`;
     params.push(limit);
-    return queryAll<Record<string, unknown>>(sqlText, params);
+    return queryAll<ArtworkWithArtist>(sqlText, params);
   }
 }
 

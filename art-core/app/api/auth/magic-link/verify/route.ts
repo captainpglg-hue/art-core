@@ -83,7 +83,21 @@ export async function GET(req: NextRequest) {
   const sessionToken = crypto.randomBytes(32).toString("hex");
   await createSession(userId, sessionToken);
 
-  // 3) Redirection contextuelle
+  // 3a) Format JSON pour usage API (PowerShell, curl, scripts) : ne redirige pas,
+  //     retourne le session_token explicitement pour que le client puisse l'utiliser
+  //     comme valeur de cookie ensuite.
+  const wantJson = url.searchParams.get("format") === "json";
+  if (wantJson) {
+    return NextResponse.json({
+      ok: true,
+      session_token: sessionToken,
+      user_id: userId,
+      intent: verified.intent,
+      redirect_to: verified.intent === "signup" ? "/art-core/deposer" : "/art-core",
+    });
+  }
+
+  // 3b) Cas standard navigateur : redirect + cookie httpOnly
   const dest = verified.intent === "signup" ? "/art-core/deposer" : "/art-core";
   const response = NextResponse.redirect(new URL(dest, baseUrl).toString(), { status: 302 });
   response.cookies.set("core_session", sessionToken, {

@@ -358,11 +358,6 @@ export default function AdminLoginPage() {
                   justifyContent: "center",
                   gap: "8px",
                 }}
-                onHover={(e: any) => {
-                  if (!loading && name && email) {
-                    e.target.style.backgroundColor = "#e6c200";
-                  }
-                }}
                 onMouseEnter={(e: any) => {
                   if (!loading && name && email) {
                     e.target.style.backgroundColor = "#e6c200";

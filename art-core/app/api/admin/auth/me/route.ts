@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-async function getAdminSessionAsync(token: string) {
+interface AdminSession {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+async function getAdminSessionAsync(_token: string): Promise<AdminSession | null> {
   // TODO: Needs proper async implementation
   return null;
 }

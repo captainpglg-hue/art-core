@@ -81,7 +81,12 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     );
   }
 
-  const photos = resolveAllPhotos(artwork.photos, artwork.image_url, artwork.additional_images);
+  const photos = resolveAllPhotos(
+    artwork.photos
+    ?? artwork.image_url
+    ?? artwork.additional_images
+    ?? null
+  );
   const mainPhoto = photos[0] || PLACEHOLDER_ART;
   const price = Number(artwork.price) || 0;
 

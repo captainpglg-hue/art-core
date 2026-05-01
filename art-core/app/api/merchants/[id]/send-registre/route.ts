@@ -31,7 +31,7 @@ export async function POST(
       .eq("id", merchantId)
       .single();
 
-    if (!merchant || merchant.user_id !== user.id) {
+    if (!merchant || !merchant.user_id || merchant.user_id !== user.id) {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 

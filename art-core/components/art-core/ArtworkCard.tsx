@@ -12,20 +12,20 @@ type Artwork = {
   id: string;
   title: string;
   photos: string[] | string | null;
-  price: number;
-  gauge_points: number;
-  gauge_locked: number;
+  price: number | null;
+  gauge_points: number | null;
+  gauge_locked: boolean | number | null;
   status: string;
-  blockchain_hash?: string;
+  blockchain_hash?: string | null;
   artist_name?: string;
   artist_username?: string;
   artist_role?: string | null;
   merchant_raison_sociale?: string | null;
   merchant_ville?: string | null;
-  boost_active?: number;
-  highlight_active?: number;
+  boost_active?: boolean | number | null;
+  highlight_active?: boolean | number | null;
   category?: string;
-  creation_date?: string;
+  creation_date?: string | null;
 };
 
 // Format des coordonnees du deposant selon son statut.
@@ -59,12 +59,12 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
   const [imageError, setImageError] = useState(false);
   const gaugePoints = artwork.gauge_points ?? 0;
   const isCertified = !!artwork.blockchain_hash;
-  const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
+  const isLocked = !!artwork.gauge_locked || gaugePoints >= 100;
   const initialUrl = resolveFirstPhoto(artwork.photos);
   const imageUrl = imageError ? PLACEHOLDER_ART : initialUrl;
   const artistName = artwork.artist_name ?? "Artiste";
   const depositLine = formatDepositLine(artwork);
-  const isPromoted = promoted || artwork.boost_active === 1 || artwork.highlight_active === 1;
+  const isPromoted = promoted || !!artwork.boost_active || !!artwork.highlight_active;
 
   return (
     <Link
@@ -105,9 +105,9 @@ export function ArtworkCard({ artwork, priority = false, promoted = false }: Art
           )}
         </div>
 
-        {artwork.status !== "sold" && artwork.price > 0 && (
+        {artwork.status !== "sold" && (artwork.price ?? 0) > 0 && (
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-4">
-            <p className="text-lg font-bold text-[#C9A84C] tabular-nums">{formatPrice(artwork.price)}</p>
+            <p className="text-lg font-bold text-[#C9A84C] tabular-nums">{formatPrice(artwork.price ?? 0)}</p>
           </div>
         )}
 

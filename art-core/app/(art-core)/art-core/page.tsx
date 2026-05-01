@@ -49,13 +49,13 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
   // Price filter
   const pMin = parseFloat(searchParams.price_min || "0");
   const pMax = parseFloat(searchParams.price_max || "0");
-  if (pMin > 0) parsed = parsed.filter(a => a.price >= pMin);
-  if (pMax > 0) parsed = parsed.filter(a => a.price <= pMax);
+  if (pMin > 0) parsed = parsed.filter(a => (a.price ?? 0) >= pMin);
+  if (pMax > 0) parsed = parsed.filter(a => (a.price ?? 0) <= pMax);
 
   // Sort: boosted first
   const sorted = [...parsed].sort((a, b) => {
-    const aP = (a.boost_active || 0) + (a.highlight_active || 0);
-    const bP = (b.boost_active || 0) + (b.highlight_active || 0);
+    const aP = Number(!!a.boost_active) + Number(!!a.highlight_active);
+    const bP = Number(!!b.boost_active) + Number(!!b.highlight_active);
     return bP - aP;
   });
 

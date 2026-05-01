@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import { getUserByEmail, createSession, getDb } from "@/lib/db";
 import { generateNumeroRom, isCanonicalNumeroRom } from "@/lib/numero-rom";
+import type { TablesInsert } from "@/types/supabase";
 
 const PRO_ROLES = new Set(["galeriste", "antiquaire", "brocanteur", "depot_vente"]);
 const ROLES_OBLIG_CDP = new Set(["antiquaire", "brocanteur", "depot_vente"]);
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
       userInsert.business_siret = data.merchant!.siret;
     }
 
-    const { error: userErr } = await sb.from("users").insert(userInsert);
+    const { error: userErr } = await sb.from("users").insert(userInsert as TablesInsert<"users">);
     if (userErr) {
       console.error("[signup] users insert failed:", userErr.message);
       return NextResponse.json(
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       };
       const { data: mData, error: mErr } = await sb
         .from("merchants")
-        .insert(merchantRow)
+        .insert(merchantRow as TablesInsert<"merchants">)
         .select("id")
         .single();
       if (mErr) {

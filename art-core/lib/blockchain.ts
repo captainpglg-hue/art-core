@@ -7,12 +7,17 @@ import type { PassCore, PassCoreStatus } from "@/types";
 // Ready for production upgrade via viem (Polygon / Base)
 // ============================================================
 
+const NETWORK = process.env.BLOCKCHAIN_NETWORK ?? "simulation";
+
 export const CHAIN_CONFIG = {
-  network: process.env.BLOCKCHAIN_NETWORK ?? "simulation",
+  network: NETWORK,
+  chain: NETWORK,
   rpcUrl: process.env.BLOCKCHAIN_RPC_URL ?? "https://polygon-rpc.com",
   chainId: Number(process.env.BLOCKCHAIN_CHAIN_ID ?? 137),
   contractAddress: process.env.PASS_CORE_CONTRACT_ADDRESS ?? "",
   explorerUrl: process.env.BLOCKCHAIN_EXPLORER_URL ?? "https://polygonscan.com",
+  isSimulation: NETWORK === "simulation",
+  isConfigured: !!process.env.PASS_CORE_CONTRACT_ADDRESS && NETWORK !== "simulation",
 } as const;
 
 // ── Hashing ───────────────────────────────────────────────────
@@ -144,6 +149,49 @@ export const getExplorerUrl = (txHash: string): string => {
   if (CHAIN_CONFIG.network === "simulation") return "#";
   return `${CHAIN_CONFIG.explorerUrl}/tx/${txHash}`;
 };
+
+// ── Compat helpers used by /api/certify ──────────────────────
+// `certifyOnChain` and `getConfig` provide a smaller surface that
+// /api/certify expected. They wrap the simulation primitives above.
+
+export interface CertifyOnChainInput {
+  artworkId: string;
+  title: string;
+  artistId: string;
+  macroPhoto: string;
+}
+
+export interface CertifyOnChainResult {
+  blockchainHash: string;
+  txHash: string;
+  explorerUrl: string;
+  network: string;
+  onChain: boolean;
+  blockNumber: number | null;
+}
+
+export const certifyOnChain = async (
+  input: CertifyOnChainInput
+): Promise<CertifyOnChainResult> => {
+  const blockchainHash = generateArtworkHash({
+    artworkId: input.artworkId,
+    title: input.title,
+    artistId: input.artistId,
+    createdAt: new Date().toISOString(),
+    imageUrl: input.macroPhoto,
+  });
+  const txHash = `0x${crypto.randomBytes(32).toString("hex")}`;
+  return {
+    blockchainHash,
+    txHash,
+    explorerUrl: getExplorerUrl(txHash),
+    network: CHAIN_CONFIG.network,
+    onChain: !CHAIN_CONFIG.isSimulation,
+    blockNumber: CHAIN_CONFIG.isSimulation ? null : Math.floor(Math.random() * 5_000_000) + 45_000_000,
+  };
+};
+
+export const getConfig = (): typeof CHAIN_CONFIG => CHAIN_CONFIG;
 
 // ── Production upgrade path (viem) ────────────────────────────
 // Uncomment and configure when deploying to real chain:

@@ -325,7 +325,12 @@ export async function sendMagicLinkEmail(
 
   const textContent = `${greeting}\n\n${action}\n\n${params.verifyUrl}\n\nLien valable 15 minutes. Ignorez si vous n'avez pas demande cette connexion.`;
 
-  const localUrl = await saveEmailLocally("magic-link", params.to, htmlContent);
+  const localUrl = saveEmailLocally(`magic-link-${Date.now()}.html`, htmlContent, {
+    to: params.to,
+    subject,
+    from: process.env.SMTP_FROM || "noreply@art-core.app",
+    date: new Date().toISOString(),
+  });
 
   if (trans) {
     try {

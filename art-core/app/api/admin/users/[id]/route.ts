@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne, query } from "@/lib/db";
 
+interface AdminSession {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 // Helper for admin auth - needs to be converted from getAdminSession
-async function getAdminSessionAsync(token: string) {
+async function getAdminSessionAsync(_token: string): Promise<AdminSession | null> {
   // TODO: This needs proper async implementation
   // For now, we'd need to check the session table and verify admin role
   return null;

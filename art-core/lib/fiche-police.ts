@@ -96,13 +96,13 @@ export interface UserLite {
 export interface ArtworkLite {
   id: string;
   title: string;
-  description?: string;
-  technique?: string;
-  dimensions?: string;
+  description?: string | null;
+  technique?: string | null;
+  dimensions?: string | null;
   category?: string;
-  creation_date?: string;
+  creation_date?: string | null;
   price: number;
-  photos?: string[] | string;
+  photos?: string[] | string | null;
 }
 
 // ── Récupération du merchant pour un user ─────────────────────────────────

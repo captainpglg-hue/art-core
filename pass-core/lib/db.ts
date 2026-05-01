@@ -374,7 +374,7 @@ export async function getArtworkById(id: string) {
     const a = rows[0]; if (!a) return undefined;
     const users = await restSelect("users", { id: a.artist_id }, { limit: 1 });
     const u = users[0] || {};
-    return { ...a, artist_name: u.full_name as name || u.full_name, artist_username: u.username, artist_avatar: u.avatar_url, artist_bio: u.bio };
+    return { ...a, artist_name: u.full_name, artist_username: u.username, artist_avatar: u.avatar_url, artist_bio: u.bio };
   } catch {
     return queryOne<any>(
       `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
