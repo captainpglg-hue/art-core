@@ -248,7 +248,7 @@ export async function sendCertificateEmail(
   const localUrl = saveEmailLocally(filename, htmlContent, {
     to: params.recipientEmail,
     subject: `Certificat ART-CORE : ${params.artworkTitle}`,
-    from: process.env.SMTP_FROM || "noreply@art-core.app",
+    from: process.env.SMTP_FROM || process.env.RESEND_FROM_FALLBACK || "ART-CORE <onboarding@resend.dev>",
     date: new Date().toISOString(),
   });
 
@@ -256,7 +256,7 @@ export async function sendCertificateEmail(
   if (trans) {
     try {
       await trans.sendMail({
-        from: process.env.SMTP_FROM || "noreply@art-core.app",
+        from: process.env.SMTP_FROM || process.env.RESEND_FROM_FALLBACK || "ART-CORE <onboarding@resend.dev>",
         to: params.recipientEmail,
         subject: `Certificat d'authenticite ART-CORE : ${params.artworkTitle}`,
         html: htmlContent,
@@ -328,14 +328,14 @@ export async function sendMagicLinkEmail(
   const localUrl = saveEmailLocally(`magic-link-${Date.now()}.html`, htmlContent, {
     to: params.to,
     subject,
-    from: process.env.SMTP_FROM || "noreply@art-core.app",
+    from: process.env.SMTP_FROM || process.env.RESEND_FROM_FALLBACK || "ART-CORE <onboarding@resend.dev>",
     date: new Date().toISOString(),
   });
 
   if (trans) {
     try {
       await trans.sendMail({
-        from: process.env.SMTP_FROM || "noreply@art-core.app",
+        from: process.env.SMTP_FROM || process.env.RESEND_FROM_FALLBACK || "ART-CORE <onboarding@resend.dev>",
         to: params.to,
         subject,
         html: htmlContent,
