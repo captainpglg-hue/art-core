@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Setup Google login — ART-CORE & PASS-CORE</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #131313;
+    --panel-2: #1a1a1a;
+    --line: rgba(255,255,255,.08);
+    --line-strong: rgba(255,255,255,.16);
+    --gold: #D4AF37;
+    --text: #f5f5f5;
+    --muted: rgba(255,255,255,.55);
+    --ok: #34A853;
+    --warn: #fbbc05;
+    --err: #ea4335;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.01em; }
+  h1 span { color: var(--gold); }
+  .lede { color: var(--muted); margin: 0 0 32px; line-height: 1.55; }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 16px 0;
+  }
+  .step h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .step h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gold); color: #000;
+    font-size: 14px; font-weight: 700;
+  }
+  .step .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; line-height: 1.55; }
+  .step ol, .step ul { padding-left: 18px; line-height: 1.7; color: rgba(255,255,255,.85); }
+  .step li { margin: 4px 0; }
+  .step li code, code.inline {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 13px;
+    color: #ffe9a8;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: var(--gold);
+    color: #000 !important;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: transform .1s ease, opacity .15s ease;
+  }
+  .btn:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text) !important;
+    border: 1px solid var(--line-strong);
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,.04); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .copy-block {
+    position: relative;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    margin: 8px 0;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .copy-block button {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 6px;
+    font-size: 11px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .copy-block button:hover { background: rgba(255,255,255,.1); }
+  .copy-block button.copied { background: var(--ok); color: #000; border-color: var(--ok); }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: rgba(212, 175, 55, .12);
+    color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, .3);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge.ok { background: rgba(52, 168, 83, .12); color: var(--ok); border-color: rgba(52, 168, 83, .3); }
+  .checkbox {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  .checkbox:hover { background: rgba(255,255,255,.03); }
+  .checkbox input { margin-top: 4px; accent-color: var(--gold); width: 16px; height: 16px; }
+  .checkbox span { line-height: 1.5; }
+  .checkbox input:checked + span { text-decoration: line-through; color: var(--muted); }
+  .footer {
+    margin-top: 32px;
+    padding: 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .footer code { color: var(--gold); }
+  .progress-bar {
+    position: sticky; top: 0;
+    height: 4px;
+    background: var(--gold);
+    width: 0%;
+    transition: width .3s ease;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<div class="wrap">
+
+  <h1>Activer <span>« Continuer avec Google »</span></h1>
+  <p class="lede">
+    Le code est déjà en place dans <code class="inline">art-core</code> et <code class="inline">pass-core</code>.
+    <strong>État au 4 mai 2026 :</strong> Supabase reactivé, Site URL et 4 Redirect URLs configurées.
+    Il reste 2 étapes bloquées sur des actions humaines (2FA Google + création Client ID).
+  </p>
+
+  <div class="step" style="border-color: rgba(251, 188, 5, 0.4); background: rgba(251, 188, 5, 0.04);">
+    <h2><span class="num" style="background: var(--warn);">!</span> Avertissement sécurité</h2>
+    <p class="sub">
+      Dans Supabase → Auth → Providers → Google, j'ai vu que les champs Client IDs et Client Secret ont
+      déjà été remplis avec des valeurs <strong>invalides</strong> :
+    </p>
+    <ul>
+      <li>Client IDs = nom du projet Supabase (pas un Client ID OAuth)</li>
+      <li>Client Secret = chaîne qui ressemble à un mot de passe personnel (pas un secret OAuth Google)</li>
+    </ul>
+    <p class="sub">
+      Le toggle « Enable Sign in with Google » est resté sur <strong>OFF</strong>, donc rien ne fonctionne — c'est juste à nettoyer.
+      Si la chaîne dans Client Secret est un mot de passe que tu utilises ailleurs (Gmail, autres comptes), <strong>change-le</strong>.
+      Un secret stocké dans la config Supabase est lisible par toute personne qui a accès au dashboard.
+    </p>
+    <p class="sub">
+      À l'étape 2 ci-dessous, tu remplaceras ces deux champs par les vraies valeurs venant de Google Cloud Console.
+    </p>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <div class="step">
+    <h2><span class="num">1</span> Google Cloud Console <span class="badge" style="background: rgba(234, 67, 53, 0.12); color: var(--err); border-color: rgba(234, 67, 53, 0.3);">action user obligatoire</span></h2>
+    <p class="sub" style="color: var(--err);">
+      <strong>Bloqueur identifié :</strong> Google Cloud demande maintenant la 2FA sur ton compte Google avant tout accès à la console.
+      C'est une action de sécurité personnelle — je ne peux pas la faire à ta place.
+      Une fois la 2FA activée, tu pourras créer le Client ID OAuth.
+    </p>
+    <p class="sub">Créer un Client ID OAuth 2.0 que Supabase utilisera pour parler à Google.</p>
+
+    <ol>
+      <li>Ouvrir Google Cloud Console (bouton ci-dessous).</li>
+      <li>Crée un projet (ou réutilise <em>Art-Core</em> s'il existe).</li>
+      <li>Va dans <strong>APIs & Services → OAuth consent screen</strong>. Type <strong>External</strong>. Renseigne nom de l'app (« Art-Core »), email support, domaines autorisés (<code class="inline">art-core.app</code>, <code class="inline">pass-core.app</code>, <code class="inline">supabase.co</code>).</li>
+      <li>Puis <strong>APIs & Services → Credentials → + CREATE CREDENTIALS → OAuth client ID</strong>. Type <strong>Web application</strong>.</li>
+      <li>Dans <strong>Authorized redirect URIs</strong>, colle l'URL ci-dessous :</li>
+    </ol>
+
+    <div class="copy-block" data-copy="https://umgskpgkcluberbvoamm.supabase.co/auth/v1/callback">
+      https://umgskpgkcluberbvoamm.supabase.co/auth/v1/callback
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+
+    <p class="sub" style="margin-top:12px">Optionnel — pour tester aussi en local, ajoute aussi ces URIs :</p>
+    <div class="copy-block" data-copy="http://localhost:3000/auth/callback">
+      http://localhost:3000/auth/callback
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+    <div class="copy-block" data-copy="http://localhost:3001/auth/callback">
+      http://localhost:3001/auth/callback
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+
+    <ol start="6">
+      <li>Clique <strong>Create</strong>. Une popup s'ouvre avec <strong>Client ID</strong> et <strong>Client Secret</strong>. <strong>Garde cette fenêtre ouverte</strong> — tu vas coller les deux à l'étape 2.</li>
+    </ol>
+
+    <div class="row">
+      <a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">
+        Ouvrir Google Cloud Console →
+      </a>
+      <a class="btn btn-secondary" href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener">
+        Écran de consentement
+      </a>
+    </div>
+
+    <div style="margin-top:14px">
+      <label class="checkbox">
+        <input type="checkbox" data-step="1" />
+        <span>J'ai créé le Client ID Google et j'ai le Client ID + Client Secret sous les yeux</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="step">
+    <h2><span class="num">2</span> Supabase Dashboard <span class="badge ok">URL Config déjà fait ✓</span></h2>
+    <p class="sub">
+      <strong>Déjà fait pour toi :</strong> Site URL = <code class="inline">https://art-core.app</code> +
+      4 Redirect URLs (<code class="inline">art-core.app/**</code>, <code class="inline">pass-core.app/**</code>,
+      <code class="inline">localhost:3000/**</code>, <code class="inline">localhost:3001/**</code>).
+    </p>
+    <p class="sub">
+      Quand tu auras le Client ID/Secret de l'étape 1 :
+    </p>
+
+    <ol>
+      <li>Ouvre Supabase → Auth → Providers (bouton ci-dessous).</li>
+      <li>Clique sur <strong>Google</strong> dans la liste (actuellement Disabled).</li>
+      <li><strong>Vide</strong> les champs Client IDs et Client Secret pré-remplis (valeurs invalides).</li>
+      <li>Colle ton vrai <strong>Client ID</strong> dans Client IDs.</li>
+      <li>Colle ton vrai <strong>Client Secret</strong> dans Client Secret (for OAuth).</li>
+      <li>Active le toggle <strong>Enable Sign in with Google</strong>.</li>
+      <li>Clique <strong>Save</strong>.</li>
+    </ol>
+
+    <div class="row">
+      <a class="btn" href="https://supabase.com/dashboard/project/umgskpgkcluberbvoamm/auth/providers" target="_blank" rel="noopener">
+        Ouvrir Supabase Auth Providers →
+      </a>
+    </div>
+
+    <div style="margin-top:14px">
+      <label class="checkbox">
+        <input type="checkbox" data-step="2" />
+        <span>Google est activé dans Supabase (toggle vert + Save cliqué)</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="step">
+    <h2><span class="num">3</span> Déployer le code en prod <span class="badge">5 min</span></h2>
+    <p class="sub">Le bouton existe déjà dans les fichiers locaux mais n'est pas encore en prod. Push sur main pour que Vercel auto-deploy.</p>
+
+    <p class="sub">Dans un terminal, depuis <code class="inline">~/Desktop/Projets/art-core</code> :</p>
+
+    <div class="copy-block" data-copy="git status">
+      git status
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+    <p class="sub" style="margin:6px 0">Vérifie que les fichiers <code class="inline">app/auth/callback/route.ts</code> et <code class="inline">components/auth/GoogleSignInButton.tsx</code> apparaissent.</p>
+
+    <div class="copy-block" data-copy='git add -A && git commit -m "feat(auth): add Google OAuth login on art-core and pass-core"'>
+      git add -A && git commit -m "feat(auth): add Google OAuth login on art-core and pass-core"
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+
+    <div class="copy-block" data-copy="git push origin main">
+      git push origin main
+      <button onclick="copyBlock(this)">Copier</button>
+    </div>
+
+    <p class="sub" style="margin-top:12px">
+      Vercel va builder et déployer en ~2 minutes. Tu peux suivre sur le dashboard :
+    </p>
+
+    <div class="row">
+      <a class="btn btn-secondary" href="https://vercel.com/dashboard" target="_blank" rel="noopener">
+        Vercel Dashboard →
+      </a>
+    </div>
+
+    <div style="margin-top:14px">
+      <label class="checkbox">
+        <input type="checkbox" data-step="3" />
+        <span>J'ai poussé le code sur main et Vercel a fini le deploy</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- VÉRIFICATION -->
+  <div class="step">
+    <h2><span class="num">✓</span> Tester</h2>
+    <p class="sub">Ouvre les deux pages — tu dois voir le bouton blanc « Continuer avec Google » au-dessus du form email :</p>
+
+    <div class="grid">
+      <a class="btn btn-secondary" href="https://art-core.app/auth/login" target="_blank" rel="noopener">
+        art-core.app/auth/login →
+      </a>
+      <a class="btn btn-secondary" href="https://art-core.app/auth/signup" target="_blank" rel="noopener">
+        art-core.app/auth/signup →
+      </a>
+      <a class="btn btn-secondary" href="https://pass-core.app/auth/login" target="_blank" rel="noopener">
+        pass-core.app/auth/login →
+      </a>
+      <a class="btn btn-secondary" href="https://pass-core.app/auth/signup" target="_blank" rel="noopener">
+        pass-core.app/auth/signup →
+      </a>
+    </div>
+
+    <p class="sub" style="margin-top:14px">
+      Note pass-core/signup : le bouton n'apparaît qu'après avoir choisi le rôle <strong>Artiste</strong> à l'étape 1 (les pros doivent fournir SIRET, ROM, adresse — Google n'a pas ces infos).
+    </p>
+
+    <div style="margin-top:8px">
+      <label class="checkbox">
+        <input type="checkbox" data-step="4" />
+        <span>Le bouton est visible et le clic redirige vers <code class="inline">accounts.google.com</code></span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" data-step="5" />
+        <span>Après autorisation, je suis bien reconnecté sur l'app (cookie <code class="inline">core_session</code> posé)</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="footer">
+    Setup généré le 4 mai 2026 · projet Supabase&nbsp;: <code>umgskpgkcluberbvoamm</code><br>
+    Si le bouton n'apparaît pas après le deploy, vide le cache du navigateur (le service worker garde l'ancienne version).
+  </div>
+
+</div>
+
+<script>
+  // Copy buttons
+  function copyBlock(btn) {
+    const block = btn.parentElement;
+    const text = block.getAttribute('data-copy');
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copié ✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove('copied');
+      }, 1400);
+    });
+  }
+
+  // Progress bar based on checked checkboxes
+  const boxes = document.querySelectorAll('input[type="checkbox"][data-step]');
+  const progress = document.getElementById('progress');
+  function updateProgress() {
+    const total = boxes.length;
+    const done = Array.from(boxes).filter(b => b.checked).length;
+    progress.style.width = (done / total * 100) + '%';
+    // Persist
+    try {
+      const state = Array.from(boxes).map(b => b.checked);
+      localStorage.setItem('art-core-google-setup', JSON.stringify(state));
+    } catch (e) {}
+  }
+  // Restore
+  try {
+    const saved = JSON.parse(localStorage.getItem('art-core-google-setup') || 'null');
+    if (Array.isArray(saved)) {
+      boxes.forEach((b, i) => { if (saved[i]) b.checked = true; });
+    }
+  } catch (e) {}
+  boxes.forEach(b => b.addEventListener('change', updateProgress));
+  updateProgress();
+</script>
+
+</body>
+</html>

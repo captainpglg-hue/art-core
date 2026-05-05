@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 type Role = "artist" | "galeriste" | "antiquaire" | "brocanteur" | "depot_vente";
 const PRO_ROLES: Role[] = ["galeriste", "antiquaire", "brocanteur", "depot_vente"];
@@ -267,6 +268,14 @@ function SignupInner() {
                 Modifier
               </button>
             </div>
+          )}
+
+          {/* Google OAuth — artiste uniquement (pro doit remplir SIRET, adresse, etc.) */}
+          {isArtist && (
+            <>
+              <GoogleSignInButton label="S'inscrire avec Google" next="/pass-core/certifier" />
+              <AuthDivider />
+            </>
           )}
 
           {/* Communs */}

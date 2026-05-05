@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 const schema = z.object({
   email: z.string().email("Email invalide"),
@@ -80,6 +81,10 @@ function LoginPageInner() {
           <p>Client: <button type="button" onClick={() => { const f = document.getElementById("email") as HTMLInputElement; if(f) f.value = "client@demo.com"; }} className="text-gold hover:underline">client@demo.com</button></p>
         </div>
       </div>
+
+      {/* Google OAuth */}
+      <GoogleSignInButton next={redirectTo} />
+      <AuthDivider />
 
       {/* Email form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

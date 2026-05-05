@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_token: "Le lien est incomplet. Redemande un nouveau lien.",
@@ -91,6 +92,9 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            <GoogleSignInButton />
+            <AuthDivider />
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

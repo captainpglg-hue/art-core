@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,41 @@ export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [form, setForm] = useState({ name: "", username: "", bio: "" });
 
   useEffect(() => {
-    fetch("/api/auth/me").then(r => r.json()).then(d => {
-      if (d.user) {
-        setUser(d.user);
-        setForm({ name: d.user.name || "", username: d.user.username || "", bio: d.user.bio || "" });
-      }
-      setLoading(false);
-    });
+    let alive = true;
+    const timer = setTimeout(() => { if (alive) setLoading(false); }, 4000);
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        if (d?.user) {
+          setUser(d.user);
+          setForm({ name: d.user.name || "", username: d.user.username || "", bio: d.user.bio || "" });
+        }
+        setLoading(false);
+      })
+      .catch(() => { if (alive) setLoading(false); })
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); };
   }, []);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/auth/login");
+  }, [loading, user, router]);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/auth/login");
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -69,6 +93,11 @@ export default function ProfilePage() {
         <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           Enregistrer
+        </Button>
+
+        <Button onClick={handleSignOut} disabled={signingOut} variant="ghost" className="w-full gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10">
+          {signingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
+          Se déconnecter
         </Button>
       </div>
     </div>

@@ -21,9 +21,9 @@ type UserProfile = {
   name: string;
   avatar_url: string | null;
   total_earned: number;
-  points_balance: number;
-  is_initie: number;
-  role: string;
+  points_balance: number | null;
+  is_initie: boolean | null;
+  role: string | null;
 };
 
 const PASS_CORE_URL = process.env.NEXT_PUBLIC_PASS_CORE_URL || "https://pass-core.app";
@@ -43,10 +43,18 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    let alive = true;
+    const timer = setTimeout(() => { if (alive) setLoading(false); }, 4000);
     fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => { setUser(data.user); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!alive) return;
+        setUser(data?.user ?? null);
+        setLoading(false);
+      })
+      .catch(() => { if (alive) setLoading(false); })
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); };
   }, [pathname]);
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);

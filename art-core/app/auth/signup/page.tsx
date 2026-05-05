@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -87,6 +88,9 @@ export default function SignupPage() {
             {error}
           </div>
         )}
+
+        <GoogleSignInButton label="S'inscrire avec Google" />
+        <AuthDivider />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
