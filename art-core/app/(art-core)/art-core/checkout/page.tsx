@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getSessionUser } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { resolveAllPhotos, PLACEHOLDER_ART } from "@/lib/resolve-photo";
 import { formatPrice } from "@/lib/utils";
 import { ShoppingBag, ArrowLeft, ShieldCheck, Truck, RotateCcw } from "lucide-react";
 import { CheckoutClient } from "./checkout-client";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 // Check server-side uniquement (n'importe pas lib/stripe qui tire @stripe/stripe-js côté client).
 const isStripeReady = () =>
@@ -23,10 +23,31 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
   const { artwork_id } = await searchParams;
 
   if (!user) {
-    const redirectTo = artwork_id
+    const next = artwork_id
       ? `/art-core/checkout?artwork_id=${artwork_id}`
       : "/art-core/checkout";
-    redirect(`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <Link href={artwork_id ? `/art-core/oeuvre/${artwork_id}` : "/art-core"} className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 mb-6 transition-colors">
+          <ArrowLeft className="size-4" />Retour
+        </Link>
+        <h1 className="font-playfair text-2xl font-semibold text-white mb-2">Connexion requise</h1>
+        <p className="text-white/40 text-sm mb-6">
+          Pour finaliser votre achat, connectez-vous en un clic avec Google ou recevez un lien par email.
+        </p>
+        <GoogleSignInButton next={next} label="Continuer avec Google" />
+        <AuthDivider label="ou" />
+        <Link
+          href={`/auth/login?next=${encodeURIComponent(next)}`}
+          className="block w-full text-center py-3 rounded-xl border border-white/15 text-sm text-white/70 hover:bg-white/5 transition-colors"
+        >
+          Recevoir un lien par email
+        </Link>
+        <p className="text-[11px] text-white/30 text-center mt-6">
+          Pas encore inscrit ? Le bouton Google crée votre compte automatiquement.
+        </p>
+      </div>
+    );
   }
 
   // Pas d'artwork_id → fallback vers la page générique historique

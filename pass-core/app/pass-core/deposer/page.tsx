@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 const ART_CORE_URL = "https://art-core.app";
 
@@ -237,8 +238,14 @@ export default function PassCoreDeposerPage() {
 
       {step === "identite_status" && !authedUser && (
         <div>
-          <h2 className="text-xl font-semibold text-white mb-1">Quel est votre statut ?</h2>
-          <p className="text-white/40 text-sm mb-6">5 statuts possibles. Choisissez celui qui correspond.</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Connectez-vous ou créez un compte</h2>
+          <p className="text-white/40 text-sm mb-6">
+            Le moyen le plus rapide : un clic avec Google. Sinon choisissez votre statut juste en-dessous.
+          </p>
+
+          <GoogleSignInButton next="/pass-core/deposer" label="Continuer avec Google" />
+          <AuthDivider label="ou choisir un statut" />
+
           <div className="space-y-2">
             {STATUTS.map((s) => (
               <button key={s.value} onClick={() => { setIdentity({ ...identity, role: s.value }); setStep("identite_details"); }}

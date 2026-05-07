@@ -6,6 +6,7 @@ import { Coins, ArrowDown, ShoppingCart, Loader2, Send, Heart } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
 interface Props {
   artworkId: string;
@@ -119,10 +120,17 @@ export function ArtworkDetailClient({
   }
 
   if (!currentUser) {
+    const next = `/art-core/oeuvre/${artworkId}`;
     return (
-      <div className="text-center py-3">
-        <p className="text-xs text-white/30 mb-2">Connectez-vous pour interagir</p>
-        <Button size="sm" variant="outline" asChild><a href="/auth/login">Se connecter</a></Button>
+      <div className="space-y-3 py-3">
+        <p className="text-xs text-white/40 text-center">
+          Connectez-vous pour acheter, contacter l&apos;artiste ou faire une offre
+        </p>
+        <GoogleSignInButton next={next} label="Continuer avec Google" />
+        <AuthDivider label="ou" />
+        <Button size="sm" variant="outline" asChild className="w-full">
+          <a href={`/auth/login?next=${encodeURIComponent(next)}`}>Recevoir un lien par email</a>
+        </Button>
       </div>
     );
   }
