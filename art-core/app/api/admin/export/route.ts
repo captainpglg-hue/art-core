@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryAll } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET: export all data as JSON (admin only)
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("admin_session")?.value;
-  if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-
-  // TODO: getAdminSession needs async conversion
-  // const user = await getAdminSessionAsync(token);
-  // if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const guard = await requireAdmin(req);
+  if (guard.error) return guard.error;
 
   const type = new URL(req.url).searchParams.get("type") || "all";
 
   const users = await queryAll(
-    `SELECT u.id, u.email, u.full_name as name, u.username, u.role, u.points_balance, u.total_earned, u.is_initie, u.created_at,
+    `SELECT u.id, u.email, u.full_name as name, u.username, u.role,
+            u.points_balance, u.total_earned, u.is_initie, u.created_at,
             (SELECT COUNT(*) FROM artworks WHERE artist_id = u.id) as artworks_count
      FROM users u ORDER BY u.created_at DESC`,
     []
@@ -31,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   const transactions = await queryAll(
     `SELECT t.*,
-            b.name as buyer_name, s.name as seller_name, a.title as artwork_title
+            b.full_name as buyer_name, s.full_name as seller_name, a.title as artwork_title
      FROM transactions t
      JOIN users b ON t.buyer_id = b.id
      JOIN users s ON t.seller_id = s.id

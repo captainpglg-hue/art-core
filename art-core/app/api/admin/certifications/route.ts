@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryAll, query } from "@/lib/db";
-
-async function getAdminSessionAsync(token: string) {
-  // TODO: Needs proper async implementation
-  return null;
-}
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("admin_session")?.value;
-  if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = await getAdminSessionAsync(token);
-  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const guard = await requireAdmin(req);
+  if (guard.error) return guard.error;
 
   const certifications = await queryAll(
     `SELECT
@@ -28,16 +22,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const token = req.cookies.get("admin_session")?.value;
-  if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  const user = await getAdminSessionAsync(token);
-  if (!user) return NextResponse.json({ error: "Admin requis" }, { status: 403 });
+  const guard = await requireAdmin(req);
+  if (guard.error) return guard.error;
 
   const { artwork_id, action } = await req.json();
   if (!artwork_id || !action) {
     return NextResponse.json({ error: "artwork_id et action requis" }, { status: 400 });
   }
-
   if (!["approve", "revoke"].includes(action)) {
     return NextResponse.json({ error: "Action invalide (approve/revoke)" }, { status: 400 });
   }
