@@ -33,6 +33,7 @@ export function HubNavbar() {
   async function handleSignOut() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    router.push("/auth/login");
     router.refresh();
   }
 

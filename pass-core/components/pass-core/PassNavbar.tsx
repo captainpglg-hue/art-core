@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ShieldCheck, LayoutGrid, TrendingUp, Shield, LogIn, LogOut, UserPlus, User } from "lucide-react";
+import { ShieldCheck, LayoutGrid, TrendingUp, Shield, LogIn, LogOut, UserPlus, User, ArrowLeft } from "lucide-react";
 
 const ART_CORE_URL = process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app";
 const PRIME_CORE_URL = process.env.NEXT_PUBLIC_PRIME_CORE_URL || "https://prime-core.app";
@@ -59,6 +59,16 @@ export default function PassNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0A1128]/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-screen-2xl mx-auto h-full px-4 lg:px-8 flex items-center gap-6">
+        {/* Back button — visible on sub-pages */}
+        {pathname !== "/pass-core" && pathname !== "/pass-core/certifier" && pathname !== "/" && (
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-9 h-9 -mr-3 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+            aria-label="Retour"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+        )}
         <Link href="/pass-core" className="flex items-center gap-2.5 shrink-0">
           <div className="w-7 h-7 rounded-lg bg-gold-DEFAULT flex items-center justify-center">
             <ShieldCheck className="size-4 text-navy-DEFAULT" />

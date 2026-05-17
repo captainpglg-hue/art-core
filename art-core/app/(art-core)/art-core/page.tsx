@@ -95,6 +95,82 @@ function GridSkeleton() {
   );
 }
 
+/**
+ * Sélection éditoriale au-dessus du catalogue plat.
+ * Curation algorithmique : boost > highlight > certifié > récent, hors œuvres vendues.
+ * Affichée uniquement sur la home sans filtre actif.
+ */
+async function SelectionRow() {
+  const pool = await getArtworks({ sort: "newest", limit: 30 });
+  const selection = pool
+    .filter((a) => a.status !== "sold")
+    .map((a) => ({ ...a, photos: resolveAllPhotos(a.photos) }))
+    .sort((a, b) => {
+      const score = (x: typeof a) =>
+        Number(!!x.boost_active) * 3 +
+        Number(!!x.highlight_active) * 2 +
+        Number(!!x.blockchain_hash) * 1;
+      return score(b) - score(a);
+    })
+    .slice(0, 8);
+
+  if (selection.length === 0) return null;
+
+  return (
+    <section className="border-b border-white/5 bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a]">
+      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-10 md:py-14">
+        <div className="flex items-end justify-between mb-7">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#C9A84C]/70 mb-2">La sélection ART-CORE</p>
+            <h2 className="font-playfair text-2xl md:text-3xl font-semibold text-white">
+              Coups de cœur du moment
+            </h2>
+            <p className="text-white/35 text-sm mt-1.5">Une poignée d&apos;œuvres mises en avant cette semaine</p>
+          </div>
+          <Link
+            href="#catalogue"
+            className="hidden md:inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-[#C9A84C] transition-colors shrink-0 pb-1"
+          >
+            Voir tout le catalogue <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+
+        {/* Mobile : scroll horizontal snap. Desktop : grille 4 colonnes. */}
+        <div className="flex md:grid md:grid-cols-4 gap-5 overflow-x-auto md:overflow-visible no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none pb-2 md:pb-0">
+          {selection.map((a, i) => (
+            <div
+              key={a.id}
+              className="w-[78vw] sm:w-[48vw] md:w-auto shrink-0 md:shrink snap-start"
+            >
+              <ArtworkCard
+                artwork={a}
+                priority={i < 2}
+                promoted={!!(a.boost_active || a.highlight_active)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SelectionRowSkeleton() {
+  return (
+    <section className="border-b border-white/5">
+      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-10 md:py-14">
+        <div className="h-4 w-32 bg-white/5 rounded mb-3 animate-pulse" />
+        <div className="h-8 w-64 bg-white/5 rounded mb-7 animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ArtworkCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function MarketplacePage({ searchParams }: PageProps) {
   const params = await searchParams;
   return (
@@ -134,6 +210,13 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
             </div>
           </div>
         </section>
+      )}
+
+      {/* ═══ SÉLECTION ÉDITORIALE — coups de cœur curés au-dessus du catalogue plat ═══ */}
+      {!params.q && !params.category && !params.status && (
+        <Suspense fallback={<SelectionRowSkeleton />}>
+          <SelectionRow />
+        </Suspense>
       )}
 
       {/* ═══ Search + Price Slider ═══ */}

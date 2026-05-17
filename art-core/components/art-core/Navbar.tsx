@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutGrid, ShieldCheck, TrendingUp, LogOut, User, Settings,
   Heart, Package, ChevronDown, Coins, Menu, X, MessageSquare,
-  Store, Plus, Wallet, CreditCard,
+  Store, Plus, Wallet, CreditCard, ArrowLeft,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -74,6 +74,16 @@ export function Navbar() {
     <>
       <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/5">
         <div className="max-w-screen-2xl mx-auto h-full px-4 lg:px-8 flex items-center gap-6">
+          {/* Back button — visible on sub-pages (not root /art-core) */}
+          {pathname !== "/art-core" && pathname !== "/" && (
+            <button
+              onClick={() => router.back()}
+              className="flex items-center justify-center w-9 h-9 -mr-3 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+          )}
           <Link href="/art-core" className="flex items-center gap-2.5 shrink-0">
             <div className="w-7 h-7 rounded-lg bg-gold flex items-center justify-center">
               <span className="text-black font-bold text-xs">AC</span>

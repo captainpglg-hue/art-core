@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Coins, ArrowUp, ArrowDown, TrendingUp, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import StripeConnectCard from "@/components/art-core/StripeConnectCard";
 
 export default function WalletPage() {
   const [data, setData] = useState<any>(null);
@@ -18,8 +19,7 @@ export default function WalletPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="font-playfair text-3xl font-semibold text-white mb-8">Portefeuille</h1>
-
-      {/* Balance card */}
+      <StripeConnectCard />
       <div className="rounded-2xl bg-gradient-to-br from-[#1E1E1E] to-[#151515] border border-gold/10 p-6 mb-8">
         <p className="text-xs uppercase tracking-widest text-white/30 mb-2">Solde actuel</p>
         <div className="flex items-baseline gap-3">
@@ -28,11 +28,9 @@ export default function WalletPage() {
           <span className="text-white/40 text-lg">pts</span>
         </div>
         <div className="flex gap-6 mt-4 text-sm text-white/40">
-          <span className="flex items-center gap-1.5"><TrendingUp className="size-4 text-green-400" />Total gagné: {data.total_earned} pts</span>
+          <span className="flex items-center gap-1.5"><TrendingUp className="size-4 text-green-400" />Total gagne: {data.total_earned} pts</span>
         </div>
       </div>
-
-      {/* Gauge investments */}
       {data.gaugeInvestments?.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-white mb-4">Investissements (Jauges)</h2>
@@ -41,7 +39,7 @@ export default function WalletPage() {
               <div key={g.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-white/5">
                 <div>
                   <p className="text-sm text-white/70">{g.artwork_title}</p>
-                  <p className="text-[11px] text-white/30">Jauge: {g.gauge_points}/100 {g.gauge_locked ? "— Verrouillée" : ""}</p>
+                  <p className="text-[11px] text-white/30">Jauge: {g.gauge_points}/100 {g.gauge_locked ? "- Verrouillee" : ""}</p>
                 </div>
                 <span className="text-gold font-semibold text-sm tabular-nums">{g.points} pts</span>
               </div>
@@ -49,17 +47,15 @@ export default function WalletPage() {
           </div>
         </div>
       )}
-
-      {/* Commissions */}
       {data.commissions?.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">Commissions reçues</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">Commissions recues</h2>
           <div className="space-y-2">
             {data.commissions.map((c: any) => (
               <div key={c.id} className="flex items-center justify-between p-3 rounded-xl bg-green-500/5 border border-green-500/10">
                 <div>
                   <p className="text-sm text-white/70">{c.artwork_title}</p>
-                  <p className="text-[11px] text-white/30">{c.percentage.toFixed(1)}% du pool — {c.points_invested} pts investis</p>
+                  <p className="text-[11px] text-white/30">{c.percentage.toFixed(1)}% du pool - {c.points_invested} pts investis</p>
                 </div>
                 <span className="text-green-400 font-semibold text-sm tabular-nums">+{c.paid_as_points.toFixed(0)} pts</span>
               </div>
@@ -67,8 +63,6 @@ export default function WalletPage() {
           </div>
         </div>
       )}
-
-      {/* Transaction history */}
       <h2 className="text-lg font-semibold text-white mb-4">Historique</h2>
       <div className="space-y-1">
         {data.transactions?.map((t: any) => (

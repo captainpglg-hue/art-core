@@ -5,7 +5,7 @@
   "description": "Certification blockchain des oeuvres d'art. Photo macro, empreinte visuelle, hash immuable.",
   "start_url": "/pass-core/certifier",
   "scope": "/",
-  "display": "standalone",
+  "display": "minimal-ui",
   "orientation": "portrait",
   "theme_color": "#0A1128",
   "background_color": "#0A1128",

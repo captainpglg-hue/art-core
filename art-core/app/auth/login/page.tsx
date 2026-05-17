@@ -12,6 +12,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   user_resolution_failed: "Impossible de retrouver le compte. Reessaye.",
   user_creation_failed: "Creation du compte impossible. Reessaye.",
   pseudo_taken: "Ce pseudo est deja pris. Recommence l'inscription.",
+  oauth_exchange_failed: "La connexion Google a echoue. Reessaye dans quelques instants.",
+  config_missing: "Configuration serveur manquante. Contacte le support.",
+  oauth_error: "Erreur lors de la connexion Google. Reessaye.",
 };
 
 export default function LoginPage() {

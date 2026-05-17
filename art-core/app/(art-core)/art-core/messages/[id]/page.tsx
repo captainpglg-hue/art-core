@@ -13,9 +13,16 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [user, setUser] = useState<any>(null);
+  // Fallback receiver/artwork lus depuis l'URL (?to=&artwork=) pour amorcer
+  // une conversation vide (premier message depuis "Contacter le vendeur").
+  const [fallbackTo, setFallbackTo] = useState<string | null>(null);
+  const [fallbackArtwork, setFallbackArtwork] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    setFallbackTo(sp.get("to"));
+    setFallbackArtwork(sp.get("artwork"));
     fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d.user));
     loadMessages();
     const interval = setInterval(loadMessages, 5000);
@@ -30,14 +37,25 @@ export default function ConversationPage() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!newMsg.trim() || !messages.length) return;
-    const lastMsg = messages[messages.length - 1];
-    const receiverId = lastMsg.sender_id === user?.id ? lastMsg.receiver_id : lastMsg.sender_id;
+    if (!newMsg.trim()) return;
+
+    // Récupère receiver_id : soit depuis le dernier message, soit depuis l'URL (conversation neuve).
+    let receiverId: string | null = null;
+    let artworkIdForMsg: string | null = null;
+    if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      receiverId = lastMsg.sender_id === user?.id ? lastMsg.receiver_id : lastMsg.sender_id;
+      artworkIdForMsg = lastMsg.artwork_id ?? null;
+    } else if (fallbackTo) {
+      receiverId = fallbackTo;
+      artworkIdForMsg = fallbackArtwork;
+    }
+    if (!receiverId) return;
 
     await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receiver_id: receiverId, content: newMsg, artwork_id: lastMsg.artwork_id }),
+      body: JSON.stringify({ receiver_id: receiverId, content: newMsg, artwork_id: artworkIdForMsg }),
     });
     setNewMsg("");
     loadMessages();

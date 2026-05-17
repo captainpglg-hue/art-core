@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ChevronRight, ShoppingCart, Share2, Heart, Eye, Ruler, Tag,
   User2, Calendar, Lock, MessageSquare, ShieldCheck,
 } from "lucide-react";
-import { getArtworkById, getGaugeEntries, query, queryAll } from "@/lib/db";
+import { getArtworkById, getArtworks, getGaugeEntries, query, queryAll } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GaugeBar } from "@/components/art-core/GaugeBar";
+import { ArtworkGallery } from "@/components/art-core/ArtworkGallery";
+import { ArtworkCard } from "@/components/art-core/ArtworkCard";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { resolveAllPhotos, PLACEHOLDER_ART } from "@/lib/resolve-photo";
+import { resolveAllPhotos } from "@/lib/resolve-photo";
 import { ArtworkDetailClient } from "./detail-client";
 
 export const dynamic = "force-dynamic";
@@ -43,11 +44,17 @@ export default async function ArtworkDetailPage({ params }: Props) {
 
   const markets = await queryAll<any>("SELECT * FROM betting_markets WHERE artwork_id = ?", [id]);
 
+  // Œuvres similaires — même catégorie, hors œuvre courante et œuvres vendues.
+  const related = artwork.category
+    ? (await getArtworks({ category: artwork.category, limit: 12 }))
+        .filter((a) => a.id !== id && a.status !== "sold")
+        .slice(0, 4)
+    : [];
+
   const gaugePoints = Number(artwork.gauge_points ?? 0);
   const isLocked = artwork.gauge_locked === 1 || gaugePoints >= 100;
   const isArtist = currentUser?.id === artwork.artist_id;
   const isCertified = !!artwork.blockchain_hash;
-  const mainImage = photos[0] || PLACEHOLDER_ART;
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
@@ -61,28 +68,8 @@ export default async function ArtworkDetailPage({ params }: Props) {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10 xl:gap-14">
-        {/* Left — Image viewer */}
-        <div className="space-y-4">
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#111]">
-            <Image
-              src={mainImage}
-              alt={artwork.title}
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 1024px) 100vw, 60vw"
-            />
-          </div>
-          {photos.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {photos.map((photo: string, i: number) => (
-                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-[#111] shrink-0 border-2 border-transparent hover:border-gold/50 transition-colors">
-                  <Image src={photo} alt={`${artwork.title} ${i + 1}`} fill className="object-cover" sizes="80px" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Left — Galerie interactive */}
+        <ArtworkGallery photos={photos} title={artwork.title} />
 
         {/* Right — Info panel */}
         <div className="space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
@@ -103,14 +90,15 @@ export default async function ArtworkDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* Certification detail */}
+          {/* Certificat d'authenticité */}
           {isCertified && (
             <div className="rounded-xl bg-green-500/5 border border-green-500/15 p-4 flex items-start gap-3">
               <ShieldCheck className="size-5 text-green-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-green-400 font-medium">Authenticité garantie</p>
+                <p className="text-sm text-green-400 font-medium">Œuvre originale — authenticité garantie</p>
                 <p className="text-[11px] text-white/35 mt-0.5 leading-relaxed">
-                  Cette oeuvre a été certifiée via PASS-CORE. Son empreinte visuelle et son hash blockchain sont immuables.
+                  Cette œuvre a été certifiée par PASS-CORE et est livrée avec son certificat d&apos;authenticité,
+                  rattaché à vie à l&apos;œuvre et infalsifiable.
                   {artwork.certification_date && ` Certifiée le ${new Date(artwork.certification_date).toLocaleDateString("fr-FR")}.`}
                 </p>
               </div>
@@ -220,20 +208,24 @@ export default async function ArtworkDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Purchase + Contact artist */}
+          {/* Achat + contact vendeur */}
           {!isArtist && artwork.status !== "sold" && (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="space-y-2.5">
               <Link
                 href={`/art-core/checkout?artwork_id=${id}`}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#C9A84C] text-[#0a0a0a] font-semibold text-sm active:brightness-90 transition-all"
+                className="flex items-center justify-center gap-2.5 py-4 rounded-xl bg-[#C9A84C] text-[#0a0a0a] font-semibold text-base active:brightness-90 transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]"
               >
-                <ShoppingCart className="size-4" />Acheter
+                <ShoppingCart className="size-5" />
+                Acheter{artwork.price > 0 ? ` — ${formatPrice(artwork.price)}` : ""}
               </Link>
+              <p className="text-center text-[11px] text-white/30">
+                Paiement sécurisé · Livraison sous 7 jours · Satisfait ou remboursé 14 jours
+              </p>
               <Link
                 href={`/art-core/messages?to=${artwork.artist_id}&artwork=${id}`}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-all"
               >
-                <MessageSquare className="size-4" />Contacter
+                <MessageSquare className="size-4" />Une question ? Contacter le vendeur
               </Link>
             </div>
           )}
@@ -282,18 +274,6 @@ export default async function ArtworkDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Blockchain certification */}
-          {isCertified && (
-            <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-2">
-              <p className="text-xs uppercase tracking-widest text-gold/50 mb-2">Certification Blockchain</p>
-              <div className="text-[11px] text-white/40 space-y-1">
-                <p>Hash: <span className="text-white/60 font-mono text-[10px] break-all">{artwork.blockchain_hash}</span></p>
-                <p>TX: <span className="text-white/60 font-mono text-[10px]">{artwork.blockchain_tx_id}</span></p>
-                {artwork.certification_date && <p>Certifié le: <span className="text-white/60">{formatDate(artwork.certification_date)}</span></p>}
-              </div>
-            </div>
-          )}
-
           {/* Betting markets */}
           {markets.length > 0 && (
             <div>
@@ -314,6 +294,19 @@ export default async function ArtworkDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* Œuvres similaires */}
+      {related.length > 0 && (
+        <section className="mt-16 pt-12 border-t border-white/5">
+          <h2 className="font-playfair text-2xl font-semibold text-white mb-1">Œuvres similaires</h2>
+          <p className="text-white/35 text-sm mb-7">D&apos;autres pièces qui pourraient vous plaire</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {related.map((a) => (
+              <ArtworkCard key={a.id} artwork={{ ...a, photos: resolveAllPhotos(a.photos) }} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

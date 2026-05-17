@@ -5,7 +5,7 @@
   "description": "Marketplace d'art avec jauge de points, certification blockchain et marchés prédictifs.",
   "start_url": "/art-core",
   "scope": "/",
-  "display": "standalone",
+  "display": "minimal-ui",
   "orientation": "portrait",
   "theme_color": "#0a0a0a",
   "background_color": "#0a0a0a",

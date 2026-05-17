@@ -9,6 +9,29 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // "Contacter le vendeur" depuis la page œuvre arrive ici avec ?to=...&artwork=...
+    // On saute directement à la conversation dérivée (le thread page sait gérer un fil vide).
+    const params = new URLSearchParams(window.location.search);
+    const to = params.get("to");
+    const artwork = params.get("artwork");
+    if (to) {
+      fetch("/api/messages/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, artwork_id: artwork || null }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.conversation_id) {
+            const qs = `?to=${encodeURIComponent(to)}${artwork ? `&artwork=${encodeURIComponent(artwork)}` : ""}`;
+            window.location.replace(`/art-core/messages/${d.conversation_id}${qs}`);
+          } else {
+            setLoading(false);
+          }
+        })
+        .catch(() => setLoading(false));
+      return;
+    }
     fetch("/api/messages").then(r => r.json()).then(d => { setConversations(d.conversations || []); setLoading(false); });
   }, []);
 
