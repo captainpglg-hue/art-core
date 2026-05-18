@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken, getDb } from "@/lib/db";
 import { stripe, isStripeConfigured, createSimplePaymentIntent, createArtworkPaymentIntent } from "@/lib/stripe";
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (error || !artwork) return NextResponse.json({ error: "Oeuvre introuvable" }, { status: 404 });
     if (artwork.status === "sold") return NextResponse.json({ error: "Cette oeuvre a deja ete vendue" }, { status: 409 });
     if (!artwork.is_public || !artwork.is_for_sale) return NextResponse.json({ error: "Cette oeuvre n est pas en vente" }, { status: 409 });
-    if (artwork.artist_id === user.id || artwork.owner_id === user.id) return NextResponse.json({ error: "Tu ne peux pas acheter ta propre oeuvre" }, { status: 409 });
+    // Note : l'auto-achat (artiste = acheteur) est volontairement autorisé pour le rachat / retrait d'œuvre.
 
     const price = Number(artwork.price);
     if (!Number.isFinite(price) || price <= 0) return NextResponse.json({ error: "Prix invalide" }, { status: 409 });
