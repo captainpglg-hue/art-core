@@ -8,7 +8,6 @@ import { ShoppingBag, ArrowLeft, ShieldCheck, Truck, RotateCcw } from "lucide-re
 import { CheckoutClient } from "./checkout-client";
 import { GoogleSignInButton, AuthDivider } from "@/components/auth/GoogleSignInButton";
 
-// Check server-side uniquement (n'importe pas lib/stripe qui tire @stripe/stripe-js côté client).
 const isStripeReady = () =>
   !!process.env.STRIPE_SECRET_KEY && !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
@@ -50,7 +49,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     );
   }
 
-  // Pas d'artwork_id → fallback vers la page générique historique
   if (!artwork_id) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -92,15 +90,7 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     );
   }
 
-  // Gestion tentative d'auto-achat (l'artiste ne peut pas acheter sa propre œuvre)
-  if (artwork.artist_id === user.id || artwork.owner_id === user.id) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <p className="text-white/50 mb-4">Tu ne peux pas acheter ta propre œuvre.</p>
-        <Link href={`/art-core/oeuvre/${artwork.id}`} className="text-[#C9A84C] hover:underline">Retour à l&apos;œuvre</Link>
-      </div>
-    );
-  }
+  // Note : l'auto-achat (artiste = acheteur) est volontairement autorisé.
 
   const photos = resolveAllPhotos(
     artwork.photos
@@ -111,10 +101,8 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
   const mainPhoto = photos[0] || PLACEHOLDER_ART;
   const price = Number(artwork.price) || 0;
 
-  // Répartition Stripe Connect (commission + royalties)
   const artistShare = price * 0.90;
   const platformShare = price * 0.10;
-  const royaltyShare = price * 0.05; // artist royalty on resale — indicative
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -128,7 +116,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
       <h1 className="font-playfair text-3xl font-semibold text-white mb-1">Paiement</h1>
       <p className="text-white/40 text-sm mb-8">Finalise ton achat en toute sécurité.</p>
 
-      {/* Récap œuvre */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 mb-5 flex gap-4">
         <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-white/5">
           <Image src={mainPhoto} alt={artwork.title} fill className="object-cover" sizes="96px" />
@@ -149,7 +136,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Détail de la transaction */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 mb-5">
         <p className="text-xs uppercase tracking-widest text-white/40 mb-4">Détail de la transaction</p>
         <div className="space-y-2.5 text-sm">
@@ -172,7 +158,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Paiement Stripe — formulaire Elements */}
       {isStripeReady() ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 mb-8">
           <p className="text-xs uppercase tracking-widest text-white/40 mb-4">Moyen de paiement</p>
@@ -192,7 +177,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Garanties */}
       <div className="grid grid-cols-3 gap-3 text-center">
         <div className="rounded-xl border border-white/5 p-3">
           <ShieldCheck className="size-5 text-[#C9A84C] mx-auto mb-1.5" />
