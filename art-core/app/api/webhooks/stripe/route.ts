@@ -7,16 +7,17 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/webhooks/stripe
  *
- * Vercel/Next.js reçoit les événements Stripe signés. On vérifie la signature
- * avec STRIPE_WEBHOOK_SECRET, puis on traite les events :
+ * Réception des events Stripe signés. On vérifie la signature avec
+ * STRIPE_WEBHOOK_SECRET, puis on traite :
  *
  *   - payment_intent.succeeded
  *       → UPDATE artworks SET status='sold', buyer_id, final_sale_price, sold_at
- *       → INSERT ownership_transfers (history)
+ *       → INSERT ownership_transfers (historique de propriété)
+ *       → INSERT notifications (acheteur + ancien propriétaire)
  *
- *   - payment_intent.payment_failed : log seulement (le client voit l'erreur direct)
+ *   - payment_intent.payment_failed : log seulement.
  *
- * Les autres events sont ignorés (200 OK) pour ne pas bloquer la retry logic Stripe.
+ * Les autres events renvoient 200 OK pour ne pas bloquer la retry logic Stripe.
  */
 export async function POST(req: NextRequest) {
   if (!isStripeConfigured()) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing signature" }, { status: 400 });
   }
 
-  // Important : Stripe exige le body BRUT (pas parsé) pour la vérification de signature
+  // Stripe exige le body BRUT (non parsé) pour la vérification de signature
   const payload = await req.text();
 
   let event: any;
@@ -56,7 +57,6 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ received: true, warning: "no_metadata" });
         }
 
-        // Récupérer l'ancien owner pour historique
         const { data: artBefore } = await sb
           .from("artworks").select("id, owner_id, artist_id, status").eq("id", artwork_id).maybeSingle();
 
@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ received: true, idempotent: true });
         }
 
-        // Mise à jour de l'œuvre
         const { error: updErr } = await sb
           .from("artworks")
           .update({
@@ -84,22 +83,21 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: updErr.message }, { status: 500 });
         }
 
-        // Historique de propriété
+        // Historique de propriété — schéma réel : (price, notes, created_at), pas (sale_price, stripe_payment_intent_id, transferred_at)
         if (artBefore?.owner_id) {
           const { error: histErr } = await sb.from("ownership_transfers").insert({
             artwork_id,
             from_user_id: artBefore.owner_id,
             to_user_id: buyer_id,
-            sale_price: finalPrice,
+            price: finalPrice,
             transfer_type: "sale",
-            stripe_payment_intent_id: pi.id,
-            transferred_at: new Date().toISOString(),
+            notes: `stripe_pi=${pi.id}`,
+            created_at: new Date().toISOString(),
           });
           if (histErr) console.warn("[webhooks/stripe] ownership_transfers insert failed (non bloquant):", histErr.message);
         }
 
         // Notifications (best-effort, non bloquantes)
-        // Schéma DB : type (text) + data (jsonb). Mapping kind→type, artwork_id→data.artwork_id.
         try {
           const notifs: Array<{
             user_id: string;
