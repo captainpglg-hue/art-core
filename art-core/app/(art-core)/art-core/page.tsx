@@ -4,9 +4,7 @@ import Link from "next/link";
 import { getArtworks } from "@/lib/db";
 import { resolveAllPhotos } from "@/lib/resolve-photo";
 import { ArtworkCard, ArtworkCardSkeleton } from "@/components/art-core/ArtworkCard";
-import { FilterBar } from "@/components/art-core/FilterBar";
-import { SearchAutocomplete } from "@/components/art-core/SearchAutocomplete";
-import { PriceSlider } from "@/components/art-core/PriceSlider";
+import { MarketplaceSidebar } from "@/components/art-core/MarketplaceSidebar";
 import { ShieldCheck, Truck, RotateCcw, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -19,6 +17,7 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   searchParams: Promise<{
     category?: string;
+    technique?: string;
     status?: string;
     sort?: string;
     q?: string;
@@ -46,13 +45,19 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
     photos: resolveAllPhotos(a.photos),
   }));
 
-  // Price filter
+  // Filtre technique côté client (getArtworks ne le supporte pas encore)
+  if (searchParams.technique) {
+    const tech = searchParams.technique.toLowerCase();
+    parsed = parsed.filter((a) => (a.technique ?? "").toLowerCase().includes(tech));
+  }
+
+  // Filtre prix
   const pMin = parseFloat(searchParams.price_min || "0");
   const pMax = parseFloat(searchParams.price_max || "0");
-  if (pMin > 0) parsed = parsed.filter(a => (a.price ?? 0) >= pMin);
-  if (pMax > 0) parsed = parsed.filter(a => (a.price ?? 0) <= pMax);
+  if (pMin > 0) parsed = parsed.filter((a) => (a.price ?? 0) >= pMin);
+  if (pMax > 0) parsed = parsed.filter((a) => (a.price ?? 0) <= pMax);
 
-  // Sort: boosted first
+  // Boostées d'abord
   const sorted = [...parsed].sort((a, b) => {
     const aP = Number(!!a.boost_active) + Number(!!a.highlight_active);
     const bP = Number(!!b.boost_active) + Number(!!b.highlight_active);
@@ -73,12 +78,17 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
 
   return (
     <>
-      <p className="text-white/25 text-xs mb-5">{sorted.length} oeuvre{sorted.length !== 1 ? "s" : ""}</p>
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-0">
+      <p className="text-white/40 text-sm mb-5">
+        <span className="font-semibold text-white">{sorted.length}</span> œuvre{sorted.length !== 1 ? "s" : ""} trouvée{sorted.length !== 1 ? "s" : ""}
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {sorted.map((artwork, i) => (
-          <div key={artwork.id} className="break-inside-avoid mb-5">
-            <ArtworkCard artwork={artwork} priority={i < 4} promoted={!!(artwork.boost_active || artwork.highlight_active)} />
-          </div>
+          <ArtworkCard
+            key={artwork.id}
+            artwork={artwork}
+            priority={i < 4}
+            promoted={!!(artwork.boost_active || artwork.highlight_active)}
+          />
         ))}
       </div>
     </>
@@ -87,9 +97,9 @@ async function ArtworkGrid({ searchParams }: { searchParams: Awaited<PageProps["
 
 function GridSkeleton() {
   return (
-    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="break-inside-avoid mb-5"><ArtworkCardSkeleton /></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+      {Array.from({ length: 9 }).map((_, i) => (
+        <ArtworkCardSkeleton key={i} />
       ))}
     </div>
   );
@@ -135,7 +145,6 @@ async function SelectionRow() {
           </Link>
         </div>
 
-        {/* Mobile : scroll horizontal snap. Desktop : grille 4 colonnes. */}
         <div className="flex md:grid md:grid-cols-4 gap-5 overflow-x-auto md:overflow-visible no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none pb-2 md:pb-0">
           {selection.map((a, i) => (
             <div
@@ -173,10 +182,12 @@ function SelectionRowSkeleton() {
 
 export default async function MarketplacePage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const hasActiveFilters = !!(params.q || params.category || params.status || params.technique);
+
   return (
     <>
-      {/* ═══ HERO — Above the fold ═══ */}
-      {!params.q && !params.category && !params.status && (
+      {/* ═══ HERO — caché dès qu'un filtre est actif ═══ */}
+      {!hasActiveFilters && (
         <section className="bg-[#121212] border-b border-white/5">
           <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-12 md:py-16">
             <h1 className="font-playfair text-3xl md:text-5xl font-semibold text-white leading-tight mb-4 max-w-2xl">
@@ -185,15 +196,16 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
             <p className="text-white/45 text-base md:text-lg mb-8 max-w-lg">
               Des milliers d&apos;oeuvres uniques d&apos;artistes émergents et reconnus
             </p>
-            <Link href="#catalogue"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#D4AF37] text-[#121212] font-semibold text-base active:brightness-90 transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]">
-              Découvrir les oeuvres <ArrowRight className="size-5" />
+            <Link
+              href="#catalogue"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#D4AF37] text-[#121212] font-semibold text-base active:brightness-90 transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]"
+            >
+              Découvrir les œuvres <ArrowRight className="size-5" />
             </Link>
 
-            {/* Réassurance */}
             <div className="flex flex-wrap gap-6 md:gap-10 mt-10">
               {[
-                { icon: ShieldCheck, text: "Oeuvres certifiées originales" },
+                { icon: ShieldCheck, text: "Œuvres certifiées originales" },
                 { icon: Truck, text: "Livraison sécurisée sous 7 jours" },
                 { icon: RotateCcw, text: "Satisfait ou remboursé 14 jours" },
               ].map((item) => {
@@ -212,41 +224,42 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         </section>
       )}
 
-      {/* ═══ SÉLECTION ÉDITORIALE — coups de cœur curés au-dessus du catalogue plat ═══ */}
-      {!params.q && !params.category && !params.status && (
+      {/* ═══ SÉLECTION ÉDITORIALE — Coups de cœur ═══ */}
+      {!hasActiveFilters && (
         <Suspense fallback={<SelectionRowSkeleton />}>
           <SelectionRow />
         </Suspense>
       )}
 
-      {/* ═══ Search + Price Slider ═══ */}
-      <div id="catalogue" className="sticky top-16 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-3 space-y-2">
-          <SearchAutocomplete />
-          <PriceSlider />
+      {/* ═══ CATALOGUE — Sidebar + Grid (layout style Etsy) ═══ */}
+      <div id="catalogue" className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          <Suspense
+            fallback={
+              <aside className="w-full lg:w-72 lg:shrink-0 rounded-2xl bg-[#0f0f0f] border border-white/[0.06] p-5 h-64 animate-pulse" />
+            }
+          >
+            <MarketplaceSidebar />
+          </Suspense>
+
+          <main className="flex-1 min-w-0">
+            <Suspense fallback={<GridSkeleton />}>
+              <ArtworkGrid searchParams={params} />
+            </Suspense>
+          </main>
         </div>
       </div>
 
-      <Suspense fallback={null}>
-        <FilterBar />
-      </Suspense>
-
-      <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-6">
-        <Suspense fallback={<GridSkeleton />}>
-          <ArtworkGrid searchParams={params} />
-        </Suspense>
-      </div>
-
       {/* ═══ COMMENT CA MARCHE ═══ */}
-      {!params.q && !params.category && (
+      {!hasActiveFilters && (
         <section className="border-t border-white/5 bg-[#0d0d0d]">
           <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-16">
-            <h2 className="font-playfair text-2xl font-semibold text-white text-center mb-10">Comment ca marche</h2>
+            <h2 className="font-playfair text-2xl font-semibold text-white text-center mb-10">Comment ça marche</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { num: "1", title: "Je decouvre", desc: "Parcourez des milliers d'oeuvres originales selectionnees par nos experts. Filtrez par style, prix, taille." },
-                { num: "2", title: "Je choisis en confiance", desc: "Chaque oeuvre est certifiee originale et livree avec son certificat d'authenticite." },
-                { num: "3", title: "Je recois", desc: "Livraison securisee, emballage premium, satisfait ou rembourse 14 jours." },
+                { num: "1", title: "Je découvre", desc: "Parcourez des milliers d'œuvres originales sélectionnées par nos experts. Filtrez par style, prix, taille." },
+                { num: "2", title: "Je choisis en confiance", desc: "Chaque œuvre est certifiée originale et livrée avec son certificat d'authenticité." },
+                { num: "3", title: "Je reçois", desc: "Livraison sécurisée, emballage premium, satisfait ou remboursé 14 jours." },
               ].map((s) => (
                 <div key={s.num} className="text-center">
                   <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mx-auto mb-4">
@@ -259,14 +272,13 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Pourquoi ART-CORE */}
           <div className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-16">
             <div className="rounded-2xl bg-[#D4AF37]/5 border border-[#D4AF37]/10 p-8 md:p-10 text-center">
               <h2 className="font-playfair text-xl font-semibold text-white mb-4">Pourquoi ART-CORE</h2>
               <p className="text-white/45 text-sm leading-relaxed max-w-xl mx-auto">
-                Nous avons cree ART-CORE parce que l&apos;art original merite d&apos;etre accessible.
-                Pas besoin d&apos;etre collectionneur ou d&apos;aller dans une galerie intimidante.
-                Ici, chaque oeuvre est verifiee, chaque artiste est reel, chaque achat est protege.
+                Nous avons créé ART-CORE parce que l&apos;art original mérite d&apos;être accessible.
+                Pas besoin d&apos;être collectionneur ou d&apos;aller dans une galerie intimidante.
+                Ici, chaque œuvre est vérifiée, chaque artiste est réel, chaque achat est protégé.
               </p>
               <div className="flex justify-center gap-4 mt-6">
                 <Link href="/art-core/about" className="text-[#D4AF37] text-sm font-medium hover:underline">En savoir plus</Link>
@@ -275,18 +287,17 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Nos artistes */}
           <div className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-16">
             <h2 className="font-playfair text-2xl font-semibold text-white text-center mb-8">Nos artistes</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { name: "Marie Dubois", city: "Paris", quote: "ART-CORE m'a permis de toucher des acheteurs que je n'aurais jamais atteints en galerie." },
-                { name: "Lucas Martin", city: "Lyon", quote: "La certification rassure mes clients. Mes ventes ont augmente de 60% depuis mon inscription." },
-                { name: "Sophie Laurent", city: "Bordeaux", quote: "En tant qu'initie, j'investis sur les artistes que j'aime. C'est du soutien concret." },
+                { name: "Lucas Martin", city: "Lyon", quote: "La certification rassure mes clients. Mes ventes ont augmenté de 60% depuis mon inscription." },
+                { name: "Sophie Laurent", city: "Bordeaux", quote: "En tant qu'initiée, j'investis sur les artistes que j'aime. C'est du soutien concret." },
               ].map((a) => (
                 <div key={a.name} className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
                   <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mb-4">
-                    <span className="text-[#D4AF37] font-bold text-sm">{a.name.split(" ").map(n => n[0]).join("")}</span>
+                    <span className="text-[#D4AF37] font-bold text-sm">{a.name.split(" ").map((n) => n[0]).join("")}</span>
                   </div>
                   <p className="text-white/50 text-sm italic leading-relaxed mb-4">&laquo; {a.quote} &raquo;</p>
                   <p className="text-white font-medium text-sm">{a.name}</p>
