@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,13 @@ export function FilterBar() {
   const gauge = searchParams.get("gauge") ?? "";
   const sort = searchParams.get("sort") ?? "recent";
   const q = searchParams.get("q") ?? "";
+  const priceMinParam = searchParams.get("price_min") ?? "";
+  const priceMaxParam = searchParams.get("price_max") ?? "";
+
+  const [priceMin, setPriceMin] = useState(priceMinParam);
+  const [priceMax, setPriceMax] = useState(priceMaxParam);
+  useEffect(() => { setPriceMin(priceMinParam); }, [priceMinParam]);
+  useEffect(() => { setPriceMax(priceMaxParam); }, [priceMaxParam]);
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -72,13 +79,19 @@ export function FilterBar() {
     updateParam("gauge", gauge === value ? "" : value);
   };
 
+  const commitPrice = (key: "price_min" | "price_max", value: string) => {
+    const clean = value.replace(/[^\d]/g, "");
+    updateParam(key, clean);
+  };
+
   const clearAll = () => {
     startTransition(() => {
       router.push(pathname, { scroll: false });
     });
   };
 
-  const hasFilters = category !== "all" || !!status || !!gauge || sort !== "recent" || !!q;
+  const hasFilters =
+    category !== "all" || !!status || !!gauge || sort !== "recent" || !!q || !!priceMinParam || !!priceMaxParam;
 
   return (
     <div
@@ -177,6 +190,37 @@ export function FilterBar() {
             {g.label}
           </button>
         ))}
+      </div>
+
+      {/* Row 3: Price range (Min / Max EUR) */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] uppercase tracking-widest text-white/30 shrink-0">Prix</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          placeholder="Min"
+          value={priceMin}
+          onChange={(e) => setPriceMin(e.target.value)}
+          onBlur={(e) => commitPrice("price_min", e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commitPrice("price_min", e.currentTarget.value); }}
+          className="w-20 h-7 px-2 rounded-md bg-white/5 border border-white/8 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20 transition-colors tabular-nums"
+          aria-label="Prix minimum en euros"
+        />
+        <span className="text-white/30 text-xs">—</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          placeholder="Max"
+          value={priceMax}
+          onChange={(e) => setPriceMax(e.target.value)}
+          onBlur={(e) => commitPrice("price_max", e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commitPrice("price_max", e.currentTarget.value); }}
+          className="w-20 h-7 px-2 rounded-md bg-white/5 border border-white/8 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20 transition-colors tabular-nums"
+          aria-label="Prix maximum en euros"
+        />
+        <span className="text-white/40 text-xs">€</span>
       </div>
     </div>
   );
