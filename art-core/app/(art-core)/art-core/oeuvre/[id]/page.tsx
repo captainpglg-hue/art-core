@@ -208,8 +208,8 @@ export default async function ArtworkDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Achat + contact vendeur */}
-          {!isArtist && artwork.status !== "sold" && (
+          {/* Achat — disponible même pour l'artiste de l'œuvre (auto-achat autorisé) */}
+          {artwork.status !== "sold" && (
             <div className="space-y-2.5">
               <Link
                 href={`/art-core/checkout?artwork_id=${id}`}
@@ -221,12 +221,14 @@ export default async function ArtworkDetailPage({ params }: Props) {
               <p className="text-center text-[11px] text-white/30">
                 Paiement sécurisé · Livraison sous 7 jours · Satisfait ou remboursé 14 jours
               </p>
-              <Link
-                href={`/art-core/messages?to=${artwork.artist_id}&artwork=${id}`}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-all"
-              >
-                <MessageSquare className="size-4" />Une question ? Contacter le vendeur
-              </Link>
+              {!isArtist && (
+                <Link
+                  href={`/art-core/messages?to=${artwork.artist_id}&artwork=${id}`}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <MessageSquare className="size-4" />Une question ? Contacter le vendeur
+                </Link>
+              )}
             </div>
           )}
 
