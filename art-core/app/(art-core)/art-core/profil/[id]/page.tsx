@@ -1,27 +1,51 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getUserById, getArtworks, queryOne } from "@/lib/db";
 import { ArtworkCard } from "@/components/art-core/ArtworkCard";
 import { formatPrice } from "@/lib/utils";
 import { resolveAllPhotos } from "@/lib/resolve-photo";
-import { Image as ImageIcon, Users, TrendingUp, Calendar } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 interface Props { params: Promise<{ id: string }> }
 
+interface ProfileUser {
+  name?: string;
+  full_name?: string;
+  username?: string;
+  bio?: string;
+  role?: string;
+  is_initie?: boolean | number;
+}
+
+async function safeCountSum(sql: string, params: unknown[]): Promise<{ count: number; total: number }> {
+  try {
+    const row = await queryOne<{ count?: number; total?: number | string }>(sql, params);
+    return { count: Number(row?.count) || 0, total: Number(row?.total) || 0 };
+  } catch {
+    return { count: 0, total: 0 };
+  }
+}
+
 export default async function ProfilPage({ params }: Props) {
   const { id } = await params;
-  const user = await getUserById(id) as any;
+  const user = (await getUserById(id)) as ProfileUser | undefined;
   if (!user) notFound();
 
-  const artworks = await getArtworks({ artistId: id, limit: 50 });
+  const artworks = await getArtworks({ artistId: id, limit: 50 }).catch(() => []);
   const parsed = artworks.map((a) => ({ ...a, photos: resolveAllPhotos(a.photos) }));
-  const totalSales = await queryOne<any>("SELECT COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?", [id]);
-  const followersRow = await queryOne<any>("SELECT COUNT(*)::int as count FROM follows WHERE following_id = ?", [id]);
-  const followers = followersRow?.count || 0;
+  const totalSales = await safeCountSum(
+    "SELECT COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?",
+    [id]
+  );
+  const followersRow = await safeCountSum(
+    "SELECT COUNT(*)::int as count, 0 as total FROM follows WHERE following_id = ?",
+    [id]
+  );
+  const followers = followersRow.count;
 
-  const initials = user.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
+  const displayName = user.name || user.full_name || user.username || "Anonyme";
+  const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
@@ -31,7 +55,7 @@ export default async function ProfilPage({ params }: Props) {
           {initials}
         </div>
         <div className="flex-1">
-          <h1 className="font-playfair text-3xl font-semibold text-white">{user.name}</h1>
+          <h1 className="font-playfair text-3xl font-semibold text-white">{displayName}</h1>
           <p className="text-white/40 text-sm">@{user.username} — {user.role === "artist" ? "Artiste" : user.is_initie ? "Initié" : "Client"}</p>
           {user.bio && <p className="text-white/50 text-sm mt-2 max-w-lg">{user.bio}</p>}
         </div>
