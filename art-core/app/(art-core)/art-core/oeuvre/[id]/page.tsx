@@ -5,7 +5,7 @@ import {
   ChevronRight, ShoppingCart, Share2, Heart, Eye, Ruler, Tag,
   User2, Calendar, Lock, MessageSquare, ShieldCheck,
 } from "lucide-react";
-import { getArtworkById, getArtworks, getGaugeEntries, query, queryAll } from "@/lib/db";
+import { getArtworkById, getArtworks, getGaugeEntries, getDb, queryAll } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,15 @@ export default async function ArtworkDetailPage({ params }: Props) {
   const gaugeEntries = await getGaugeEntries(id);
   const currentUser = await getSessionUser();
 
-  try { await query("UPDATE artworks SET views_count = views_count + 1 WHERE id = ?", [id]); } catch {}
+  // Incrément des vues via RPC dédiée (cf. migration 20260520000000) — l'ancien
+  // `UPDATE artworks SET views_count = views_count + 1` passait par le translator
+  // REST qui n'évalue pas les expressions SQL, d'où 17 erreurs/jour en prod.
+  // Cast typé : la RPC vient d'être créée et n'est pas encore dans types/supabase.ts
+  // (regénération via `npm run db:types` au prochain sprint).
+  try {
+    const sb = getDb() as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: unknown }> };
+    await sb.rpc("increment_artwork_views", { p_id: id });
+  } catch {}
 
   const markets = await queryAll<any>("SELECT * FROM betting_markets WHERE artwork_id = ?", [id]);
 
