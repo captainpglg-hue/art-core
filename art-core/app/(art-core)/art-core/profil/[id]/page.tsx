@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getUserById, getArtworks, queryOne } from "@/lib/db";
+import { getUserById, getArtworks, getDb } from "@/lib/db";
 import { ArtworkCard } from "@/components/art-core/ArtworkCard";
 import { formatPrice } from "@/lib/utils";
 import { resolveAllPhotos } from "@/lib/resolve-photo";
@@ -18,12 +18,36 @@ interface ProfileUser {
   is_initie?: boolean | number;
 }
 
-async function safeCountSum(sql: string, params: unknown[]): Promise<{ count: number; total: number }> {
+// Stats lues via Supabase admin client (PostgREST) plutôt qu'en SQL agrégé :
+// le translator REST de lib/db.ts ne parse pas les expressions du genre
+// `COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total` et renvoyait 400
+// quand postgres-js était indisponible (logs API montraient ces 400 répétés).
+async function getSellerStats(sellerId: string): Promise<{ count: number; total: number }> {
   try {
-    const row = await queryOne<{ count?: number; total?: number | string }>(sql, params);
-    return { count: Number(row?.count) || 0, total: Number(row?.total) || 0 };
+    const sb = getDb();
+    const { data, error } = await sb
+      .from("transactions")
+      .select("amount")
+      .eq("seller_id", sellerId);
+    if (error || !data) return { count: 0, total: 0 };
+    const total = data.reduce((acc, r) => acc + Number((r as { amount: number | null }).amount ?? 0), 0);
+    return { count: data.length, total };
   } catch {
     return { count: 0, total: 0 };
+  }
+}
+
+async function getFollowersCount(followingId: string): Promise<number> {
+  try {
+    const sb = getDb();
+    const { count, error } = await sb
+      .from("follows")
+      .select("id", { count: "exact", head: true })
+      .eq("following_id", followingId);
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -34,15 +58,8 @@ export default async function ProfilPage({ params }: Props) {
 
   const artworks = await getArtworks({ artistId: id, limit: 50 }).catch(() => []);
   const parsed = artworks.map((a) => ({ ...a, photos: resolveAllPhotos(a.photos) }));
-  const totalSales = await safeCountSum(
-    "SELECT COUNT(*)::int as count, COALESCE(SUM(amount), 0) as total FROM transactions WHERE seller_id = ?",
-    [id]
-  );
-  const followersRow = await safeCountSum(
-    "SELECT COUNT(*)::int as count, 0 as total FROM follows WHERE following_id = ?",
-    [id]
-  );
-  const followers = followersRow.count;
+  const totalSales = await getSellerStats(id);
+  const followers = await getFollowersCount(id);
 
   const displayName = user.name || user.full_name || user.username || "Anonyme";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
