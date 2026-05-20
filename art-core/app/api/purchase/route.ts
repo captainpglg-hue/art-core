@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByToken, getDb } from "@/lib/db";
-import { stripe, isStripeConfigured, createSimplePaymentIntent } from "@/lib/stripe";
+import {
+  stripe,
+  isStripeConfigured,
+  createSimplePaymentIntent,
+  createArtworkPaymentIntent,
+} from "@/lib/stripe";
 
 /**
  * POST /api/purchase
@@ -62,19 +67,52 @@ export async function POST(req: NextRequest) {
     }
 
     const amount_cents = Math.round(price * 100);
+    const isResale = artwork.artist_id !== artwork.owner_id;
 
-    const intent = await createSimplePaymentIntent({
-      amountCents: amount_cents,
-      artworkId: artwork.id,
-      buyerId: user.id,
-      isResale: artwork.artist_id !== artwork.owner_id,
-    });
+    // Bascule split auto si le vendeur (owner_id) a un compte Stripe Connect prêt :
+    // - stripe_account_id présent en DB
+    // - acct.charges_enabled && acct.payouts_enabled côté Stripe
+    // Sinon on retombe sur SimplePaymentIntent (la plateforme encaisse, reversement manuel/webhook).
+    let sellerAccountId: string | null = null;
+    try {
+      const { data: seller } = await sb
+        .from("users")
+        .select("stripe_account_id")
+        .eq("id", artwork.owner_id)
+        .maybeSingle();
+      const candidate = seller?.stripe_account_id ?? null;
+      if (candidate) {
+        const acct = await stripe.accounts.retrieve(candidate);
+        if (acct.charges_enabled && acct.payouts_enabled) {
+          sellerAccountId = candidate;
+        }
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[purchase] connect-check failed, fallback simple:", msg);
+    }
+
+    const intent = sellerAccountId
+      ? await createArtworkPaymentIntent({
+          amountCents: amount_cents,
+          sellerAccountId,
+          artworkId: artwork.id,
+          buyerId: user.id,
+          isResale,
+        })
+      : await createSimplePaymentIntent({
+          amountCents: amount_cents,
+          artworkId: artwork.id,
+          buyerId: user.id,
+          isResale,
+        });
 
     return NextResponse.json({
       client_secret: intent.client_secret,
       payment_intent_id: intent.id,
       amount_cents,
       currency: intent.currency,
+      mode: sellerAccountId ? "connect_split" : "simple",
     });
   } catch (e: any) {
     console.error("[POST /api/purchase] exception:", e?.message);

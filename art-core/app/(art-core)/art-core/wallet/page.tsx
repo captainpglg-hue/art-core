@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Coins, ArrowUp, ArrowDown, TrendingUp, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import StripeConnectCard from "@/components/art-core/StripeConnectCard";
 
 export default function WalletPage() {
   const [data, setData] = useState<any>(null);
@@ -18,6 +19,8 @@ export default function WalletPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="font-playfair text-3xl font-semibold text-white mb-8">Portefeuille</h1>
+
+      <StripeConnectCard />
 
       {/* Balance card */}
       <div className="rounded-2xl bg-gradient-to-br from-[#1E1E1E] to-[#151515] border border-gold/10 p-6 mb-8">
