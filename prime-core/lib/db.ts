@@ -379,10 +379,11 @@ async function enrichMarketsWithArtworks(markets: any[]): Promise<any[]> {
 export async function getMarkets(): Promise<any[]> {
   try {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
-    return enrichMarketsWithArtworks(markets);
-  } catch {
+    return await enrichMarketsWithArtworks(markets);
+  } catch {}
+  try {
     // Fallback SQL : JOIN artworks + users (schéma Supabase : users.full_name au lieu de users.name)
-    return queryAll<any>(
+    return await queryAll<any>(
       `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
               a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
               u.full_name as artist_name
@@ -391,6 +392,9 @@ export async function getMarkets(): Promise<any[]> {
        JOIN users u ON a.artist_id = u.id
        ORDER BY bm.created_at DESC`,
     );
+  } catch (e) {
+    console.warn("[prime-core/getMarkets] indisponible:", (e as any)?.message);
+    return [];
   }
 }
 
@@ -400,8 +404,9 @@ export async function getMarketById(id: string): Promise<any | undefined> {
     if (!rows[0]) return undefined;
     const enriched = await enrichMarketsWithArtworks([rows[0]]);
     return enriched[0];
-  } catch {
-    return queryOne<any>(
+  } catch {}
+  try {
+    return await queryOne<any>(
       `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
               a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
               u.full_name as artist_name
@@ -411,6 +416,9 @@ export async function getMarketById(id: string): Promise<any | undefined> {
        WHERE bm.id = ?`,
       [id],
     );
+  } catch (e) {
+    console.warn("[prime-core/getMarketById] indisponible:", (e as any)?.message);
+    return undefined;
   }
 }
 
@@ -425,11 +433,15 @@ export async function getBetsForMarket(marketId: string): Promise<any[]> {
     const usersById: Record<string, any> = {};
     for (const u of users) usersById[u.id] = u;
     return bets.map((b: any) => ({ ...b, user_name: usersById[b.user_id]?.full_name ?? usersById[b.user_id]?.username ?? "" }));
-  } catch {
-    return queryAll<any>(
+  } catch {}
+  try {
+    return await queryAll<any>(
       `SELECT b.*, u.full_name as user_name FROM bets b JOIN users u ON b.user_id = u.id WHERE b.market_id = ? ORDER BY b.placed_at DESC`,
       [marketId],
     );
+  } catch (e) {
+    console.warn("[prime-core/getBetsForMarket] indisponible:", (e as any)?.message);
+    return [];
   }
 }
 
@@ -441,11 +453,15 @@ export async function getUserByToken(token: string): Promise<any | undefined> {
     if (new Date(s.expires_at) <= new Date()) return undefined;
     const users = await restSelect("users", { id: s.user_id }, { limit: 1 });
     return users[0];
-  } catch {
-    return queryOne<any>(
+  } catch {}
+  try {
+    return await queryOne<any>(
       `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
       [token],
     );
+  } catch (e) {
+    console.warn("[prime-core/getUserByToken] indisponible:", (e as any)?.message);
+    return undefined;
   }
 }
 
@@ -456,8 +472,12 @@ export async function getUserById(id: string): Promise<any | undefined> {
   try {
     const rows = await restSelect("users", { id }, { limit: 1 });
     return rows[0];
-  } catch {
-    return queryOne<any>("SELECT * FROM users WHERE id = ?", [id]);
+  } catch {}
+  try {
+    return await queryOne<any>("SELECT * FROM users WHERE id = ?", [id]);
+  } catch (e) {
+    console.warn("[prime-core/getUserById] indisponible:", (e as any)?.message);
+    return undefined;
   }
 }
 
@@ -471,12 +491,16 @@ export async function getScouts(limit: number = 20): Promise<any[]> {
       columns: "id,full_name,username,points_balance,total_earned,is_initie",
     });
     return rows;
-  } catch {
-    return queryAll<any>(
+  } catch {}
+  try {
+    return await queryAll<any>(
       `SELECT id, full_name, username, points_balance, total_earned, is_initie
        FROM users WHERE is_initie = TRUE ORDER BY total_earned DESC LIMIT ?`,
       [limit],
     );
+  } catch (e) {
+    console.warn("[prime-core/getScouts] indisponible:", (e as any)?.message);
+    return [];
   }
 }
 
@@ -560,7 +584,10 @@ export async function getScoutStats(userId: string): Promise<{
   recentActivity: any[];
   topScouts: any[];
 }> {
-  const user = (await getUserById(userId)) || {};
+  let user: any = {};
+  try { user = (await getUserById(userId)) || {}; } catch (e) {
+    console.warn("[prime-core/getScoutStats] getUserById indisponible:", (e as any)?.message);
+  }
 
   // Les agrégations nécessitent SQL (GROUP BY / SUM / date math). Si pg KO,
   // on tombe sur des zéros plutôt qu'une erreur — la page reste utilisable.

@@ -1,4 +1,4 @@
-import { queryAll } from "@/lib/db";
+import { getCertifiedArtworksWithArtists } from "@/lib/db";
 import { resolveFirstPhoto } from "@/lib/resolve-photo";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
@@ -6,12 +6,7 @@ import { ShieldCheck } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
-  const artworks = await queryAll<any>(
-    `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.full_name as artist_name
-     FROM artworks a JOIN users u ON a.artist_id = u.id
-     WHERE a.blockchain_hash IS NOT NULL
-     ORDER BY a.certification_date DESC`
-  );
+  const artworks = await getCertifiedArtworksWithArtists();
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
@@ -20,6 +15,12 @@ export default async function GalleryPage() {
         <p className="text-white/40 text-sm">{artworks.length} oeuvres certifiées sur la blockchain</p>
       </div>
 
+      {artworks.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-navy-200 p-10 text-center text-white/40">
+          <ShieldCheck className="size-8 mx-auto mb-3 text-white/20" />
+          <p className="text-sm">Aucune oeuvre certifiée pour le moment.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {artworks.map((a) => {
           const mainPhoto = resolveFirstPhoto(a.photos);
@@ -42,6 +43,7 @@ export default async function GalleryPage() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
