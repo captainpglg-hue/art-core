@@ -2,11 +2,11 @@
 
 > ⚠️ LIS CE FICHIER EN ENTIER avant de modifier quoi que ce soit.
 
-## État du projet — Mis à jour le 23 avril 2026
+## État du projet — Mis à jour le 20 mai 2026
 
-- **Build** : à rebuilder (migration Supabase du 23 avril, voir CHANGELOG)
+- **Build** : ✅ 0 erreur TypeScript, 7 routes (dashboard, leaderboard, scout, market/[id], home, +2 API)
 - **Avancement** : 90%
-- **Production** : prime-core.app (redeploy requis post-migration)
+- **Production** : prime-core.app (redéploiement à valider via `npx vercel --prod`)
 
 ## Ce que fait Prime-Core
 
@@ -31,6 +31,13 @@ npx vercel --prod  # Déployer (CLI uniquement, depuis art-core/ racine)
 - Depuis le 23 avril 2026, prime-core utilise la même base Supabase `kmmlwuwsahtzgzztcdaj` que art-core et pass-core (fin du `better-sqlite3` local).
 - `lib/db.ts` expose : `getMarkets()`, `getMarketById(id)`, `getBetsForMarket(marketId)`, `getUserByToken(token)`, `getUserById(id)`, `getScouts()`, `getLeaderboard()`, `getTotalBetsCount()`, `getScoutStats(userId)`, plus les helpers bas niveau `query` / `queryOne` / `queryAll` / `getDb()` (Supabase admin). **Toutes ces fonctions sont async** — les pages doivent les awaiter.
 - Fallback REST (PostgREST) si postgres-js échoue sur l'auth ; `cache: "no-store"` activé sur tous les `fetch` REST pour éviter que Next.js ne cache indéfiniment les réponses server-side.
+- **Résilience** : depuis le 20 mai, chaque fonction business (`getMarkets`,
+  `getMarketById`, `getBetsForMarket`, `getUserByToken`, `getUserById`,
+  `getScouts`) catche un éventuel double-échec (REST 403 + JOIN non supporté
+  par le translator REST) et renvoie une valeur safe (`[]` / `undefined`).
+  Les pages SSR rendent donc un empty state au lieu de 500. Pour avoir
+  un rendu complet, fournir `DATABASE_URL` (postgres pooler Supabase) ET/OU
+  allowlister l'IP de l'environnement dans Supabase Network Restrictions.
 
 ## Design
 
@@ -47,5 +54,5 @@ npx vercel --prod  # Déployer (CLI uniquement, depuis art-core/ racine)
 ## Relation avec les autres apps
 
 - Partage la même base Supabase, mêmes clés Stripe/Cloudinary
-- art-core-final = app principale (port 3000)
-- pass-core-final = certification (port 3001)
+- `art-core/` = app principale (port 3000)
+- `pass-core/` = certification (port 3001)
