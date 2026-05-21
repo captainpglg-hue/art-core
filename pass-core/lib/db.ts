@@ -397,11 +397,61 @@ export async function getArtworks(opts: { artistId?: string; limit?: number } = 
     const byId: any = {};
     for (const u of users) byId[u.id] = u;
     return arts.map((a: any) => ({ ...a, artist_name: byId[a.artist_id]?.full_name, artist_username: byId[a.artist_id]?.username, artist_avatar: byId[a.artist_id]?.avatar_url }));
-  } catch {
+  } catch {}
+  try {
     const join = `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
                   FROM artworks a JOIN users u ON a.artist_id = u.id`;
-    if (artistId) return queryAll<any>(`${join} WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`, [artistId, limit]);
-    return queryAll<any>(`${join} ORDER BY a.created_at DESC LIMIT ?`, [limit]);
+    if (artistId) return await queryAll<any>(`${join} WHERE a.artist_id = ? ORDER BY a.created_at DESC LIMIT ?`, [artistId, limit]);
+    return await queryAll<any>(`${join} ORDER BY a.created_at DESC LIMIT ?`, [limit]);
+  } catch (e) {
+    console.warn("[pass-core/getArtworks] indisponible:", (e as any)?.message);
+    return [];
+  }
+}
+
+/**
+ * Galerie pass-core : oeuvres certifiées (blockchain_hash non null) enrichies
+ * du nom de l'artiste. Pattern : REST + enrichissement séparé (le translator
+ * `sqlViaRest` ne sait pas faire de JOINs ; voir CLAUDE.md racine).
+ */
+export async function getCertifiedArtworksWithArtists(): Promise<Array<{
+  id: string; title: string; photos: any; blockchain_hash: string;
+  certification_date: string | null; artist_name: string;
+}>> {
+  try {
+    // PostgREST syntaxe : `blockchain_hash=not.is.null`
+    const r = await restFetch(
+      "artworks?select=id,title,photos,blockchain_hash,certification_date,artist_id&blockchain_hash=not.is.null&order=certification_date.desc",
+      { method: "GET", headers: { Accept: "application/json" } },
+    );
+    if (!r.ok) throw new Error(`REST select artworks ${r.status}`);
+    const arts: any[] = await r.json();
+    if (arts.length === 0) return [];
+
+    const artistIds = [...new Set(arts.map((a) => a.artist_id).filter(Boolean))];
+    const users = artistIds.length
+      ? await restSelect("users", {}, { columns: "id,full_name" })
+      : [];
+    const byId: Record<string, any> = {};
+    for (const u of users) if (artistIds.includes(u.id)) byId[u.id] = u;
+
+    return arts.map((a) => ({
+      id: a.id, title: a.title, photos: a.photos,
+      blockchain_hash: a.blockchain_hash,
+      certification_date: a.certification_date,
+      artist_name: byId[a.artist_id]?.full_name ?? "",
+    }));
+  } catch {}
+  try {
+    return await queryAll<any>(
+      `SELECT a.id, a.title, a.photos, a.blockchain_hash, a.certification_date, u.full_name as artist_name
+       FROM artworks a JOIN users u ON a.artist_id = u.id
+       WHERE a.blockchain_hash IS NOT NULL
+       ORDER BY a.certification_date DESC`,
+    );
+  } catch (e) {
+    console.warn("[pass-core/getCertifiedArtworksWithArtists] indisponible:", (e as any)?.message);
+    return [];
   }
 }
 
