@@ -1,7 +1,8 @@
 # Règles permanentes pour les agents IA
 
 > Ce fichier vit à la racine du monorepo. **À lire en entier** avant toute modification.
-> Pour le contexte applicatif, voir aussi `art-core/CLAUDE.md` et `pass-core/CLAUDE.md`.
+> Pour le contexte applicatif, voir aussi `art-core/CLAUDE.md`, `pass-core/CLAUDE.md`
+> et `prime-core/CLAUDE.md`.
 
 ## Architecture
 
