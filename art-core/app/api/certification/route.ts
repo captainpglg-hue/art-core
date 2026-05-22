@@ -1,7 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
+import { getUserByToken, query, queryOne, queryAll, getDb } from "@/lib/db";
 import { uploadPhoto } from "@/lib/supabase-storage";
 import crypto from "crypto";
+
+// Helper : recupere l'id admin a notifier. Priorite ENV (ADMIN_USER_ID) puis
+// fallback DB (premier user role=admin). Memoise au module pour eviter
+// les requetes repetees.
+let __cachedAdminId: string | null = null;
+async function getAdminUserId(): Promise<string | null> {
+  if (__cachedAdminId) return __cachedAdminId;
+  if (process.env.ADMIN_USER_ID) {
+    __cachedAdminId = process.env.ADMIN_USER_ID;
+    return __cachedAdminId;
+  }
+  try {
+    const sb = getDb();
+    const { data } = await sb.from("users").select("id").eq("role", "admin").limit(1).single();
+    __cachedAdminId = data?.id || null;
+  } catch (e: any) {
+    console.warn("[certification] getAdminUserId failed:", e?.message);
+    __cachedAdminId = null;
+  }
+  return __cachedAdminId;
+}
+
+// awardPoints : INSERT direct dans point_transactions (version async simplifiee
+// pour debloquer la certif). Note : awardPoints reste a refactorer en helper
+// partage si d'autres routes en ont besoin (currently inline).
+async function awardPoints(userId: string, amount: number, type: string, ref: string, note: string): Promise<void> {
+  try {
+    const sb = getDb();
+    const txId = `pt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    await sb.from("point_transactions").insert({
+      id: txId,
+      user_id: userId,
+      amount,
+      type,
+      reference_id: ref,
+      note,
+    });
+  } catch (e: any) {
+    console.warn("[certification] awardPoints failed (non bloquant):", e?.message);
+  }
+}
 
 // GET: list certifications (admin) or user's own
 export async function GET(req: NextRequest) {
@@ -53,7 +94,7 @@ export async function POST(req: NextRequest) {
     const price = parseFloat(formData.get("price") as string || "0");
     const macroZone = formData.get("macro_zone") as string || "";
 
-    // Kill switch qualité photo : STRICT_CAPTURE_QUALITY=1 → bloquant. Sinon : warning.
+    // Kill switch qualite photo : STRICT_CAPTURE_QUALITY=1 -> bloquant. Sinon : warning.
     const strictQuality = process.env.STRICT_CAPTURE_QUALITY === "1";
     const warnings: string[] = [];
 
@@ -62,7 +103,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Titre requis" }, { status: 400 });
       }
       console.warn("[certification] warning: missing title, accepted in permissive mode");
-      warnings.push("Titre manquant — valeur par défaut 'Sans titre'.");
+      warnings.push("Titre manquant - valeur par defaut 'Sans titre'.");
       title = "Sans titre";
     }
 
@@ -91,12 +132,17 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    // Notify admin
-    const nId = crypto.randomUUID();
-    await query(
-      "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Nouvelle certification', ?, '/admin/certifications')",
-      [nId, 'usr_admin_1', `${user.full_name || user.username} soumet "${title}" pour certification.`]
-    );
+    // Notify admin (id resolu dynamiquement : ADMIN_USER_ID env ou first user.role=admin)
+    const adminId = await getAdminUserId();
+    if (adminId) {
+      const nId = crypto.randomUUID();
+      await query(
+        "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Nouvelle certification', ?, '/admin/certifications')",
+        [nId, adminId, `${user.full_name || user.username} soumet \"${title}\" pour certification.`]
+      );
+    } else {
+      console.warn("[certification] aucun admin trouve pour notification - skip");
+    }
 
     return NextResponse.json({ id, success: true, photos_count: certPhotos.length, warnings });
   } catch (error: any) {
@@ -126,23 +172,23 @@ export async function PUT(req: NextRequest) {
       const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Oeuvre certifiee !', ?, ?)",
-        [nId, artwork.artist_id, `"${artwork.title}" est maintenant certifiee. Le badge est actif.`, `/art-core/oeuvre/${artwork_id}`]
+        [nId, artwork.artist_id, `\"${artwork.title}\" est maintenant certifiee. Le badge est actif.`, `/art-core/oeuvre/${artwork_id}`]
       );
-      // TODO: awardPoints function needs to be converted to async
-      // awardPoints(artwork.artist_id, 100, "certification_bonus", artwork_id, `Certification approuvee : ${artwork.title}`);
+      // awardPoints async : INSERT direct point_transactions, non bloquant si echec
+      await awardPoints(artwork.artist_id, 100, "certification_bonus", artwork_id, `Certification approuvee : ${artwork.title}`);
     } else if (action === "reject") {
       await query("UPDATE artworks SET certification_status = ? WHERE id = ?", ["rejected", artwork_id]);
       const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Certification refusee', ?, ?)",
-        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Photos insuffisantes."}`, `https://pass-core.app/pass-core/certifier`]
+        [nId, artwork.artist_id, `\"${artwork.title}\" : ${reason || "Photos insuffisantes."}`, `https://pass-core.app/pass-core/certifier`]
       );
     } else if (action === "revision") {
       await query("UPDATE artworks SET certification_status = ? WHERE id = ?", ["revision", artwork_id]);
       const nId = crypto.randomUUID();
       await query(
         "INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'certification', 'Retouche demandee', ?, ?)",
-        [nId, artwork.artist_id, `"${artwork.title}" : ${reason || "Merci de reprendre les photos."}`, `https://pass-core.app/pass-core/certifier`]
+        [nId, artwork.artist_id, `\"${artwork.title}\" : ${reason || "Merci de reprendre les photos."}`, `https://pass-core.app/pass-core/certifier`]
       );
     }
 
