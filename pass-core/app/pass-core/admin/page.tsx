@@ -23,7 +23,16 @@ import {
   ChevronLeft,
   RefreshCw,
   LogOut,
+  Database,
 } from "lucide-react";
+
+// URL du Supabase Studio (Table Editor + SQL Editor) — extrait le project_ref
+// depuis NEXT_PUBLIC_SUPABASE_URL pour rester aligné si on change de projet.
+const SUPABASE_STUDIO_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const ref = url.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1];
+  return ref ? `https://supabase.com/dashboard/project/${ref}` : "https://supabase.com/dashboard";
+})();
 
 interface Stats {
   totalCertifications: number;
@@ -330,13 +339,25 @@ export default function AdminPanel() {
                 Tableau d&apos;administration
               </h1>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-            >
-              <LogOut className="size-4" />
-              Déconnexion
-            </button>
+            <div className="flex items-center gap-2">
+              <a
+                href={SUPABASE_STUDIO_URL}
+                target="_blank"
+                rel="noreferrer"
+                title="Accès complet à la base de données (toutes les tables)"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Database className="size-4" />
+                Supabase Studio
+              </a>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+              >
+                <LogOut className="size-4" />
+                Déconnexion
+              </button>
+            </div>
           </div>
 
           {error && (
