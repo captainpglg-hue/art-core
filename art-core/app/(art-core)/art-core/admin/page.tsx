@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Trash2, Eye, EyeOff, Edit3, Check, X, RefreshCw, Shield, AlertTriangle, Users,
-  Package, Download, BarChart3, TrendingUp, Lock, Unlock, Plus, Search
+  Package, Download, BarChart3, TrendingUp, Lock, Unlock, Plus, Search, Database
 } from "lucide-react";
 import { resolveFirstPhoto } from "@/lib/resolve-photo";
 
@@ -19,6 +19,14 @@ interface Artwork {
   creation_date: string;
   created_at: string;
 }
+
+// URL du Supabase Studio (Table Editor + SQL Editor) — extrait le project_ref
+// depuis NEXT_PUBLIC_SUPABASE_URL pour rester aligné si on change de projet.
+const SUPABASE_STUDIO_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const ref = url.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1];
+  return ref ? `https://supabase.com/dashboard/project/${ref}` : "https://supabase.com/dashboard";
+})();
 
 interface User {
   id: string;
@@ -349,6 +357,15 @@ export default function AdminPage() {
             >
               <RefreshCw className="size-4" /> Actualiser
             </button>
+            <a
+              href={SUPABASE_STUDIO_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="Accès complet à la base de données (toutes les tables)"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm"
+            >
+              <Database className="size-4" /> Supabase Studio
+            </a>
             <button
               onClick={async () => {
                 try {
