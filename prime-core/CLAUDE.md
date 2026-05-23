@@ -38,10 +38,11 @@ npx vercel --prod  # Déployer (CLI uniquement, depuis art-core/ racine)
 
 ## Déploiement
 
-- Même projet Vercel que art-core et pass-core
-- Domaine : prime-core.app
-- CLI uniquement, PAS de Git deploy
-- Variables d'env requises en prod : `DATABASE_URL`, `SUPABASE_URL` (ou `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY`
+- **Projet Vercel dédié** : `prime-core-final` (équipe `captainpglg-hues-projects`)
+- **Root Directory** : `prime-core` (le sous-dossier de ce repo)
+- **Domaine** : prime-core.app
+- **Auto-deploy** : push sur `main` du repo `captainpglg-hue/art-core` déclenche un build.
+- Variables d'env requises en prod : `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL=https://prime-core.app`
 
 ## Relation avec les autres apps
 
