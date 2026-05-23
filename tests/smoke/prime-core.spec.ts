@@ -6,11 +6,13 @@ const PREVIEW = "https://fresh-core-app.vercel.app";
 const TARGET = process.env.PRIME_CORE_URL || PROD;
 
 test.describe(`prime-core (${TARGET})`, () => {
-  test("home renders", async ({ page }) => {
+  test("home renders the actual prime-core app, not a Vercel 404", async ({ page }) => {
     const resp = await page.goto(TARGET, { waitUntil: "domcontentloaded" });
     expect(resp?.status(), "home status").toBeLessThan(400);
     const bodyText = await page.locator("body").innerText();
     expect(bodyText.length).toBeGreaterThan(50);
+    const hasVercel404 = /404\s*$|deployment_not_found|this deployment cannot be found|the page (you|that) (you )?requested (does not|doesn't) exist/i.test(bodyText);
+    expect(hasVercel404, `body suggests Vercel default 404 page — domain not attached to a project? body: ${bodyText.slice(0, 200)}`).toBe(false);
   });
 
   test("api/markets returns json", async ({ request }) => {
