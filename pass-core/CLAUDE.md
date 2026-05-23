@@ -75,10 +75,10 @@ Variables nécessaires :
 
 ## Déploiement
 
-- **Projet Vercel** : `prj_XK8uVcpwz84z0STo03QZZ85XXPUy` (partagé avec art-core)
+- **Projet Vercel dédié** : `pass-core-final` (équipe `captainpglg-hues-projects`)
+- **Root Directory** : `pass-core` (le sous-dossier de ce repo)
 - **Domaine** : pass-core.app
-- **⚠️ RÈGLE** : Déployer UNIQUEMENT via `npx vercel --prod` (jamais via Git push)
-- **⚠️ PROBLÈME** : Le repo Git était connecté à Vercel → les push cassaient la prod. Il faut déconnecter Git de Vercel.
+- **Auto-deploy** : push sur `main` du repo `captainpglg-hue/art-core` déclenche un build (sprint kill-switch en cours).
 
 ## Ce qui reste à faire
 

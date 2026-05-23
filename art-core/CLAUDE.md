@@ -48,9 +48,11 @@ npx vercel --prod  # Déployer (CLI uniquement, JAMAIS via Git push)
 
 ## Déploiement
 
-- **Projet Vercel** : `prj_XK8uVcpwz84z0STo03QZZ85XXPUy`
-- **Domaines** : art-core.app, pass-core.app, prime-core.app
-- **⚠️ INTERDIT** : ne jamais créer de nouveau projet Vercel
+- **3 projets Vercel séparés** (un par app, vu qu'il n'y a pas de routing par host) :
+  - `art-core-final`   → Root Directory `art-core`   → domaine `art-core.app`
+  - `pass-core-final`  → Root Directory `pass-core`  → domaine `pass-core.app`
+  - `prime-core-final` → Root Directory `prime-core` → domaine `prime-core.app`
+- Tous sur l'équipe Vercel `captainpglg-hues-projects`, repo `captainpglg-hue/art-core`, branche `main`.
 
 ### Sprint « kill switch qualité photo » (avril 2026) — exception temporaire
 
