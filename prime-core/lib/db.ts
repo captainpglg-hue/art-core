@@ -381,16 +381,19 @@ export async function getMarkets(): Promise<any[]> {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
     return enrichMarketsWithArtworks(markets);
   } catch {
-    // Fallback SQL : JOIN artworks + users (schéma Supabase : users.full_name au lieu de users.name)
-    return queryAll<any>(
-      `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
-              a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
-              u.full_name as artist_name
-       FROM betting_markets bm
-       JOIN artworks a ON bm.artwork_id = a.id
-       JOIN users u ON a.artist_id = u.id
-       ORDER BY bm.created_at DESC`,
-    );
+    try {
+      return await queryAll<any>(
+        `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
+                a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
+                u.full_name as artist_name
+         FROM betting_markets bm
+         JOIN artworks a ON bm.artwork_id = a.id
+         JOIN users u ON a.artist_id = u.id
+         ORDER BY bm.created_at DESC`,
+      );
+    } catch {
+      return [];
+    }
   }
 }
 

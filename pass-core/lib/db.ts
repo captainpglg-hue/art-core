@@ -405,6 +405,30 @@ export async function getArtworks(opts: { artistId?: string; limit?: number } = 
   }
 }
 
+export async function getCertifiedArtworks(): Promise<any[]> {
+  try {
+    const arts = await restSelect("artworks", {}, {
+      orderBy: "certification_date",
+      orderDir: "desc",
+      columns: "id,title,photos,blockchain_hash,certification_date,artist_id",
+    });
+    const certified = arts.filter((a: any) => a.blockchain_hash);
+    if (certified.length === 0) return [];
+    const artistIds = [...new Set(certified.map((a: any) => a.artist_id).filter(Boolean))];
+    const users = artistIds.length
+      ? await restSelect("users", {}, { columns: "id,full_name,username" })
+      : [];
+    const byId: Record<string, any> = {};
+    for (const u of users) byId[u.id] = u;
+    return certified.map((a: any) => ({
+      ...a,
+      artist_name: byId[a.artist_id]?.full_name ?? byId[a.artist_id]?.username ?? "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getGaugeEntries(artworkId: string) {
   try {
     const entries = await restSelect("gauge_entries", { artwork_id: artworkId }, { orderBy: "created_at", orderDir: "desc" });
