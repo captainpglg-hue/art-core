@@ -43,7 +43,7 @@ const API_ENDPOINTS = [
   { path: "/api/messages", expectedStatuses: [200, 401] },
   { path: "/api/favorites", expectedStatuses: [200, 401] },
   { path: "/api/wallet", expectedStatuses: [200, 401] },
-  { path: "/api/profile", expectedStatuses: [200, 401] },
+  // /api/profile only has PUT, no GET
   { path: "/api/admin/stats", expectedStatuses: [200, 401, 403] },
   { path: "/api/admin/users", expectedStatuses: [200, 401, 403] },
   { path: "/api/admin/export", expectedStatuses: [200, 401, 403] },

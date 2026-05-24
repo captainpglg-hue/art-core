@@ -414,16 +414,20 @@ export async function getMarketById(id: string): Promise<any | undefined> {
     const enriched = await enrichMarketsWithArtworks([rows[0]]);
     return enriched[0];
   } catch {
-    return queryOne<any>(
-      `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
-              a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
-              u.full_name as artist_name
-       FROM betting_markets bm
-       JOIN artworks a ON bm.artwork_id = a.id
-       JOIN users u ON a.artist_id = u.id
-       WHERE bm.id = ?`,
-      [id],
-    );
+    try {
+      return await queryOne<any>(
+        `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
+                a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
+                u.full_name as artist_name
+         FROM betting_markets bm
+         JOIN artworks a ON bm.artwork_id = a.id
+         JOIN users u ON a.artist_id = u.id
+         WHERE bm.id = ?`,
+        [id],
+      );
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -439,10 +443,14 @@ export async function getBetsForMarket(marketId: string): Promise<any[]> {
     for (const u of users) usersById[u.id] = u;
     return bets.map((b: any) => ({ ...b, user_name: usersById[b.user_id]?.full_name ?? usersById[b.user_id]?.username ?? "" }));
   } catch {
-    return queryAll<any>(
-      `SELECT b.*, u.full_name as user_name FROM bets b JOIN users u ON b.user_id = u.id WHERE b.market_id = ? ORDER BY b.placed_at DESC`,
-      [marketId],
-    );
+    try {
+      return await queryAll<any>(
+        `SELECT b.*, u.full_name as user_name FROM bets b JOIN users u ON b.user_id = u.id WHERE b.market_id = ? ORDER BY b.placed_at DESC`,
+        [marketId],
+      );
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -455,10 +463,14 @@ export async function getUserByToken(token: string): Promise<any | undefined> {
     const users = await restSelect("users", { id: s.user_id }, { limit: 1 });
     return users[0];
   } catch {
-    return queryOne<any>(
-      `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
-      [token],
-    );
+    try {
+      return await queryOne<any>(
+        `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
+        [token],
+      );
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -470,7 +482,11 @@ export async function getUserById(id: string): Promise<any | undefined> {
     const rows = await restSelect("users", { id }, { limit: 1 });
     return rows[0];
   } catch {
-    return queryOne<any>("SELECT * FROM users WHERE id = ?", [id]);
+    try {
+      return await queryOne<any>("SELECT * FROM users WHERE id = ?", [id]);
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -485,11 +501,15 @@ export async function getScouts(limit: number = 20): Promise<any[]> {
     });
     return rows;
   } catch {
-    return queryAll<any>(
-      `SELECT id, full_name, username, points_balance, total_earned, is_initie
-       FROM users WHERE is_initie = TRUE ORDER BY total_earned DESC LIMIT ?`,
-      [limit],
-    );
+    try {
+      return await queryAll<any>(
+        `SELECT id, full_name, username, points_balance, total_earned, is_initie
+         FROM users WHERE is_initie = TRUE ORDER BY total_earned DESC LIMIT ?`,
+        [limit],
+      );
+    } catch {
+      return [];
+    }
   }
 }
 
