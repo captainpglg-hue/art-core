@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getUserByToken, query, queryOne, queryAll } from "@/lib/db";
 
+interface PromoItemRow {
+  id: string;
+  name: string;
+  type: string;
+  tier: string | null;
+  cost_points: number;
+  cost_euros: number;
+  duration_hours: number | null;
+  duration_days: number;
+}
+
 export async function GET() {
   const items = await queryAll("SELECT * FROM promo_items ORDER BY sort_order ASC", []);
   return NextResponse.json({ items });
@@ -17,7 +28,7 @@ export async function POST(req: NextRequest) {
     const { artwork_id, promo_item_id, pay_with } = await req.json();
     if (!promo_item_id) return NextResponse.json({ error: "promo_item_id requis" }, { status: 400 });
 
-    const item = await queryOne("SELECT * FROM promo_items WHERE id = ?", [promo_item_id]) as any;
+    const item = await queryOne<PromoItemRow>("SELECT * FROM promo_items WHERE id = ?", [promo_item_id]);
     if (!item) return NextResponse.json({ error: "Offre non trouvée" }, { status: 404 });
 
     const payWith = pay_with || "points";

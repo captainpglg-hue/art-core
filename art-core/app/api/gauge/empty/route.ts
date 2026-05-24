@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { query, queryOne, getUserByToken } from "@/lib/db";
 
+interface ArtworkRow {
+  id: string;
+  title: string | null;
+  gauge_locked: number | boolean | null;
+}
+
+interface GaugeEntryRow {
+  id: string;
+  artwork_id: string;
+  initiate_id: string;
+  points: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
@@ -14,19 +27,19 @@ export async function POST(req: NextRequest) {
 
     // TODO: emptyGauge is a complex transaction that needs refactoring for async
     // For now, inline the logic
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<ArtworkRow>("SELECT * FROM artworks WHERE id = ?", [artwork_id]);
     if (!artwork) throw new Error("Artwork not found");
     if (!artwork.gauge_locked) throw new Error("Gauge is not locked");
 
-    const entries = await queryOne(
+    const entries = await queryOne<{ ids: string | null }>(
       "SELECT GROUP_CONCAT(id, ',') as ids FROM gauge_entries WHERE artwork_id = ?",
       [artwork_id]
-    ) as any;
-    const entryIds = entries?.ids?.split(",") || [];
+    );
+    const entryIds: string[] = entries?.ids?.split(",") || [];
 
     if (entryIds.length > 0) {
       for (const entryId of entryIds) {
-        const entry = await queryOne("SELECT * FROM gauge_entries WHERE id = ?", [entryId]) as any;
+        const entry = await queryOne<GaugeEntryRow>("SELECT * FROM gauge_entries WHERE id = ?", [entryId]);
         if (entry) {
           await query("UPDATE users SET points_balance = points_balance + ? WHERE id = ?", [entry.points, entry.initiate_id]);
           const ptId = `pt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -41,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // Notify all initiates
     for (const entryId of entryIds) {
-      const entry = await queryOne("SELECT initiate_id FROM gauge_entries WHERE id = ?", [entryId]) as any;
+      const entry = await queryOne<{ initiate_id: string }>("SELECT initiate_id FROM gauge_entries WHERE id = ?", [entryId]);
       if (entry) {
         const nId = crypto.randomUUID();
         await query("INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, 'gauge_empty', 'Jauge annulée', ?, ?)", [nId, entry.initiate_id, `La jauge de "${artwork.title}" a été annulée. Vos points sont remboursés.`, `/art-core/oeuvre/${artwork_id}`]);

@@ -72,7 +72,7 @@ async function restFetch(path: string, init?: RequestInit): Promise<Response> {
     // que le cache n'est pas invalidé au deploy.
     cache: "no-store",
     ...init,
-    headers: { ...restHeaders(), ...(init?.headers as any) },
+    headers: { ...restHeaders(), ...(init?.headers as Record<string, string>) },
   });
 }
 

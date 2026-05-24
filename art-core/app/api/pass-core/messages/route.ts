@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
     // For now, assume it exists
 
     // Check if user is the owner of this pass-core artwork
-    const artwork = await queryOne("SELECT artist_id FROM artworks WHERE id = ?", [pass_core_id]) as any;
+    const artwork = await queryOne<{ artist_id: string }>(
+      "SELECT artist_id FROM artworks WHERE id = ?",
+      [pass_core_id]
+    );
     const isOwner = artwork?.artist_id === user.id ? 1 : 0;
     const shortId = user.id.replace(/-/g, "").slice(0, 4).toUpperCase();
     const senderTag = isOwner ? `Propriétaire_${shortId}` : `Initié_${shortId}`;

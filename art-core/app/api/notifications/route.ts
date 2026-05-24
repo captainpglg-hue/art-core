@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
     [user.id]
   );
 
-  const unreadRow = await queryOne(
+  const unreadRow = await queryOne<{ count: number }>(
     "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0",
     [user.id]
-  ) as any;
+  );
   const unreadCount = unreadRow?.count || 0;
 
   return NextResponse.json({ notifications, unreadCount });

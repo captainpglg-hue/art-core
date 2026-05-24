@@ -110,9 +110,10 @@ export async function POST(req: NextRequest) {
 
     const verifyUrl = buildVerifyUrl(rawToken, req.headers.get("host") || undefined);
 
+    const existingUserTyped = existingUser as { full_name?: string; first_name?: string } | undefined;
     const recipientName = signupData
       ? `${signupData.first_name} ${signupData.last_name}`.trim()
-      : (existingUser as any)?.full_name || (existingUser as any)?.first_name || "";
+      : existingUserTyped?.full_name || existingUserTyped?.first_name || "";
 
     const emailResult = await sendMagicLinkEmail({
       to: email,

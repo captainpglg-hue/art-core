@@ -37,25 +37,54 @@ export async function GET(req: NextRequest) {
       .select("id, entry_number, user_id, merchant_id, artwork_id, created_at, purchase_price")
       .in("id", entryIds);
 
-    const merchantIds = Array.from(new Set((entries || []).map((e: any) => e.merchant_id)));
-    const artworkIds = Array.from(new Set((entries || []).map((e: any) => e.artwork_id)));
+    interface PoliceEntryRow {
+      id: string;
+      entry_number: string | number | null;
+      user_id: string | null;
+      merchant_id: string | null;
+      artwork_id: string | null;
+      created_at: string | null;
+      purchase_price: number | null;
+    }
+    interface MerchantRow {
+      id: string;
+      raison_sociale: string | null;
+      siret: string | null;
+      email: string | null;
+      telephone: string | null;
+      numero_rom_prefix: string | null;
+    }
+    interface ArtworkLiteRow {
+      id: string;
+      title: string | null;
+      photos: unknown;
+      category: string | null;
+    }
+
+    const typedEntries = (entries || []) as PoliceEntryRow[];
+    const merchantIds = Array.from(new Set(typedEntries.map((e) => e.merchant_id).filter((v): v is string => !!v)));
+    const artworkIds = Array.from(new Set(typedEntries.map((e) => e.artwork_id).filter((v): v is string => !!v)));
 
     const [mRes, aRes] = await Promise.all([
       merchantIds.length
         ? sb.from("merchants").select("id, raison_sociale, siret, email, telephone, numero_rom_prefix").in("id", merchantIds)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [] as MerchantRow[] }),
       artworkIds.length
         ? sb.from("artworks").select("id, title, photos, category").in("id", artworkIds)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [] as ArtworkLiteRow[] }),
     ]);
 
-    const merchantsById: Record<string, any> = Object.fromEntries(((mRes as any).data || []).map((m: any) => [m.id, m]));
-    const artworksById: Record<string, any> = Object.fromEntries(((aRes as any).data || []).map((a: any) => [a.id, a]));
+    const merchantsById: Record<string, MerchantRow> = Object.fromEntries(
+      ((mRes.data || []) as MerchantRow[]).map((m) => [m.id, m]),
+    );
+    const artworksById: Record<string, ArtworkLiteRow> = Object.fromEntries(
+      ((aRes.data || []) as ArtworkLiteRow[]).map((a) => [a.id, a]),
+    );
 
     // Enrichit chaque entrée pending avec métadonnées + signed download URL
     const enriched = await Promise.all(
       pending.map(async (p) => {
-        const entry = (entries || []).find((e: any) => e.id === p.id);
+        const entry = typedEntries.find((e) => e.id === p.id);
         const merchant = entry?.merchant_id ? merchantsById[entry.merchant_id] : null;
         const artwork = entry?.artwork_id ? artworksById[entry.artwork_id] : null;
         let downloadUrl = null;

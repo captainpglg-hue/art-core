@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
     );
 
     // Notify artist
-    const artwork = await queryOne("SELECT title, artist_id FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<{ title: string | null; artist_id: string }>(
+      "SELECT title, artist_id FROM artworks WHERE id = ?",
+      [artwork_id]
+    );
     if (artwork) {
       const nId = crypto.randomUUID();
       await query(

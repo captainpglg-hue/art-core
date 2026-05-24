@@ -13,7 +13,10 @@ export async function POST(req: NextRequest) {
 
     // TODO: confirmSale is a complex transaction that needs refactoring for async
     // For now, inline simplified logic
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<{ status: string | null; artist_id: string }>(
+      "SELECT * FROM artworks WHERE id = ?",
+      [artwork_id]
+    );
     if (!artwork) throw new Error("Artwork not found");
     if (artwork.status === "sold") throw new Error("Artwork already sold");
     if (artwork.artist_id !== user.id && user.role !== "admin") throw new Error("Not authorized");

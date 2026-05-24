@@ -16,10 +16,17 @@ export async function GET(req: NextRequest) {
   const user = await getUserByToken(token);
   if (!user) return NextResponse.json({ account: null });
 
-  const account = await queryOne(
+  interface NovaAccountRow {
+    id: string;
+    user_id: string;
+    account_type: string;
+    nova_account_number: string;
+    [key: string]: unknown;
+  }
+  const account = await queryOne<NovaAccountRow>(
     "SELECT * FROM nova_accounts WHERE user_id = ?",
     [user.id]
-  ) as any;
+  );
 
   return NextResponse.json({ account });
 }

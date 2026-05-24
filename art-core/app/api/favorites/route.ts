@@ -8,7 +8,20 @@ export async function GET(req: NextRequest) {
   const user = await getUserByToken(token);
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const favorites = await queryAll(
+  interface FavoriteRow {
+    id: string;
+    user_id: string;
+    artwork_id: string;
+    created_at: string;
+    title: string | null;
+    price: number | null;
+    photos: string | string[] | null;
+    gauge_points: number | null;
+    gauge_locked: boolean | null;
+    status: string | null;
+    artist_name: string | null;
+  }
+  const favorites = await queryAll<FavoriteRow>(
     `SELECT f.*, a.title, a.price, a.photos, a.gauge_points, a.gauge_locked, a.status,
       u.full_name as artist_name
      FROM favorites f
@@ -17,7 +30,7 @@ export async function GET(req: NextRequest) {
      WHERE f.user_id = ?
      ORDER BY f.created_at DESC`,
     [user.id]
-  ) as any[];
+  );
 
   const parsed = favorites.map((f) => ({ ...f, photos: parsePhotos(f.photos) }));
   return NextResponse.json({ favorites: parsed });

@@ -68,7 +68,7 @@ async function restFetch(path: string, init?: RequestInit): Promise<Response> {
     // jamais tant qu'un redeploy n'invalide pas le cache.
     cache: "no-store",
     ...init,
-    headers: { ...restHeaders(), ...(init?.headers as any) },
+    headers: { ...restHeaders(), ...(init?.headers as Record<string, string>) },
   });
 }
 
@@ -533,7 +533,7 @@ export async function getLeaderboard(): Promise<{ topBettors: any[]; topInitiate
        LIMIT 20`,
     );
   } catch (e) {
-    console.warn("[prime-core/getLeaderboard] topBettors indisponible:", (e as any)?.message);
+    console.warn("[prime-core/getLeaderboard] topBettors indisponible:", (e as Error)?.message);
   }
 
   let topInitiates: any[] = [];
@@ -559,7 +559,7 @@ export async function getLeaderboard(): Promise<{ topBettors: any[]; topInitiate
         columns: "full_name,username,points_balance,total_earned",
       })).map((u: any) => ({ ...u, name: u.full_name, total_commissions: 0, total_commission_amount: 0 }));
     } catch (e2) {
-      console.warn("[prime-core/getLeaderboard] topInitiates indisponible:", (e2 as any)?.message);
+      console.warn("[prime-core/getLeaderboard] topInitiates indisponible:", (e2 as Error)?.message);
     }
   }
 

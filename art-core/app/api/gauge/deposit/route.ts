@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { query, queryOne, getUserByToken } from "@/lib/db";
 
+interface ArtworkRow {
+  id: string;
+  title: string | null;
+  artist_id: string;
+  status: string | null;
+  gauge_points: number;
+  gauge_locked: number | boolean | null;
+}
+
+interface UserRow {
+  id: string;
+  is_initie: boolean | number | null;
+  points_balance: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
@@ -16,12 +31,12 @@ export async function POST(req: NextRequest) {
 
     // TODO: depositGauge is a complex transaction that needs to be refactored for async
     // For now, inline the logic
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<ArtworkRow>("SELECT * FROM artworks WHERE id = ?", [artwork_id]);
     if (!artwork) throw new Error("Artwork not found");
     if (artwork.gauge_locked) throw new Error("Gauge is locked");
     if (artwork.status === "sold") throw new Error("Artwork already sold");
 
-    const userRecord = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]) as any;
+    const userRecord = await queryOne<UserRow>("SELECT * FROM users WHERE id = ?", [user.id]);
     if (!userRecord || !userRecord.is_initie) throw new Error("User is not an initiate");
     if (userRecord.points_balance < points) throw new Error("Insufficient points");
 

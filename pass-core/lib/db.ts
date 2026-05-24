@@ -76,7 +76,7 @@ async function restFetch(path: string, init?: RequestInit): Promise<Response> {
     // œuvres n'apparaissaient pas sur la marketplace après INSERT.
     cache: "no-store",
     ...init,
-    headers: { ...restHeaders(), ...(init?.headers as any) },
+    headers: { ...restHeaders(), ...(init?.headers as Record<string, string>) },
   });
 }
 

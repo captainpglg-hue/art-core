@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getUserByToken, query, queryOne } from "@/lib/db";
 
+interface ArtworkRow {
+  id: string;
+  title: string | null;
+  artist_id: string;
+  community_boosts: number | null;
+  community_highlighted: number | null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
@@ -24,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Vous avez déjà boosté cette oeuvre" }, { status: 400 });
     }
 
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<ArtworkRow>("SELECT * FROM artworks WHERE id = ?", [artwork_id]);
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
 
     // Deduct point and record boost
@@ -80,7 +88,7 @@ export async function GET(req: NextRequest) {
   const artworkId = new URL(req.url).searchParams.get("artwork_id");
   if (!artworkId) return NextResponse.json({ error: "artwork_id requis" }, { status: 400 });
 
-  const countRow = await queryOne("SELECT COUNT(*) as c FROM community_boosts WHERE artwork_id = ?", [artworkId]) as any;
+  const countRow = await queryOne<{ c: number }>("SELECT COUNT(*) as c FROM community_boosts WHERE artwork_id = ?", [artworkId]);
   const count = countRow?.c || 0;
 
   const token = req.cookies.get("core_session")?.value;

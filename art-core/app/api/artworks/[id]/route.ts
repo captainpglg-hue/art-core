@@ -105,11 +105,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const { id } = await params;
     const body = await req.json();
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [id]) as any;
+    const artwork = await queryOne<{ id: string; title: string | null }>("SELECT * FROM artworks WHERE id = ?", [id]);
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | null)[] = [];
 
     if (body.status !== undefined) { updates.push("status = ?"); values.push(body.status); }
     if (body.price !== undefined) { updates.push("price = ?"); values.push(body.price); }
@@ -138,7 +138,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
     const { id } = await params;
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [id]) as any;
+    const artwork = await queryOne<{ id: string; title: string | null }>("SELECT * FROM artworks WHERE id = ?", [id]);
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvée" }, { status: 404 });
 
     // Delete related data first

@@ -116,7 +116,10 @@ export async function PUT(req: NextRequest) {
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Admin requis" }, { status: 403 });
 
     const { artwork_id, action, reason } = await req.json();
-    const artwork = await queryOne("SELECT * FROM artworks WHERE id = ?", [artwork_id]) as any;
+    const artwork = await queryOne<{ id: string; title: string | null; artist_id: string }>(
+      "SELECT * FROM artworks WHERE id = ?",
+      [artwork_id]
+    );
     if (!artwork) return NextResponse.json({ error: "Oeuvre non trouvee" }, { status: 404 });
 
     if (action === "approve") {

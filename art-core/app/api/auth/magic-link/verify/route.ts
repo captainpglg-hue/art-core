@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
   // 1) Récupérer ou créer le user
   if (verified.intent === "signup" && verified.signupData) {
     // Re-check email pas déjà pris (race possible entre request et verify)
-    const existing = await getUserByEmail(verified.email);
+    const existing = await getUserByEmail(verified.email) as { id: string } | undefined;
     if (existing) {
-      userId = (existing as any).id;
+      userId = existing.id;
     } else {
       const { first_name, last_name, pseudo, phone } = verified.signupData;
       // Pseudo pas pris ?
@@ -72,9 +72,9 @@ export async function GET(req: NextRequest) {
     }
   } else {
     // intent=login : récupérer le user
-    const u = await getUserByEmail(verified.email);
+    const u = await getUserByEmail(verified.email) as { id: string } | undefined;
     if (!u) return redirectTo("/auth/login", "no_account");
-    userId = (u as any).id;
+    userId = u.id;
   }
 
   if (!userId) return redirectTo("/auth/login", "user_resolution_failed");
