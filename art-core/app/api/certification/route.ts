@@ -12,28 +12,31 @@ export async function GET(req: NextRequest) {
 
   const status = new URL(req.url).searchParams.get("status") || "all";
 
-  let certs: any[];
-  if (user.role === "admin") {
-    const where = status !== "all" ? `WHERE a.certification_status = ?` : "";
-    if (status !== "all") {
-      certs = await queryAll(
-        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ${where} ORDER BY a.created_at DESC LIMIT 50`,
-        [status]
-      );
+  try {
+    let certs: unknown[];
+    if (user.role === "admin") {
+      if (status !== "all") {
+        certs = await queryAll(
+          `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.certification_status = ? ORDER BY a.created_at DESC LIMIT 50`,
+          [status]
+        );
+      } else {
+        certs = await queryAll(
+          `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ORDER BY a.created_at DESC LIMIT 50`,
+          []
+        );
+      }
     } else {
       certs = await queryAll(
-        `SELECT a.id, a.title, a.photos, a.certification_status, a.certification_photos, a.created_at, a.technique, a.dimensions, u.full_name as artist_name, u.email as artist_email FROM artworks a JOIN users u ON a.artist_id = u.id ORDER BY a.created_at DESC LIMIT 50`,
-        []
+        "SELECT id, title, photos, certification_status, certification_photos, created_at, technique, dimensions FROM artworks WHERE artist_id = ? ORDER BY created_at DESC",
+        [user.id]
       );
     }
-  } else {
-    certs = await queryAll(
-      "SELECT id, title, photos, certification_status, certification_photos, created_at, technique, dimensions FROM artworks WHERE artist_id = ? ORDER BY created_at DESC",
-      [user.id]
-    );
+    return NextResponse.json({ certifications: certs });
+  } catch (err) {
+    console.error("[api/certification GET] failed:", err);
+    return NextResponse.json({ certifications: [] });
   }
-
-  return NextResponse.json({ certifications: certs });
 }
 
 // POST: submit certification request

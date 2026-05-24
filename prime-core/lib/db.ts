@@ -262,11 +262,21 @@ function isAuthError(e: any): boolean {
 // Public API — query / queryOne / queryAll avec fallback REST
 // ----------------------------------------------------------------------------
 
+const PG_QUERY_TIMEOUT_MS = 6000;
+function withPgTimeout<T>(p: Promise<T>, label: string): Promise<T> {
+  return Promise.race<T>([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`postgres timeout (${PG_QUERY_TIMEOUT_MS}ms) on ${label}`)), PG_QUERY_TIMEOUT_MS)
+    ),
+  ]);
+}
+
 export async function query(text: string, params: any[] = []): Promise<number> {
   if (globalThis.__primePgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const result = await sql.unsafe(pgText, params);
+      const result = await withPgTimeout(sql.unsafe(pgText, params), "query");
       globalThis.__primePgOk = true;
       return result.count ?? 0;
     } catch (e: any) {
@@ -282,7 +292,7 @@ export async function queryOne<T = any>(text: string, params: any[] = []): Promi
   if (globalThis.__primePgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const rows = await sql.unsafe<T[]>(pgText, params);
+      const rows = await withPgTimeout(sql.unsafe<T[]>(pgText, params), "queryOne");
       globalThis.__primePgOk = true;
       return rows[0];
     } catch (e: any) {
@@ -298,7 +308,7 @@ export async function queryAll<T = any>(text: string, params: any[] = []): Promi
   if (globalThis.__primePgOk !== false) {
     try {
       const pgText = convertPlaceholders(text);
-      const rows = await sql.unsafe<T[]>(pgText, params);
+      const rows = await withPgTimeout(sql.unsafe<T[]>(pgText, params), "queryAll");
       globalThis.__primePgOk = true;
       return rows;
     } catch (e: any) {
