@@ -4,11 +4,22 @@ import { TrendingUp, TrendingDown, Lock, Clock, CheckCircle } from "lucide-react
 
 export const dynamic = "force-dynamic";
 
+function safeParsePhotos(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function DashboardPage() {
   const markets = await getMarkets();
   const parsed = markets.map((m) => ({
     ...m,
-    photos: JSON.parse(m.photos || "[]"),
+    photos: safeParsePhotos(m.photos),
   }));
 
   const openMarkets = parsed.filter(m => m.status === "open");

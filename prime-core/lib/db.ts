@@ -575,8 +575,12 @@ export async function getTotalBetsCount(): Promise<number> {
     const total = range.split("/").pop();
     return Number(total) || 0;
   } catch {
-    const row = await queryOne<any>("SELECT COUNT(*) as count FROM bets", []);
-    return Number(row?.count) || 0;
+    try {
+      const row = await queryOne<any>("SELECT COUNT(*) as count FROM bets", []);
+      return Number(row?.count) || 0;
+    } catch {
+      return 0;
+    }
   }
 }
 
