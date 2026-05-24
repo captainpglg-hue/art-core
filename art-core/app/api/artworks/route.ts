@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { query, getUserByToken, getDb } from "@/lib/db";
+import type { Database } from "@/types/supabase";
 import {
   getMerchantForUser,
   createPoliceRegisterEntry,
@@ -25,8 +26,8 @@ export async function GET(req: NextRequest) {
     // les JOINs). On fait 2 requêtes : artworks + users, puis on merge en JS.
     const sb = getDb();
     let q = sb.from("artworks").select("*", { count: "exact" });
-    if (status) q = q.eq("status", status);
-    if (category) q = q.eq("category", category);
+    if (status) q = q.eq("status", status as Database["public"]["Enums"]["artwork_status"]);
+    if (category) q = q.eq("category", category as Database["public"]["Enums"]["artwork_category"]);
     if (artistId) q = q.eq("artist_id", artistId);
     if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 

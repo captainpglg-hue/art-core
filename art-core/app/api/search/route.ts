@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import type { Database } from "@/types/supabase";
 
 /**
  * GET /api/search
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
         `title.ilike.${like},description.ilike.${like},technique.ilike.${like}`
       );
     }
-    if (category) query = query.eq("category", category);
+    if (category) query = query.eq("category", category as Database["public"]["Enums"]["artwork_category"]);
     if (technique) query = query.ilike("technique", `%${technique}%`);
     if (priceMin > 0) query = query.gte("price", priceMin);
     if (priceMax !== Infinity) query = query.lte("price", priceMax);
