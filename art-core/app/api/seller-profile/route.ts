@@ -21,10 +21,18 @@ const PRO_ROLES = ["galeriste", "antiquaire", "brocanteur", "depot_vente"];
 const ROLES_FICHE_POLICE = ["antiquaire", "galeriste", "brocanteur", "depot_vente"];
 const ROLES_CAHIER_OBLIGATOIRE = ["antiquaire", "brocanteur", "depot_vente"];
 
-async function requireUser(req: NextRequest) {
+interface SessionUser {
+  id: string;
+  email?: string | null;
+  full_name?: string | null;
+  role?: string | null;
+  telephone?: string | null;
+}
+
+async function requireUser(req: NextRequest): Promise<SessionUser | null> {
   const token = req.cookies.get("core_session")?.value;
   if (!token) return null;
-  return await getUserByToken(token);
+  return (await getUserByToken(token)) as SessionUser | null;
 }
 
 export async function GET(req: NextRequest) {
@@ -34,7 +42,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await sb
     .from("seller_profiles")
     .select("*")
-    .eq("user_id", (user as any).id)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ profile: data || null });
@@ -44,7 +52,7 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const userId = (user as any).id;
+  const userId = user.id;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
 
@@ -96,7 +104,7 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  let merchantId: string | null = (existingProfile as any)?.merchant_id || null;
+  let merchantId: string | null = (existingProfile as { merchant_id?: string | null } | null)?.merchant_id || null;
 
   // Si rôle pro et pas encore de merchant : créer
   if (PRO_ROLES.includes(role) && !merchantId && merchantPayload) {
@@ -106,7 +114,7 @@ export async function POST(req: NextRequest) {
       siret: merchantPayload.siret,
       activite: role,
       nom_gerant: merchantPayload.nom_gerant,
-      email: (user as any).email,
+      email: user.email || "",
       telephone: merchantPayload.telephone_pro,
       adresse: merchantPayload.adresse,
       code_postal: merchantPayload.code_postal,
@@ -118,7 +126,7 @@ export async function POST(req: NextRequest) {
       actif: true,
     }).select("id").single();
     if (mErr) return NextResponse.json({ error: `Création merchant : ${mErr.message}` }, { status: 500 });
-    merchantId = (merchantRow as any).id;
+    merchantId = (merchantRow as { id: string }).id;
   }
 
   // Insert ou update seller_profile
@@ -193,7 +201,13 @@ export async function POST(req: NextRequest) {
               photos: photosArr,
             };
             const created = await createPoliceRegisterEntry({
-              user: user as any,
+              user: {
+                id: user.id,
+                email: user.email || "",
+                full_name: user.full_name || undefined,
+                role: user.role || "",
+                phone: user.telephone || undefined,
+              },
               merchant,
               artwork: artworkPayload,
               body: { source: "seller-profile" },
@@ -203,13 +217,25 @@ export async function POST(req: NextRequest) {
                 merchant,
                 entry: created.entry,
                 artwork: artworkPayload,
-                user: user as any,
+                user: {
+                id: user.id,
+                email: user.email || "",
+                full_name: user.full_name || undefined,
+                role: user.role || "",
+                phone: user.telephone || undefined,
+              },
               });
               const emailResult = await sendFicheEmail({
                 merchant,
                 entry: created.entry,
                 artwork: artworkPayload,
-                user: user as any,
+                user: {
+                id: user.id,
+                email: user.email || "",
+                full_name: user.full_name || undefined,
+                role: user.role || "",
+                phone: user.telephone || undefined,
+              },
                 pdfBuffer,
               });
               const realEmailSent = emailResult.success
@@ -221,8 +247,8 @@ export async function POST(req: NextRequest) {
                 email_sent: realEmailSent,
                 email_to: emailResult.to,
                 mode: emailResult.mode,
-                storage_url: (emailResult as any).storage_url,
-                note: (emailResult as any).note,
+                storage_url: (emailResult as { storage_url?: string }).storage_url,
+                note: (emailResult as { note?: string }).note,
               });
             }
           } catch (e: any) {
@@ -236,7 +262,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    profile_id: (existingProfile as any)?.id || null,
+    profile_id: (existingProfile as { id?: string } | null)?.id || null,
     role,
     merchant_id: merchantId,
     artworks_published: pendingArtworks?.length || 0,

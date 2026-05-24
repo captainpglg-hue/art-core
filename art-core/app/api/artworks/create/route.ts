@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
     if (!token) return NextResponse.json({ error: "Connexion requise." }, { status: 401 });
-    const user = await getUserByToken(token);
+    interface CreateUser {
+      id: string;
+      email?: string | null;
+      full_name?: string | null;
+      role?: string | null;
+    }
+    const user = (await getUserByToken(token)) as CreateUser | undefined;
     if (!user) return NextResponse.json({ error: "Session invalide." }, { status: 401 });
 
     const body = await req.json().catch(() => null);
@@ -84,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     const fp = await generateFingerprint(macroBuffer);
 
-    const userId = (user as any).id;
+    const userId = user.id;
     const sb = getDb();
 
     // Anti-double-certification (LBC §6.1)
@@ -95,16 +101,17 @@ export async function POST(req: NextRequest) {
       .not("macro_ahash", "is", null)
       .limit(5000);
 
+    interface FpRow { id: string; title: string; artist_id: string; macro_ahash: string | null }
     const duplicates: Array<{ id: string; title: string; artist_id: string; similarity: number }> = [];
-    for (const row of (existingFps || [])) {
-      const otherAhash = (row as any).macro_ahash as string;
+    for (const row of ((existingFps || []) as FpRow[])) {
+      const otherAhash = row.macro_ahash;
       if (!otherAhash || otherAhash.length !== fp.aHash.length) continue;
       const sim = compareFingerprintsHamming(fp.aHash, otherAhash);
       if (sim >= DUPLICATE_THRESHOLD) {
         duplicates.push({
-          id: (row as any).id,
-          title: (row as any).title,
-          artist_id: (row as any).artist_id,
+          id: row.id,
+          title: row.title,
+          artist_id: row.artist_id,
           similarity: sim,
         });
       }
@@ -185,7 +192,7 @@ export async function POST(req: NextRequest) {
 
     // Fiche police automatique pour les pros (rôle dans seller_profile).
     let fichePolice: any = null;
-    if (hasProfile && profile && ROLES_FICHE_POLICE.includes((profile as any).role)) {
+    if (hasProfile && profile && ROLES_FICHE_POLICE.includes((profile as { role: string }).role)) {
       try {
         const merchant = await getMerchantForUser(userId);
         if (merchant) {
@@ -194,16 +201,22 @@ export async function POST(req: NextRequest) {
             creation_date, category,
             price: Number(price) || 0, photos: photosArr,
           };
+          const userLite = {
+            id: user.id,
+            email: user.email || "",
+            full_name: user.full_name || undefined,
+            role: user.role || "",
+          };
           const created = await createPoliceRegisterEntry({
-            user: user as any, merchant, artwork: artworkPayload,
+            user: userLite, merchant, artwork: artworkPayload,
             body: { source: "artworks/create" },
           });
           if (created) {
             const pdfBuffer = await generateSingleFichePDF({
-              merchant, entry: created.entry, artwork: artworkPayload, user: user as any,
+              merchant, entry: created.entry, artwork: artworkPayload, user: userLite,
             });
             const emailResult = await sendFicheEmail({
-              merchant, entry: created.entry, artwork: artworkPayload, user: user as any, pdfBuffer,
+              merchant, entry: created.entry, artwork: artworkPayload, user: userLite, pdfBuffer,
             });
             const realEmailSent = emailResult.success && emailResult.mode !== "storage-fallback";
             fichePolice = {
@@ -212,7 +225,7 @@ export async function POST(req: NextRequest) {
               email_sent: realEmailSent,
               email_to: emailResult.to,
               mode: emailResult.mode,
-              storage_url: (emailResult as any).storage_url,
+              storage_url: (emailResult as { storage_url?: string }).storage_url,
             };
           }
         }

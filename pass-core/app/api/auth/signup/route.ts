@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       }
-      merchantId = (mData as any)?.id;
+      merchantId = (mData as { id?: string } | null)?.id;
 
       // Mark register opened (cahier de police engagement)
       if (data.cahier_police_accepte) {

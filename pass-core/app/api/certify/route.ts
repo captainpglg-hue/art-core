@@ -34,10 +34,17 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("core_session")?.value;
     let artistId: string | null = null;
-    let authUser: any = null;
+    interface AuthUser {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      full_name?: string | null;
+      role?: string | null;
+    }
+    let authUser: AuthUser | null = null;
 
     if (token) {
-      authUser = await getUserByToken(token);
+      authUser = (await getUserByToken(token)) as AuthUser | null;
       if (authUser?.id) artistId = authUser.id;
     }
 
@@ -87,7 +94,7 @@ export async function POST(req: NextRequest) {
             name: userName,
             phone: getField("user_phone"),
             role: userRole,
-            merchant: merchantPayload as any,
+            merchant: merchantPayload,
           });
           artistId = result.userId;
           authUser = { id: result.userId, email: userEmail, name: userName, full_name: userName, role: userRole };
@@ -241,7 +248,7 @@ export async function POST(req: NextRequest) {
     // schéma) et is_for_sale=true pour que l'œuvre apparaisse sur la marketplace.
     const photosJson = JSON.stringify(photos);
     const photosArr: string[] = Array.isArray(photos)
-      ? (photos as any[]).filter((p: any) => typeof p === "string")
+      ? (photos as unknown[]).filter((p): p is string => typeof p === "string")
       : [];
     const image_url = photosArr[0] || null;
     const additional_images = photosArr.slice(1);
@@ -275,13 +282,13 @@ export async function POST(req: NextRequest) {
     // Fiche de police pour les pros concernes (non bloquant)
     // Aligne avec art-core/deposit-with-signup : meme logique, meme helpers.
     let fichePolice: any = null;
-    const userRoleForFiche = (authUser as any)?.role || "";
+    const userRoleForFiche = (authUser as { role?: string } | null)?.role || "";
     if (ROLES_FICHE_POLICE.includes(userRoleForFiche)) {
       try {
         const merchant = await getMerchantForUser(artistId as string);
         if (merchant) {
           const photosArrFp: string[] = Array.isArray(photos)
-            ? (photos as any[]).filter((p: any) => typeof p === "string")
+            ? (photos as unknown[]).filter((p): p is string => typeof p === "string")
             : [];
           const artworkPayload = {
             id, title, description, technique, dimensions,
@@ -290,7 +297,12 @@ export async function POST(req: NextRequest) {
             photos: photosArrFp,
           };
           const created = await createPoliceRegisterEntry({
-            user: authUser as any,
+            user: {
+              id: authUser!.id,
+              email: authUser!.email || "",
+              full_name: authUser!.full_name || authUser!.name || undefined,
+              role: authUser!.role || "",
+            },
             merchant,
             artwork: artworkPayload,
             body: { source: "pass-core/certify" },
@@ -300,13 +312,23 @@ export async function POST(req: NextRequest) {
               merchant,
               entry: created.entry,
               artwork: artworkPayload,
-              user: authUser as any,
+              user: {
+              id: authUser!.id,
+              email: authUser!.email || "",
+              full_name: authUser!.full_name || authUser!.name || undefined,
+              role: authUser!.role || "",
+            },
             });
             const emailResult = await sendFicheEmail({
               merchant,
               entry: created.entry,
               artwork: artworkPayload,
-              user: authUser as any,
+              user: {
+              id: authUser!.id,
+              email: authUser!.email || "",
+              full_name: authUser!.full_name || authUser!.name || undefined,
+              role: authUser!.role || "",
+            },
               pdfBuffer,
             });
             fichePolice = {

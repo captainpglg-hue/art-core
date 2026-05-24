@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     // Enrichissement merchants pour les déposants pro (galeriste/antiquaire/etc.)
     const proUserIds = Object.entries(usersById)
-      .filter(([, u]) => ["galeriste", "antiquaire", "brocanteur", "depot_vente"].includes((u as any)?.role))
+      .filter(([, u]) => ["galeriste", "antiquaire", "brocanteur", "depot_vente"].includes((u as { role?: string })?.role || ""))
       .map(([id]) => id);
     let merchantsByUserId: Record<string, any> = {};
     if (proUserIds.length) {
@@ -139,7 +139,14 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get("core_session")?.value;
     if (!token) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const user = await getUserByToken(token);
+    interface PostUser {
+      id: string;
+      email: string;
+      full_name?: string | null;
+      name?: string | null;
+      role?: string | null;
+    }
+    const user = (await getUserByToken(token)) as PostUser | undefined;
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     const allowedRoles = ["artist", "admin", "antiquaire", "galeriste", "brocanteur", "depot_vente"];
     if (!user.role || !allowedRoles.includes(user.role)) {
@@ -251,7 +258,15 @@ export async function POST(req: NextRequest) {
         if (!merchant) {
           // Auto-provisioning d'un merchant par défaut : évite le "missing_merchant_profile"
           // au premier dépôt. Compléter SIRET/ROM via pass-core.app/auth/signup ou son profil.
-          merchant = (await ensureMerchantForProUser(user as any)) as any;
+          const newMerchant = await ensureMerchantForProUser({
+            id: user.id,
+            email: user.email,
+            role: user.role || "",
+            full_name: user.full_name || undefined,
+            name: user.name || undefined,
+          });
+          // Cast nullables -> undefined pour matcher MerchantLite (telephone etc.)
+          merchant = newMerchant as unknown as typeof merchant;
         }
         if (!merchant) {
           fichePolice = {
@@ -264,15 +279,21 @@ export async function POST(req: NextRequest) {
             id, title, description, technique, dimensions, creation_date, category,
             price: Number(price) || 0, photos: photos || [],
           };
+          const userLite = {
+            id: user.id,
+            email: user.email || "",
+            full_name: user.full_name || user.name || undefined,
+            role: user.role || "",
+          };
           const created = await createPoliceRegisterEntry({
-            user: user as any, merchant, artwork: artworkPayload, body,
+            user: userLite, merchant, artwork: artworkPayload, body,
           });
           if (created) {
             const pdfBuffer = await generateSingleFichePDF({
-              merchant, entry: created.entry, artwork: artworkPayload, user: user as any,
+              merchant, entry: created.entry, artwork: artworkPayload, user: userLite,
             });
             const emailResult = await sendFicheEmail({
-              merchant, entry: created.entry, artwork: artworkPayload, user: user as any, pdfBuffer,
+              merchant, entry: created.entry, artwork: artworkPayload, user: userLite, pdfBuffer,
             });
             fichePolice = {
               triggered: true,

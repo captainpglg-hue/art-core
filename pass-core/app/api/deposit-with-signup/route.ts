@@ -72,6 +72,15 @@ export async function POST(req: NextRequest) {
 
 type StateNotify = (key: "userId" | "merchantId" | "sessionToken", value: string) => void;
 
+interface SessionUser {
+  id: string;
+  email?: string | null;
+  full_name?: string | null;
+  username?: string | null;
+  role?: string | null;
+  telephone?: string | null;
+}
+
 async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<NextResponse> {
   log("parse body");
   const body = await req.json().catch(() => null);
@@ -81,17 +90,17 @@ async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<Nex
 
   log("check existing session");
   const existingToken = req.cookies.get("core_session")?.value;
-  let user = existingToken ? await getUserByToken(existingToken).catch((e) => {
+  let user: SessionUser | null = (existingToken ? await getUserByToken(existingToken).catch((e) => {
     console.warn(`[deposit-with-signup] getUserByToken failed (non-fatal):`, e?.message);
     return null;
-  }) : null;
+  }) : null) as SessionUser | null;
 
-  if (user && identity?.email && (user as any).email
-      && String(identity.email).trim().toLowerCase() !== String((user as any).email).trim().toLowerCase()) {
+  if (user && identity?.email && user.email
+      && String(identity.email).trim().toLowerCase() !== String(user.email).trim().toLowerCase()) {
     return NextResponse.json({
       error: "Conflit d'identite : vous etes connecte avec un autre compte. Deconnectez-vous d'abord.",
       code: "IDENTITY_CONFLICT",
-      authenticated_as: (user as any).email,
+      authenticated_as: user.email,
     }, { status: 400 });
   }
 
@@ -207,7 +216,7 @@ async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<Nex
     if (userErr) throw new Error(`USER_INSERT_FAILED: ${userErr.message}`);
     createdUserId = userId;
     notify("userId", userId);
-    user = { id: userId, email, full_name, username, role, telephone } as any;
+    user = { id: userId, email, full_name, username, role, telephone };
     log("user inserted", { userId });
   }
   const userId = user!.id;
@@ -305,7 +314,7 @@ async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<Nex
       // garantir que la réponse part dans le budget de 25 s, même si Resend
       // ou la génération PDF se figent.
       fichePolice = await withTimeout(
-        runFichePolice(sb, user as any, userId, artworkId, body, {
+        runFichePolice(sb, user as SessionUser, userId, artworkId, body, {
           title, description, technique, dimensions, creation_date, category,
           price: Number(price) || 0, photos: photosArr,
         }),
@@ -354,25 +363,40 @@ async function handleDeposit(req: NextRequest, notify: StateNotify): Promise<Nex
 
 async function runFichePolice(
   sb: ReturnType<typeof getDb>,
-  user: any,
+  user: SessionUser,
   userId: string,
   artworkId: string,
-  body: any,
-  artworkPayload: any,
+  body: Record<string, unknown>,
+  artworkPayload: { title?: string; price?: number } & Record<string, unknown>,
 ) {
   const merchant = await getMerchantForUser(userId);
   if (!merchant) return { triggered: false, reason: "no_merchant" };
 
+  // Adaptateur SessionUser -> UserLite : email obligatoire dans fiche-police.
+  const userLite = {
+    id: user.id,
+    email: user.email || "",
+    full_name: user.full_name || undefined,
+    role: user.role || "",
+    phone: user.telephone || undefined,
+  };
+  const artworkLite = {
+    id: artworkId,
+    title: String(artworkPayload.title || ""),
+    price: Number(artworkPayload.price) || 0,
+    ...artworkPayload,
+  };
+
   const created = await createPoliceRegisterEntry({
-    user, merchant, artwork: { id: artworkId, ...artworkPayload }, body,
+    user: userLite, merchant, artwork: artworkLite, body,
   });
   if (!created) return { triggered: false, reason: "entry_creation_failed" };
 
   const pdfBuffer = await generateSingleFichePDF({
-    merchant, entry: created.entry, artwork: { id: artworkId, ...artworkPayload }, user,
+    merchant, entry: created.entry, artwork: artworkLite, user: userLite,
   });
   const emailResult = await sendFicheEmail({
-    merchant, entry: created.entry, artwork: { id: artworkId, ...artworkPayload }, user, pdfBuffer,
+    merchant, entry: created.entry, artwork: artworkLite, user: userLite, pdfBuffer,
   });
   return {
     triggered: true,

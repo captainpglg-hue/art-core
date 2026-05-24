@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up code in admin_codes
-    const codeRecord = await queryOne(
+    const codeRecord = await queryOne<{ id: string }>(
       `SELECT * FROM admin_codes
        WHERE email = ? AND code = ? AND used = 0 AND expires_at > NOW()`,
       [email, code]
-    ) as any;
+    );
 
     if (!codeRecord) {
       return NextResponse.json(

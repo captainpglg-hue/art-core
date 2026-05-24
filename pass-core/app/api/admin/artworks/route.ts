@@ -5,7 +5,7 @@ async function getAdmin(req: NextRequest) {
   const token = req.cookies.get("admin_session")?.value || req.cookies.get("core_session")?.value;
   if (!token) return null;
   const user = await getUserByToken(token);
-  return user && (user as any).role === "admin" ? user : null;
+  return user && (user as { role?: string }).role === "admin" ? user : null;
 }
 
 export async function GET(req: NextRequest) {
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
     if (!artwork_id) return NextResponse.json({ error: "artwork_id requis" }, { status: 400 });
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | null)[] = [];
     if (price !== undefined) { updates.push("price = ?"); values.push(price); }
     if (status !== undefined) { updates.push("status = ?"); values.push(status); }
     if (updates.length === 0) {
