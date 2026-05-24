@@ -384,10 +384,18 @@ export async function getUserByToken(token: string): Promise<Tables<"users"> | u
     const users = await restSelect("users", { id: s.user_id }, { limit: 1 });
     return users[0] as Tables<"users"> | undefined;
   } catch {
-    return queryOne<Tables<"users">>(
-      `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
-      [token]
-    );
+    // Le translator REST ne sait pas faire de JOIN : on tente quand même
+    // postgres-js direct via queryOne, mais si lui aussi est KO on dégrade
+    // en `undefined` (= déconnecté) plutôt que de crasher le middleware/SSR.
+    try {
+      return await queryOne<Tables<"users">>(
+        `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
+        [token]
+      );
+    } catch (e) {
+      console.warn("[getUserByToken] dégradé en undefined:", (e as Error)?.message);
+      return undefined;
+    }
   }
 }
 
@@ -399,11 +407,16 @@ export async function getArtworkById(id: string) {
     const u = users[0] || {};
     return { ...a, artist_name: u.full_name, artist_username: u.username, artist_avatar: u.avatar_url, artist_bio: u.bio };
   } catch {
-    return queryOne<any>(
-      `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
-       FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
-      [id]
-    );
+    try {
+      return await queryOne<any>(
+        `SELECT a.*, u.full_name as artist_name, u.username as artist_username, u.avatar_url as artist_avatar
+         FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.id = ?`,
+        [id]
+      );
+    } catch (e) {
+      console.warn("[getArtworkById] dégradé en undefined:", (e as Error)?.message);
+      return undefined;
+    }
   }
 }
 
@@ -478,7 +491,14 @@ export async function getArtworks(opts: GetArtworksOpts = {}): Promise<ArtworkWi
                      ORDER BY ${orderColumn} ${orderDir.toUpperCase()}
                      LIMIT ?`;
     params.push(limit);
-    return queryAll<ArtworkWithArtist>(sqlText, params);
+    // Si postgres-js ET le translator REST échouent (JOIN non supporté),
+    // on dégrade en empty state plutôt que de crasher la home marketplace.
+    try {
+      return await queryAll<ArtworkWithArtist>(sqlText, params);
+    } catch (e) {
+      console.warn("[getArtworks] dégradé en []:", (e as Error)?.message);
+      return [];
+    }
   }
 }
 
@@ -491,12 +511,17 @@ export async function getGaugeEntries(artworkId: string) {
     for (const u of users) byId[u.id] = u;
     return entries.map((e: any) => ({ ...e, initiate_name: byId[e.initiate_id]?.full_name, initiate_username: byId[e.initiate_id]?.username }));
   } catch {
-    return queryAll<any>(
-      `SELECT g.*, u.full_name as initiate_name, u.username as initiate_username
-       FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
-       WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
-      [artworkId]
-    );
+    try {
+      return await queryAll<any>(
+        `SELECT g.*, u.full_name as initiate_name, u.username as initiate_username
+         FROM gauge_entries g JOIN users u ON g.initiate_id = u.id
+         WHERE g.artwork_id = ? ORDER BY g.created_at DESC`,
+        [artworkId]
+      );
+    } catch (e) {
+      console.warn("[getGaugeEntries] dégradé en []:", (e as Error)?.message);
+      return [];
+    }
   }
 }
 
