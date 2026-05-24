@@ -1,3 +1,4 @@
+# Re-triggered 2026-05-24 apres refacto types (zero as any)
 name: smoke-tests
 
 on:
