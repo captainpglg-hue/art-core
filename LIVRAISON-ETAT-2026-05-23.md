@@ -65,12 +65,66 @@ La clé Anthropic `sk-ant-api03-GXcFnc1-…` est exposée en clair depuis le 4 a
 
 ## Diagnostic technique restant (mineur, non-bloquant)
 
-- **70+ `as any`** dans le code (interdit par `CLAUDE.md`). Réduits dans les 7 routes admin que j'ai refactorisées, mais reste 60+ ailleurs (auth, deposer, certifier). Hors scope d'une session.
-- **PRs ouvertes #1, #2, #5, #6** : pas mergées. Contiennent du travail utile (Snyk security upgrade, audit résilience, smart contracts). À reviewer séparément.
+- **`as any` dans le scope api/ + lib/db.ts** : 75 au début de la session du 24 mai → **0 restant** après les 2 commits `bc0b778` + `4f93b8c`. Reste des `as any` ailleurs (composants client, hooks) hors scope.
 - **Pages protégées** : le test vérifie le redirect vers `/auth/login`, mais ne teste pas le flow OTP complet (impossible sans humain ou stub mail).
 - **Stripe/Cloudinary/Anthropic AI** : non testés (impossible sans clés de test + cartes test).
 
-## Historique des commits (cette session)
+## 🚨 Trou data-flow découvert le 24 mai (issue #11)
+
+User test prime-core : "où sont les marchés ouverts?" → constat que le dashboard est vide en permanence. Les 81 smoke tests passaient quand même parce qu'ils vérifient seulement « page charge sans 500 », pas « la page affiche des données ».
+
+Analyse :
+- La table `betting_markets` **existe** en Supabase (confirmé via `types/supabase.ts` auto-généré qui contient ses colonnes)
+- Mais elle est **vide** (aucun marché créé), ce qui rend le dashboard vide
+
+Action prise dans cette session :
+- Migration `art-core/supabase/migrations/20260524000000_prime_core_betting_markets.sql` :
+  - `CREATE TABLE IF NOT EXISTS betting_markets` (no-op si déjà créée manuellement, sinon crée)
+  - `ALTER TABLE bets ADD COLUMN IF NOT EXISTS market_id, user_id, position, …` (étend bets si pas déjà fait)
+  - **Seed 2 marchés de démo** sur l'œuvre la plus récente — c'est ce qui débloque immédiatement le dashboard
+- Nouveau test `tests/smoke/data-flow.spec.ts` qui détecte les empty states silencieux : `/api/markets` doit retourner ≥ 1 marché, boutique art-core ≥ 1 œuvre, search ≥ 1 résultat
+- Doc `MIGRATION-APPLIQUER-2026-05-24.md` à la racine avec 3 procédures (Dashboard Supabase / CLI / hook)
+- Issue GitHub **#11** ouverte avec labels `bug` + `data` + `manual-action-required`
+
+Tant que la migration n'est pas appliquée à la main par l'humain, les 3 nouveaux tests data-flow prime-core restent rouges — c'est volontaire (signal explicite).
+
+Trous data-flow restants à investiguer (idem si tu testes art-core / pass-core et trouves un écran vide) :
+- art-core /boutique : affiche-t-elle des œuvres ?
+- art-core /search : retourne-t-il des résultats ?
+- pass-core /gallery : affiche-t-elle au moins 1 œuvre certifiée ?
+- pass-core /verifier : retourne-t-il du contenu sur un hash test ?
+
+Les tests `data-flow.spec.ts` couvrent ces 4 cas et signaleront rouge si la donnée est manquante.
+
+## PRs ouvertes — recommandations (session du 24 mai)
+
+| # | Titre | Risque | Recommandation | Justification |
+|---|---|---|---|---|
+| #1 | [Snyk] nodemailer 7→8 | moyen | **wait** | Marqué `isBreakingChange: true` côté Snyk ; deux CVE CRLF (low + medium) mais non exploitables si l'app ne passe pas d'input utilisateur dans les en-têtes. Reviewer le diff API avant merge. |
+| #2 | [Snyk] @supabase/ssr 0.3→0.5.2 (prime-core) | faible | **merge** après smoke vert sur prime-core | Minor security upgrade (XSS sur cookie) sans breaking change déclaré, scope limité à prime-core. |
+| #6 | sécu + smart contracts squelettes | élevé | **wait / split** | Draft. Mélange contrats Solidity (hors prod immédiat), drafts SQL RLS non appliqués, et corrections code applicatif (catégories FR↔EN, markets filters). À splitter en PRs ciblées : le RLS users_public est critique sécu et mérite sa PR isolée. |
+| #9 | audit 20 mai v2 : résilience SSR + Studio admin | moyen | **merge en priorité** | Réouverture utile : fix DB resilience déjà partiellement fait sur main (les 3 pages 500), mais ajoute le bouton Studio + boutique publique sans login. Tester `/art-core/boutique` sans cookie avant merge. |
+
+## Session 24 mai — nettoyage types + issue sécu
+
+### Commits poussés sur main
+
+```
+bef6261 chore(smoke): re-trigger workflow apres refacto types (sanity check)
+4f93b8c chore(types): elimine les 46 derniers 'as any' du scope api/ + lib/db.ts
+bc0b778 chore(types): elimine 29 'as any' dans 16 routes API + 3 lib/db.ts
+```
+
+### Issue ouverte
+
+- **#10** : `🔴 Sécurité : tokens Vercel et clé Anthropic à révoquer (action humaine)` — labels `security`, `manual-action-required`.
+
+### Smoke tests
+
+Au début de session : run #27 ✅ vert sur commit `96141f6`.
+Après mes 3 commits sur main : workflow re-triggé via touch sur `.github/workflows/smoke-tests.yml` (push paths-filter), résultat dans la dernière entrée du workflow.
+
+## Historique des commits (sessions précédentes)
 
 ```
 96141f6 fix(prime-core/dashboard): error boundary + try-catch wrapper data fetch
