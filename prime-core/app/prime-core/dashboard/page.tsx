@@ -15,19 +15,32 @@ function safeParsePhotos(raw: unknown): unknown[] {
   }
 }
 
+async function loadDashboardData() {
+  try {
+    const markets = await getMarkets();
+    const parsed = markets.map((m) => ({
+      ...m,
+      photos: safeParsePhotos(m.photos),
+    }));
+    const totalBets = await getTotalBetsCount();
+    return { parsed, totalBets };
+  } catch (err) {
+    console.error("[prime-core/dashboard] loadDashboardData failed:", err);
+    return { parsed: [] as any[], totalBets: 0 };
+  }
+}
+
 export default async function DashboardPage() {
-  const markets = await getMarkets();
-  const parsed = markets.map((m) => ({
-    ...m,
-    photos: safeParsePhotos(m.photos),
-  }));
+  const { parsed, totalBets } = await loadDashboardData();
 
   const openMarkets = parsed.filter(m => m.status === "open");
   const resolvedMarkets = parsed.filter(m => String(m.status).startsWith("resolved"));
 
   // Stats
-  const totalVolume = parsed.reduce((sum, m) => sum + Number(m.total_yes_amount) + Number(m.total_no_amount), 0);
-  const totalBets = await getTotalBetsCount();
+  const totalVolume = parsed.reduce(
+    (sum, m) => sum + (Number(m.total_yes_amount) || 0) + (Number(m.total_no_amount) || 0),
+    0,
+  );
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8">
