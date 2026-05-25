@@ -41,7 +41,8 @@ export function middleware(request: NextRequest) {
     "/art-core/notifications",
     "/art-core/messages",
     "/art-core/wallet",
-    "/art-core/boutique",
+    // /art-core/boutique : marketplace public, pas d'auth requise pour browse.
+    // L'achat reste protege via /art-core/checkout.
     "/art-core/initie",
     "/art-core/cahier-police",
     "/admin",
