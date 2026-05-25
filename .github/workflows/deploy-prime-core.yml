@@ -1,0 +1,85 @@
+name: Deploy prime-core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prime-core/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Find Vercel project for prime-core.app
+        id: find
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -e
+
+          TEAM_IDS=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v2/teams" \
+            | jq -r '.teams[].id' 2>/dev/null || true)
+
+          PROJECT_ID=""
+          ORG_ID=""
+
+          for SCOPE in personal $TEAM_IDS; do
+            if [ "$SCOPE" = "personal" ]; then
+              QUERY="https://api.vercel.com/v9/projects?limit=100"
+            else
+              QUERY="https://api.vercel.com/v9/projects?limit=100&teamId=$SCOPE"
+            fi
+
+            PIDS=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY" \
+              | jq -r '.projects[].id' 2>/dev/null || true)
+
+            for PID in $PIDS; do
+              if [ "$SCOPE" = "personal" ]; then
+                DETAIL_URL="https://api.vercel.com/v9/projects/$PID"
+              else
+                DETAIL_URL="https://api.vercel.com/v9/projects/$PID?teamId=$SCOPE"
+              fi
+
+              DETAIL=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL")
+
+              FOUND=$(echo "$DETAIL" | jq -r '
+                [ (.targets.production.alias // [])[] | select(. == "prime-core.app") ] +
+                [ (.alias // [])[] | .domain | select(. == "prime-core.app") ]
+                | length' 2>/dev/null || echo "0")
+
+              if [ "$FOUND" != "0" ] && [ -n "$FOUND" ]; then
+                PROJECT_ID="$PID"
+                if [ "$SCOPE" = "personal" ]; then
+                  ORG_ID=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+                    "https://api.vercel.com/v2/user" | jq -r '.user.id')
+                else
+                  ORG_ID="$SCOPE"
+                fi
+                echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+                echo "org_id=$ORG_ID"         >> $GITHUB_OUTPUT
+                echo "Found: project=$PROJECT_ID org=$ORG_ID"
+                break 2
+              fi
+            done
+          done
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "ERROR: aucun projet Vercel ne sert prime-core.app"
+            exit 1
+          fi
+
+      - name: Deploy to Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ steps.find.outputs.org_id }}
+          VERCEL_PROJECT_ID: ${{ steps.find.outputs.project_id }}
+        run: |
+          cd prime-core
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
