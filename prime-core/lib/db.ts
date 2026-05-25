@@ -704,6 +704,80 @@ export async function getScoutStats(userId: string): Promise<{
 }
 
 // ----------------------------------------------------------------------------
+// Auth helpers — sign-up / login / session lifecycle
+// (cookie dédié `prime_session`, table `users` partagée avec art-core/pass-core)
+// ----------------------------------------------------------------------------
+
+export async function getUserByEmail(email: string): Promise<any | undefined> {
+  try {
+    const rows = await restSelect("users", { email }, { limit: 1 });
+    return rows[0];
+  } catch {
+    try { return await queryOne<any>("SELECT * FROM users WHERE email = ?", [email]); }
+    catch { return undefined; }
+  }
+}
+
+export async function getUserByUsername(username: string): Promise<any | undefined> {
+  try {
+    const rows = await restSelect("users", { username }, { limit: 1 });
+    return rows[0];
+  } catch {
+    try { return await queryOne<any>("SELECT * FROM users WHERE username = ?", [username]); }
+    catch { return undefined; }
+  }
+}
+
+export async function createUser(input: {
+  email: string;
+  username: string;
+  password_hash: string;
+}): Promise<any | undefined> {
+  const payload = {
+    email: input.email,
+    username: input.username,
+    password_hash: input.password_hash,
+    is_initie: false,
+  };
+  try {
+    const result = await restInsert("users", payload, true);
+    return result[0];
+  } catch {
+    try {
+      return await queryOne<any>(
+        `INSERT INTO users (email, username, password_hash, is_initie)
+         VALUES (?, ?, ?, false) RETURNING *`,
+        [input.email, input.username, input.password_hash],
+      );
+    } catch { return undefined; }
+  }
+}
+
+export async function createSession(userId: string, token: string): Promise<{ token: string; expires_at: string } | undefined> {
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    await restInsert("sessions", { user_id: userId, token, expires_at: expiresAt }, false);
+    return { token, expires_at: expiresAt };
+  } catch {
+    try {
+      await query(
+        `INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)`,
+        [userId, token, expiresAt],
+      );
+      return { token, expires_at: expiresAt };
+    } catch { return undefined; }
+  }
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  try { await restDelete("sessions", { token }); }
+  catch {
+    try { await query("DELETE FROM sessions WHERE token = ?", [token]); }
+    catch {}
+  }
+}
+
+// ----------------------------------------------------------------------------
 // Ping DB — pour éventuel healthcheck
 // ----------------------------------------------------------------------------
 

@@ -1,25 +1,29 @@
-import { getScoutStats } from "@/lib/db";
+import { getScoutStats, getUserByToken } from "@/lib/db";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Trophy, TrendingUp, Coins, Share2, Star, ArrowUp, Gift, Target, Copy } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// NOTE 2026-04-23 : cette page utilisait un id hardcodé "usr_initie_2" du temps
-// de SQLite. Supabase utilise des UUIDs, donc l'ancien ID ne matchera plus.
-// En attendant une vraie auth côté prime-core, on prend le premier initié
-// disponible comme "demo user" pour que la page reste montrable.
 export default async function ScoutDashboardPage() {
-  // Temporaire : on lit simplement le premier initié disponible pour la démo.
-  // À remplacer par l'auth session côté prime-core quand le middleware sera prêt.
-  const legacyDemoId = "usr_initie_2"; // compat rétro — sera None en Supabase
-  const { user, totalBets, wonBets, commissions, myRank, totalScouts, weekGains, monthGains, recentActivity, topScouts } =
-    await getScoutStats(legacyDemoId);
+  const token = cookies().get("prime_session")?.value;
+  const sessionUser = token ? await getUserByToken(token) : undefined;
+  if (!sessionUser || !sessionUser.id) {
+    redirect("/prime-core/auth/login?next=/prime-core/scout");
+  }
 
-  // Garde-fou : si l'user n'existe pas (cas Supabase normal pour cet id legacy),
-  // on affiche un placeholder au lieu de crasher sur user.total_earned null.
+  const { user, totalBets, wonBets, commissions, myRank, totalScouts, weekGains, monthGains, recentActivity, topScouts } =
+    await getScoutStats(sessionUser.id);
+
+  // Fallback défensif : si getScoutStats ne trouve pas le user (race condition),
+  // on retombe sur la session pour ne pas crasher sur user.x null.
   const safeUser = user && user.id ? user : {
-    id: "demo", username: "demo", full_name: "Demo Scout",
-    points_balance: 0, total_earned: 0,
+    id: sessionUser.id,
+    username: sessionUser.username || "scout",
+    full_name: sessionUser.full_name || null,
+    points_balance: sessionUser.points_balance ?? 0,
+    total_earned: sessionUser.total_earned ?? 0,
   };
 
   // Tier calculation
