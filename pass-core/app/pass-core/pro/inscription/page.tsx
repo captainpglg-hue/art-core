@@ -187,9 +187,7 @@ export default function ProInscriptionPage() {
       </form>
 
       <p className="text-center text-xs text-white/25 mt-6">
-        En creant votre compte, vous acceptez les{" "}
-        <Link href="/legal/cgu" className="text-[#C9A84C] hover:underline">CGU</Link>
-        {" "}et attestez de la conformite de vos informations.
+        En creant votre compte, vous acceptez les CGU et attestez de la conformite de vos informations.
       </p>
     </div>
   );
