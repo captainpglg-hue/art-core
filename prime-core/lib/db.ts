@@ -414,7 +414,7 @@ export async function getMarkets(opts?: { diag?: boolean }): Promise<any[]> {
         "getMarkets"
       );
       globalThis.__primePgOk = true;
-      return rows;
+      return filterApprovedOnly(rows);
     } catch (e: any) {
       if (isAuthError(e)) {
         globalThis.__primePgOk = false;
@@ -427,13 +427,115 @@ export async function getMarkets(opts?: { diag?: boolean }): Promise<any[]> {
   // REST fallback (requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
   if (opts?.diag) {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
-    return enrichMarketsWithArtworks(markets);
+    return filterApprovedOnly(await enrichMarketsWithArtworks(markets));
   }
   try {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
-    return enrichMarketsWithArtworks(markets);
+    return filterApprovedOnly(await enrichMarketsWithArtworks(markets));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Filtre permissif : ne masque que les marchés explicitement non-approved.
+ * Si la colonne `moderation_status` n'existe pas encore (migration non
+ * appliquée), les lignes n'ont pas la propriété → considérées approved.
+ */
+function filterApprovedOnly<T extends { moderation_status?: string | null }>(rows: T[]): T[] {
+  return rows.filter((r) => !r.moderation_status || r.moderation_status === "approved");
+}
+
+// ----------------------------------------------------------------------------
+// User-generated markets — création + modération
+// ----------------------------------------------------------------------------
+
+export interface CreateMarketInput {
+  artwork_id: string;
+  market_type: "time" | "value";
+  question: string;
+  threshold_value?: number | null;
+  threshold_days?: number | null;
+  proposed_by: string;
+}
+
+export async function createMarket(input: CreateMarketInput): Promise<{ id: string } | undefined> {
+  const id = `mkt_user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const payload = {
+    id,
+    artwork_id: input.artwork_id,
+    market_type: input.market_type,
+    question: input.question,
+    threshold_value: input.threshold_value ?? null,
+    threshold_days: input.threshold_days ?? null,
+    status: "open",
+    moderation_status: "pending",
+    proposed_by: input.proposed_by,
+  };
+  try {
+    await restInsert("betting_markets", payload, false);
+    return { id };
+  } catch {
+    try {
+      await query(
+        `INSERT INTO betting_markets
+           (id, artwork_id, market_type, question, threshold_value, threshold_days,
+            status, moderation_status, proposed_by)
+         VALUES (?, ?, ?, ?, ?, ?, 'open', 'pending', ?)`,
+        [
+          id, input.artwork_id, input.market_type, input.question,
+          input.threshold_value ?? null, input.threshold_days ?? null,
+          input.proposed_by,
+        ],
+      );
+      return { id };
+    } catch { return undefined; }
+  }
+}
+
+export async function getPendingMarkets(): Promise<unknown[]> {
+  try {
+    const rows = await restSelect(
+      "betting_markets",
+      { moderation_status: "pending" },
+      { orderBy: "created_at", orderDir: "desc", limit: 100 },
+    );
+    return enrichMarketsWithArtworks(rows);
+  } catch {
+    try {
+      return await queryAll<unknown>(
+        `SELECT bm.*, a.title as artwork_title, a.photos, u.username as proposer_username
+         FROM betting_markets bm
+         LEFT JOIN artworks a ON bm.artwork_id = a.id
+         LEFT JOIN users u    ON bm.proposed_by = u.id
+         WHERE bm.moderation_status = 'pending'
+         ORDER BY bm.created_at DESC
+         LIMIT 100`,
+      );
+    } catch { return []; }
+  }
+}
+
+export async function setMarketModeration(
+  id: string,
+  decision: "approved" | "rejected",
+): Promise<boolean> {
+  try {
+    const url = `betting_markets?id=eq.${encodeURIComponent(id)}`;
+    const r = await restFetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ moderation_status: decision }),
+    });
+    return r.ok;
+  } catch {
+    try {
+      await query(
+        `UPDATE betting_markets SET moderation_status = ? WHERE id = ?`,
+        [decision, id],
+      );
+      return true;
+    } catch { return false; }
   }
 }
 
