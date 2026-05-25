@@ -1,4 +1,4 @@
-# Re-triggered 2026-05-25T06:44:18Z pour verifier etat ecosysteme post-migration
+# Re-triggered 2026-05-25T06:52:29Z apres seed Supabase OK
 name: smoke-tests
 
 on:
