@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryOne } from "@/lib/db";
+import { getArtworkByHash } from "@/lib/db";
 import { verifyOnChain, getConfig, getExplorerUrl } from "@/lib/blockchain";
 import { parsePhotos } from "@/lib/utils";
 
@@ -10,11 +10,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Hash requis" }, { status: 400 });
     }
 
-    // 1. Check local DB
-    const artwork = await queryOne<any>(
-      `SELECT a.*, u.full_name as artist_name FROM artworks a JOIN users u ON a.artist_id = u.id WHERE a.blockchain_hash = ?`,
-      [hash]
-    );
+    // 1. Check local DB (helper 2-requêtes : un JOIN SQL plantait en
+    // silence sous fallback REST quand postgres-js était down).
+    const artwork = await getArtworkByHash(hash);
 
     // 2. Check on-chain (if configured)
     let onChainResult = null;

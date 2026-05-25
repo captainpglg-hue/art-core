@@ -405,6 +405,33 @@ export async function getArtworks(opts: { artistId?: string; limit?: number } = 
   }
 }
 
+/**
+ * Récupère une œuvre par son blockchain_hash, enrichie de l'artiste.
+ * Pattern 2-requêtes au lieu d'un JOIN (REST translator ne supporte pas
+ * les JOINs ; le fallback du JOIN renvoyait null silencieusement quand
+ * postgres-js était down → verifier disait "Aucune œuvre trouvée" même
+ * pour des hashes valides).
+ */
+export async function getArtworkByHash(hash: string): Promise<any | undefined> {
+  try {
+    const rows = await restSelect("artworks", { blockchain_hash: hash }, { limit: 1 });
+    const a = rows[0];
+    if (!a) return undefined;
+    const users = a.artist_id
+      ? await restSelect("users", { id: a.artist_id }, { limit: 1 })
+      : [];
+    const u = users[0] || {};
+    return { ...a, artist_name: u.full_name || u.username || null };
+  } catch {
+    return queryOne<any>(
+      `SELECT a.*, u.full_name as artist_name
+       FROM artworks a JOIN users u ON a.artist_id = u.id
+       WHERE a.blockchain_hash = ?`,
+      [hash],
+    );
+  }
+}
+
 export async function getCertifiedArtworks(): Promise<any[]> {
   try {
     const arts = await restSelect("artworks", {}, {

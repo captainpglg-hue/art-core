@@ -75,7 +75,9 @@ export async function GET(req: NextRequest) {
     if (priceMax !== Infinity) query = query.lte("price", priceMax);
     if (gauge === "empty") query = query.eq("gauge_points", 0);
     else if (gauge === "active") query = query.gt("gauge_points", 0).lt("gauge_points", 100);
-    else if (gauge === "locked") query = query.eq("gauge_locked", true);
+    // ⚠️ Le types/supabase.ts dit `gauge_locked` (boolean) mais la prod a été
+    // migrée vers `gauge_locked_at` (timestamp). Filtrer sur la prod.
+    else if (gauge === "locked") query = query.not("gauge_locked_at", "is", null);
     if (certified === "yes") query = query.not("blockchain_hash", "is", null);
     else if (certified === "no") query = query.or("blockchain_hash.is.null,blockchain_hash.eq.");
     if (city) query = query.ilike("shipping_from_city", `%${city}%`);
