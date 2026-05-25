@@ -5,6 +5,8 @@ import { Lock, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const ART_CORE_URL = process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app";
+
 interface Props { params: Promise<{ id: string }> }
 
 export default async function MarketDetailPage({ params }: Props) {
@@ -111,7 +113,7 @@ export default async function MarketDetailPage({ params }: Props) {
       )}
 
       <div className="mt-8 text-center">
-        <a href={`http://localhost:3000/art-core/oeuvre/${market.artwork_id}`} className="text-sm text-[#C9A84C] hover:underline">
+        <a href={`${ART_CORE_URL}/art-core/oeuvre/${market.artwork_id}`} className="text-sm text-[#C9A84C] hover:underline">
           Voir l&apos;oeuvre sur ART-CORE
         </a>
       </div>
