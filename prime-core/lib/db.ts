@@ -389,7 +389,12 @@ async function enrichMarketsWithArtworks(markets: any[]): Promise<any[]> {
   });
 }
 
-export async function getMarkets(): Promise<any[]> {
+export async function getMarkets(opts?: { diag?: boolean }): Promise<any[]> {
+  // Mode diag : laisse les erreurs remonter au route handler pour exposition.
+  if (opts?.diag) {
+    const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
+    return enrichMarketsWithArtworks(markets);
+  }
   try {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
     return enrichMarketsWithArtworks(markets);
