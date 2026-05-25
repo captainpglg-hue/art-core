@@ -563,7 +563,56 @@ export async function getLeaderboard(): Promise<{ topBettors: any[]; topInitiate
        LIMIT 20`,
     );
   } catch (e) {
-    console.warn("[prime-core/getLeaderboard] topBettors indisponible:", (e as Error)?.message);
+    console.warn("[prime-core/getLeaderboard] topBettors pg KO, fallback REST:", (e as Error)?.message);
+    // Fallback REST : pas de GROUP BY côté PostgREST → on agrège côté JS.
+    // Acceptable tant que `bets` < ~10k lignes (lecture full table).
+    try {
+      const [bets, users] = await Promise.all([
+        restSelect("bets", {}, {
+          columns: "user_id,result,payout,amount",
+          limit: 10000,
+        }),
+        restSelect("users", {}, {
+          columns: "id,full_name,username",
+          limit: 10000,
+        }),
+      ]);
+      const usersById = new Map<string, { full_name?: string; username?: string }>();
+      for (const u of users as Array<{ id: string; full_name?: string; username?: string }>) {
+        usersById.set(u.id, u);
+      }
+      type Agg = {
+        name?: string;
+        username?: string;
+        total_bets: number;
+        wins: number;
+        losses: number;
+        total_payout: number;
+        total_wagered: number;
+      };
+      const aggByUser = new Map<string, Agg>();
+      for (const b of bets as Array<{ user_id: string; result?: string; payout?: number; amount?: number }>) {
+        if (!b.user_id) continue;
+        const cur = aggByUser.get(b.user_id) || {
+          total_bets: 0, wins: 0, losses: 0, total_payout: 0, total_wagered: 0,
+        };
+        cur.total_bets += 1;
+        if (b.result === "won") cur.wins += 1;
+        else if (b.result === "lost") cur.losses += 1;
+        cur.total_payout += Number(b.payout) || 0;
+        cur.total_wagered += Number(b.amount) || 0;
+        aggByUser.set(b.user_id, cur);
+      }
+      topBettors = Array.from(aggByUser.entries())
+        .map(([uid, a]) => {
+          const u = usersById.get(uid) || {};
+          return { name: u.full_name, username: u.username, ...a };
+        })
+        .sort((a, b) => b.total_payout - a.total_payout)
+        .slice(0, 20);
+    } catch (e2) {
+      console.warn("[prime-core/getLeaderboard] topBettors REST KO aussi:", (e2 as Error)?.message);
+    }
   }
 
   let topInitiates: any[] = [];
