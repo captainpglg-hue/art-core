@@ -356,7 +356,10 @@ async function enrichMarketsWithArtworks(markets: any[]): Promise<any[]> {
   const artworkIds = [...new Set(markets.map((m) => m.artwork_id).filter(Boolean))];
   const artworks = artworkIds.length
     ? await restSelect("artworks", {}, {
-        columns: "id,title,photos,price,gauge_points,gauge_locked,status,listed_at,artist_id",
+        // gauge_locked_at (TIMESTAMPTZ) en Postgres prod, exposé en booléen
+        // gauge_locked côté retour pour matcher l'usage historique des pages
+        // (dashboard, market/[id]) qui font des truthy-checks.
+        columns: "id,title,photos,price,gauge_points,gauge_locked_at,status,listed_at,artist_id",
       })
     : [];
   const artworksById: Record<string, any> = {};
@@ -378,7 +381,7 @@ async function enrichMarketsWithArtworks(markets: any[]): Promise<any[]> {
       photos: a.photos ?? "[]",
       artwork_price: a.price,
       gauge_points: a.gauge_points,
-      gauge_locked: a.gauge_locked,
+      gauge_locked: a.gauge_locked_at != null,
       artwork_status: a.status,
       listed_at: a.listed_at,
       artist_name: u.full_name,
@@ -394,7 +397,7 @@ export async function getMarkets(): Promise<any[]> {
     try {
       return await queryAll<any>(
         `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
-                a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
+                a.gauge_points, (a.gauge_locked_at IS NOT NULL) AS gauge_locked, a.status as artwork_status, a.listed_at,
                 u.full_name as artist_name
          FROM betting_markets bm
          JOIN artworks a ON bm.artwork_id = a.id
@@ -417,7 +420,7 @@ export async function getMarketById(id: string): Promise<any | undefined> {
     try {
       return await queryOne<any>(
         `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
-                a.gauge_points, a.gauge_locked, a.status as artwork_status, a.listed_at,
+                a.gauge_points, (a.gauge_locked_at IS NOT NULL) AS gauge_locked, a.status as artwork_status, a.listed_at,
                 u.full_name as artist_name
          FROM betting_markets bm
          JOIN artworks a ON bm.artwork_id = a.id
