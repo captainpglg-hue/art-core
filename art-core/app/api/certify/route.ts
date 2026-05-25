@@ -4,6 +4,7 @@ import { certifyOnChain, getConfig } from "@/lib/blockchain";
 import { generateFingerprint } from "@/lib/fingerprint";
 import { sendCertificateEmail } from "@/lib/mailer";
 import { uploadPhoto } from "@/lib/supabase-storage";
+import { randomUUID } from "crypto";
 import path from "path";
 
 export async function POST(req: NextRequest) {
@@ -167,22 +168,24 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Create betting markets ────────────────────────────
-    const mktTime = `mkt_${Date.now()}_time`;
+    // betting_markets.id est UUID en prod (le préfixe texte échouait silencieusement).
+    const mktTime = randomUUID();
     const questionTime = `"${title}" sera-t-elle vendue en moins de 30 jours ?`;
     try {
       await sql`
         INSERT INTO betting_markets (
           id, artwork_id, market_type, question, threshold_days, status
         ) VALUES (
-          ${mktTime}, ${id}, 'time', ${questionTime}, 30, 'open'
+          ${mktTime}::uuid, ${id}, 'time', ${questionTime}, 30, 'open'
         )
       `;
-    } catch (dbErr: any) {
-      console.error("[certify] betting_markets time INSERT failed:", dbErr.message, dbErr.code);
+    } catch (dbErr: unknown) {
+      const e = dbErr as { message?: string; code?: string };
+      console.error("[certify] betting_markets time INSERT failed:", e.message, e.code);
       // Non-fatal: continue even if betting markets fail
     }
 
-    const mktValue = `mkt_${Date.now()}_value`;
+    const mktValue = randomUUID();
     const thresholdValue = (price || 1000) * 1.2;
     const questionValue = `"${title}" sera-t-elle vendue à plus de ${thresholdValue}€ ?`;
     try {
@@ -190,11 +193,12 @@ export async function POST(req: NextRequest) {
         INSERT INTO betting_markets (
           id, artwork_id, market_type, question, threshold_value, status
         ) VALUES (
-          ${mktValue}, ${id}, 'value', ${questionValue}, ${thresholdValue}, 'open'
+          ${mktValue}::uuid, ${id}, 'value', ${questionValue}, ${thresholdValue}, 'open'
         )
       `;
-    } catch (dbErr: any) {
-      console.error("[certify] betting_markets value INSERT failed:", dbErr.message, dbErr.code);
+    } catch (dbErr: unknown) {
+      const e = dbErr as { message?: string; code?: string };
+      console.error("[certify] betting_markets value INSERT failed:", e.message, e.code);
       // Non-fatal
     }
 
