@@ -23,38 +23,51 @@ jobs:
         run: |
           set -e
 
-          TEAM_IDS=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v2/teams" \
-            | jq -r '.teams[].id' 2>/dev/null || true)
+          echo "==> Verifying token..."
+          USER=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v2/user" | jq -r '.user.email // "INVALID"')
+          echo "    Logged in as: $USER"
+          if [ "$USER" = "INVALID" ]; then
+            echo "ERROR: VERCEL_TOKEN invalide ou expiré"
+            exit 1
+          fi
+
+          echo "==> Listing teams..."
+          TEAMS_JSON=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v2/teams")
+          echo "$TEAMS_JSON" | jq -r '.teams[] | "    team: \(.slug) (\(.id))"' 2>/dev/null || echo "    (no teams)"
+          TEAM_IDS=$(echo "$TEAMS_JSON" | jq -r '.teams[].id' 2>/dev/null || true)
 
           PROJECT_ID=""
           ORG_ID=""
 
           for SCOPE in personal $TEAM_IDS; do
+            echo "==> Scanning scope: $SCOPE"
             if [ "$SCOPE" = "personal" ]; then
               QUERY="https://api.vercel.com/v9/projects?limit=100"
             else
               QUERY="https://api.vercel.com/v9/projects?limit=100&teamId=$SCOPE"
             fi
 
-            PIDS=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY" \
-              | jq -r '.projects[].id' 2>/dev/null || true)
+            PROJECTS_JSON=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY")
+            NAMES=$(echo "$PROJECTS_JSON" | jq -r '.projects[].name' 2>/dev/null || true)
+            PIDS=$(echo "$PROJECTS_JSON" | jq -r '.projects[].id' 2>/dev/null || true)
+            COUNT=$(echo "$PIDS" | grep -c . || echo 0)
+            echo "    Found $COUNT projects: $(echo "$NAMES" | tr '\n' ' ')"
 
-            for PID in $PIDS; do
+            while IFS= read -r PID; do
+              [ -z "$PID" ] && continue
               if [ "$SCOPE" = "personal" ]; then
                 DETAIL_URL="https://api.vercel.com/v9/projects/$PID"
               else
                 DETAIL_URL="https://api.vercel.com/v9/projects/$PID?teamId=$SCOPE"
               fi
 
-              DETAIL=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL")
+              DETAIL=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL" 2>/dev/null || echo "{}")
+              PNAME=$(echo "$DETAIL" | jq -r '.name // "?"')
 
-              FOUND=$(echo "$DETAIL" | jq -r '
-                [ (.targets.production.alias // [])[] | select(. == "prime-core.app") ] +
-                [ (.alias // [])[] | .domain | select(. == "prime-core.app") ]
-                | length' 2>/dev/null || echo "0")
-
-              if [ "$FOUND" != "0" ] && [ -n "$FOUND" ]; then
+              if echo "$DETAIL" | grep -q '"prime-core\.app"'; then
+                echo "    FOUND in project: $PNAME ($PID)"
                 PROJECT_ID="$PID"
                 if [ "$SCOPE" = "personal" ]; then
                   ORG_ID=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
@@ -64,14 +77,14 @@ jobs:
                 fi
                 echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
                 echo "org_id=$ORG_ID"         >> $GITHUB_OUTPUT
-                echo "Found: project=$PROJECT_ID org=$ORG_ID"
                 break 2
               fi
-            done
+            done <<< "$PIDS"
           done
 
           if [ -z "$PROJECT_ID" ]; then
-            echo "ERROR: aucun projet Vercel ne sert prime-core.app"
+            echo "ERROR: aucun projet Vercel ne contient prime-core.app"
+            echo "Verifier que le domaine est bien configure sur Vercel"
             exit 1
           fi
 
@@ -81,5 +94,6 @@ jobs:
           VERCEL_ORG_ID: ${{ steps.find.outputs.org_id }}
           VERCEL_PROJECT_ID: ${{ steps.find.outputs.project_id }}
         run: |
+          echo "==> Deploying project=$VERCEL_PROJECT_ID org=$VERCEL_ORG_ID"
           cd prime-core
           vercel deploy --prod --yes --token="$VERCEL_TOKEN"
