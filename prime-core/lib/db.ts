@@ -390,7 +390,41 @@ async function enrichMarketsWithArtworks(markets: any[]): Promise<any[]> {
 }
 
 export async function getMarkets(opts?: { diag?: boolean }): Promise<any[]> {
-  // Mode diag : laisse les erreurs remonter au route handler pour exposition.
+  // Primary path: postgres-js direct SQL — works with DATABASE_URL alone,
+  // no SUPABASE_URL / SERVICE_ROLE_KEY needed.
+  // LEFT JOINs so markets without a linked artwork still appear.
+  if (globalThis.__primePgOk !== false) {
+    try {
+      const rows = await withPgTimeout(
+        sql.unsafe<any[]>(
+          `SELECT bm.*,
+                  a.title      AS artwork_title,
+                  a.photos,
+                  a.price      AS artwork_price,
+                  a.gauge_points,
+                  (a.gauge_locked_at IS NOT NULL) AS gauge_locked,
+                  a.status     AS artwork_status,
+                  a.listed_at,
+                  u.full_name  AS artist_name
+           FROM   betting_markets bm
+           LEFT JOIN artworks a ON bm.artwork_id = a.id
+           LEFT JOIN users    u ON a.artist_id   = u.id
+           ORDER  BY bm.created_at DESC`
+        ),
+        "getMarkets"
+      );
+      globalThis.__primePgOk = true;
+      return rows;
+    } catch (e: any) {
+      if (isAuthError(e)) {
+        globalThis.__primePgOk = false;
+      } else if (opts?.diag) {
+        throw e;
+      }
+      // non-auth pg error → fall through to REST
+    }
+  }
+  // REST fallback (requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
   if (opts?.diag) {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
     return enrichMarketsWithArtworks(markets);
@@ -399,19 +433,7 @@ export async function getMarkets(opts?: { diag?: boolean }): Promise<any[]> {
     const markets = await restSelect("betting_markets", {}, { orderBy: "created_at", orderDir: "desc" });
     return enrichMarketsWithArtworks(markets);
   } catch {
-    try {
-      return await queryAll<any>(
-        `SELECT bm.*, a.title as artwork_title, a.photos, a.price as artwork_price,
-                a.gauge_points, (a.gauge_locked_at IS NOT NULL) AS gauge_locked, a.status as artwork_status, a.listed_at,
-                u.full_name as artist_name
-         FROM betting_markets bm
-         JOIN artworks a ON bm.artwork_id = a.id
-         JOIN users u ON a.artist_id = u.id
-         ORDER BY bm.created_at DESC`,
-      );
-    } catch {
-      return [];
-    }
+    return [];
   }
 }
 
