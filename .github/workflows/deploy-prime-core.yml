@@ -16,44 +16,47 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Find Vercel project for prime-core.app
-        id: find
+      - name: Find Vercel project and deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          set -e
+          # No set -e: we handle errors explicitly
+          # No -f on curl: we capture HTTP errors instead of crashing
 
-          echo "==> Verifying token..."
-          USER=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v2/user" | jq -r '.user.email // "INVALID"')
-          echo "    Logged in as: $USER"
-          if [ "$USER" = "INVALID" ]; then
-            echo "ERROR: VERCEL_TOKEN invalide ou expiré"
+          echo "==> Checking token..."
+          USER_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v2/user")
+          USER_EMAIL=$(echo "$USER_JSON" | jq -r '.user.email // empty')
+          if [ -z "$USER_EMAIL" ]; then
+            echo "ERROR: token invalide. Response:"
+            echo "$USER_JSON" | jq '.' 2>/dev/null || echo "$USER_JSON"
             exit 1
           fi
+          echo "    OK: $USER_EMAIL"
+          USER_ID=$(echo "$USER_JSON" | jq -r '.user.id')
 
           echo "==> Listing teams..."
-          TEAMS_JSON=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+          TEAMS_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v2/teams")
-          echo "$TEAMS_JSON" | jq -r '.teams[] | "    team: \(.slug) (\(.id))"' 2>/dev/null || echo "    (no teams)"
           TEAM_IDS=$(echo "$TEAMS_JSON" | jq -r '.teams[].id' 2>/dev/null || true)
+          TEAM_SLUGS=$(echo "$TEAMS_JSON" | jq -r '.teams[] | "\(.id)=\(.slug)"' 2>/dev/null || true)
+          echo "    Teams: $(echo "$TEAM_SLUGS" | tr '\n' ' ' || echo 'none')"
 
           PROJECT_ID=""
           ORG_ID=""
 
           for SCOPE in personal $TEAM_IDS; do
-            echo "==> Scanning scope: $SCOPE"
             if [ "$SCOPE" = "personal" ]; then
               QUERY="https://api.vercel.com/v9/projects?limit=100"
             else
               QUERY="https://api.vercel.com/v9/projects?limit=100&teamId=$SCOPE"
             fi
 
-            PROJECTS_JSON=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY")
-            NAMES=$(echo "$PROJECTS_JSON" | jq -r '.projects[].name' 2>/dev/null || true)
+            echo "==> Scanning scope: $SCOPE"
+            PROJECTS_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY")
             PIDS=$(echo "$PROJECTS_JSON" | jq -r '.projects[].id' 2>/dev/null || true)
-            COUNT=$(echo "$PIDS" | grep -c . || echo 0)
-            echo "    Found $COUNT projects: $(echo "$NAMES" | tr '\n' ' ')"
+            PNAMES=$(echo "$PROJECTS_JSON" | jq -r '.projects[].name' 2>/dev/null || echo "none")
+            echo "    Projects: $(echo "$PNAMES" | tr '\n' ' ')"
 
             while IFS= read -r PID; do
               [ -z "$PID" ] && continue
@@ -63,37 +66,31 @@ jobs:
                 DETAIL_URL="https://api.vercel.com/v9/projects/$PID?teamId=$SCOPE"
               fi
 
-              DETAIL=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL" 2>/dev/null || echo "{}")
+              DETAIL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL")
               PNAME=$(echo "$DETAIL" | jq -r '.name // "?"')
 
               if echo "$DETAIL" | grep -q '"prime-core\.app"'; then
-                echo "    FOUND in project: $PNAME ($PID)"
+                echo "    FOUND: $PNAME ($PID) in scope $SCOPE"
                 PROJECT_ID="$PID"
-                if [ "$SCOPE" = "personal" ]; then
-                  ORG_ID=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
-                    "https://api.vercel.com/v2/user" | jq -r '.user.id')
-                else
-                  ORG_ID="$SCOPE"
-                fi
-                echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
-                echo "org_id=$ORG_ID"         >> $GITHUB_OUTPUT
+                ORG_ID="$( [ "$SCOPE" = "personal" ] && echo "$USER_ID" || echo "$SCOPE" )"
                 break 2
               fi
             done <<< "$PIDS"
           done
 
           if [ -z "$PROJECT_ID" ]; then
-            echo "ERROR: aucun projet Vercel ne contient prime-core.app"
-            echo "Verifier que le domaine est bien configure sur Vercel"
+            echo "ERROR: prime-core.app introuvable dans tous les scopes."
+            echo "Domaines visibles sur le premier projet :"
+            FIRST_PID=$(echo "$PROJECTS_JSON" | jq -r '.projects[0].id // empty')
+            if [ -n "$FIRST_PID" ]; then
+              curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+                "https://api.vercel.com/v9/projects/$FIRST_PID" | jq '.alias // [] | .[].domain' 2>/dev/null || true
+            fi
             exit 1
           fi
 
-      - name: Deploy to Vercel production
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ steps.find.outputs.org_id }}
-          VERCEL_PROJECT_ID: ${{ steps.find.outputs.project_id }}
-        run: |
-          echo "==> Deploying project=$VERCEL_PROJECT_ID org=$VERCEL_ORG_ID"
+          echo "==> Deploying project=$PROJECT_ID org=$ORG_ID"
           cd prime-core
-          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+          VERCEL_ORG_ID="$ORG_ID" \
+          VERCEL_PROJECT_ID="$PROJECT_ID" \
+            vercel deploy --prod --yes --token="$VERCEL_TOKEN"
