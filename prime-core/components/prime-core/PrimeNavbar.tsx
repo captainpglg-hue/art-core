@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { TrendingUp, LayoutGrid, ShieldCheck, BarChart3, Trophy, User } from "lucide-react";
 
+const ART_CORE_URL = process.env.NEXT_PUBLIC_ART_CORE_URL || "https://art-core.app";
+const PASS_CORE_URL = process.env.NEXT_PUBLIC_PASS_CORE_URL || "https://pass-core.app";
+
 export default function PrimeNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#0D0F14]/90 backdrop-blur-md border-b border-white/5">
@@ -25,10 +28,10 @@ export default function PrimeNavbar() {
           <Link href="/prime-core/leaderboard" className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors">
             <Trophy className="size-3.5" />Leaderboard
           </Link>
-          <a href="http://localhost:3000/art-core" className="flex items-center gap-1 text-xs text-[#C9A84C]/60 hover:text-[#C9A84C] transition-colors">
+          <a href={`${ART_CORE_URL}/art-core`} className="flex items-center gap-1 text-xs text-[#C9A84C]/60 hover:text-[#C9A84C] transition-colors">
             <LayoutGrid className="size-3" />ART-CORE
           </a>
-          <a href="http://localhost:3001/pass-core/certifier" className="flex items-center gap-1 text-xs text-[#C9A84C]/60 hover:text-[#C9A84C] transition-colors">
+          <a href={`${PASS_CORE_URL}/pass-core/certifier`} className="flex items-center gap-1 text-xs text-[#C9A84C]/60 hover:text-[#C9A84C] transition-colors">
             <ShieldCheck className="size-3" />PASS-CORE
           </a>
         </nav>
