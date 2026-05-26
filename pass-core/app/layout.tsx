@@ -3,6 +3,7 @@ import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import PassNavbar from "@/components/pass-core/PassNavbar";
 import { PWAInstaller } from "@/components/shared/PWAInstaller";
+import { SiteFooter } from "@/components/shared/SiteFooter";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${dmSans.variable} ${playfair.variable} font-sans min-h-screen bg-navy-DEFAULT text-white`}>
         <PassNavbar />
         <main className="pt-16">{children}</main>
+        <SiteFooter />
         <PWAInstaller appName="PASS-CORE" />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}` }} />
       </body>

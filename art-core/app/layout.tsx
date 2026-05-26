@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Cormorant_Garamond, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { PWAInstaller } from "@/components/shared/PWAInstaller";
+import { SiteFooter } from "@/components/shared/SiteFooter";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-inter" });
 const cormorant = Cormorant_Garamond({
@@ -55,6 +56,7 @@ export default function RootLayout({
       </head>
       <body className={`${dmSans.variable} ${cormorant.variable} ${playfair.variable} font-sans bg-dark text-white antialiased`}>
         {children}
+        <SiteFooter />
         <PWAInstaller appName="ART-CORE" />
         <script
           dangerouslySetInnerHTML={{

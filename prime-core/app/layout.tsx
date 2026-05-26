@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, DM_Mono } from "next/font/google";
 import PrimeNavbar from "@/components/prime-core/PrimeNavbar";
 import { PWAInstaller } from "@/components/shared/PWAInstaller";
+import { SiteFooter } from "@/components/shared/SiteFooter";
 import "./globals.css";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${dmSans.variable} ${dmMono.variable} font-sans min-h-screen bg-[#0D0F14] text-white`}>
         <PrimeNavbar />
         <main className="pt-16 min-h-[calc(100vh-4rem)]">{children}</main>
+        <SiteFooter />
         <PWAInstaller appName="PRIME-CORE" />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}` }} />
       </body>
