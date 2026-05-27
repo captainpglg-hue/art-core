@@ -189,7 +189,10 @@ export default async function ArtworkDetailPage({ params }: Props) {
               <div className="flex items-end justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Prix de vente</p>
-                  <p className="font-playfair text-3xl font-bold text-[#C9A84C] tabular-nums">
+                  <p
+                    className="font-playfair text-3xl font-bold text-gold tabular-nums"
+                    style={{ color: "#D4AF37" }}
+                  >
                     {formatPrice(artwork.price)}
                   </p>
                 </div>
