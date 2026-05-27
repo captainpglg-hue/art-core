@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
@@ -32,14 +33,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
-          <div>
-            <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide">
+          <Link href="/" aria-label="Retour à l'accueil" className="group inline-block">
+            <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide group-hover:opacity-80 transition-opacity">
               PASS-CORE
             </span>
             <p className="text-white/40 text-xs mt-1 tracking-[0.2em] uppercase">
               Authenticate the Real
             </p>
-          </div>
+          </Link>
 
           {/* Central text */}
           <div className="max-w-md">
@@ -66,9 +67,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="lg:hidden mb-10 text-center">
-            <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide">
-              PASS-CORE
-            </span>
+            <Link href="/" aria-label="Retour à l'accueil" className="inline-block hover:opacity-80 transition-opacity">
+              <span className="text-2xl font-display font-bold text-gold-gradient tracking-wide">
+                PASS-CORE
+              </span>
+            </Link>
           </div>
           {children}
         </div>
