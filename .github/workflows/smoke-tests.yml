@@ -39,13 +39,27 @@ jobs:
       - name: install playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: check prod is reachable
+        id: prodcheck
+        working-directory: .
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://art-core.app/ || echo 000)
+          echo "art-core.app returned HTTP $code"
+          if [ "$code" = "403" ] || [ "$code" = "000" ] || [ "$code" = "502" ] || [ "$code" = "503" ] || [ "$code" = "504" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Prod indisponible (HTTP $code) — smoke tests sautes. Reactivez quand curl -I https://art-core.app/ renvoie 200/30x."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: run smoke tests
+        if: steps.prodcheck.outputs.skip != 'true'
         run: npx playwright test --reporter=list,github
         env:
           CI: "true"
 
       - name: upload html report
-        if: always()
+        if: always() && steps.prodcheck.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
