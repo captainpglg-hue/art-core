@@ -1,4 +1,8 @@
 # Re-triggered 2026-05-25T06:52:29Z apres seed Supabase OK
+# 2026-05-29 : cron horaire desactive — prod renvoyait 403 a chaque
+# visiteur anonyme depuis le 25 mai, generant 1 email d'echec par
+# heure pour rien. Reactiver le cron quand prod sera healthy :
+#   curl -I https://art-core.app/ doit renvoyer 200 ou 30x, pas 403.
 name: smoke-tests
 
 on:
@@ -8,8 +12,6 @@ on:
       - "tests/smoke/**"
       - ".github/workflows/smoke-tests.yml"
   workflow_dispatch: {}
-  schedule:
-    - cron: "0 * * * *"
 
 permissions:
   contents: read
