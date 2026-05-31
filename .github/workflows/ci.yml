@@ -1,0 +1,48 @@
+name: ci
+
+# Gate AVANT merge : typecheck + lint + tests unitaires.
+# Complète les smoke-tests (qui, eux, tournent en post-deploy contre la prod)
+# et le build de prévisualisation Vercel sur chaque PR.
+# Scope actuel : art-core (seule app dotée de tests unitaires). À étendre à
+# pass-core / prime-core dès qu'elles auront un script `test`.
+
+on:
+  pull_request:
+    paths:
+      - "art-core/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  art-core:
+    name: art-core — typecheck + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: art-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: art-core/package-lock.json
+
+      - name: install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: typecheck
+        run: npm run typecheck
+
+      # NOTE: `npm run lint` (next lint) n'est PAS encore dans le gate :
+      # aucune config ESLint n'existe dans art-core (next lint prompte une
+      # configuration). À ajouter quand un .eslintrc sera en place et la dette
+      # lint existante traitée — sinon le gate casserait sur du préexistant.
+
+      - name: unit tests
+        run: npm test
