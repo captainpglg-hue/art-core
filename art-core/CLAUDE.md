@@ -76,7 +76,8 @@ uniquement" et déconnecter Git de Vercel.
 
 ## Modèle économique
 - Artiste : GRATUIT à vie
-- Commission vente : 25%
+- Commission vente PRIMAIRE : 10% (vendeur 90%) — voir `lib/stripe.ts` calculateSplit
+- Commission REVENTE : plateforme 15% (vendeur 75% · pool Initiés 5% · royalties artiste 5%)
 - Consultation Pass-Core : 0,50€ (0,10€ → propriétaire)
 - Pass-Core propriétaire : 49€ + 5€/mois
 - Pass Magnat Initié : 9,90€/mois

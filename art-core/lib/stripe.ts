@@ -25,22 +25,34 @@ export const getStripe = () => {
 };
 
 // ── Commission splits ─────────────────────────────────────────
-// Sale: 75% seller · 20% Art-Core LTD · 5% Initiés pool
-// Resale: artist royalty 5% taken from platform's 20% (platform keeps 15%)
+// Décision Philippe (31/05/2026) :
+//   VENTE PRIMAIRE (artiste vend son œuvre) : 90% vendeur · 10% plateforme.
+//     Pas de pool Initiés, pas de royalties. Aligné sur /api/purchase/confirm.
+//   REVENTE (œuvre de collection revendue) : 75% vendeur · 15% plateforme ·
+//     5% pool Initiés · 5% royalties artiste original.
 export const COMMISSION = {
-  SELLER: 0.75,         // 75% — seller (artist or collector)
-  PLATFORM: 0.20,       // 20% — Art-Core LTD
-  INITIE_POOL: 0.05,    // 5%  — Initiés (proportional to points invested)
-  ARTIST_ROYALTY: 0.05, // 5%  — original artist on resale (from platform cut)
+  // Primaire
+  PRIMARY_PLATFORM: 0.10, // 10% — Art-Core LTD sur vente primaire
+  // Revente
+  SELLER: 0.75,         // 75% — revendeur
+  INITIE_POOL: 0.05,    // 5%  — pool Initiés (proportionnel aux points investis)
+  ARTIST_ROYALTY: 0.05, // 5%  — artiste original sur revente
+  // Plateforme en revente = remainder (~15%)
 } as const;
 
 export const calculateSplit = (amountCents: number, isResale = false) => {
+  if (!isResale) {
+    // Vente primaire : 90 / 10, rien d'autre.
+    const platform = Math.round(amountCents * COMMISSION.PRIMARY_PLATFORM);
+    const sellerNet = amountCents - platform;
+    return { platform, artistRoyalty: 0, scout: 0, sellerNet, initiePool: 0 };
+  }
+  // Revente : vendeur 75 / Initiés 5 / royalties 5 / plateforme = remainder (~15).
   const sellerNet = Math.round(amountCents * COMMISSION.SELLER);
   const initiePool = Math.round(amountCents * COMMISSION.INITIE_POOL);
-  const artistRoyalty = isResale ? Math.round(amountCents * COMMISSION.ARTIST_ROYALTY) : 0;
+  const artistRoyalty = Math.round(amountCents * COMMISSION.ARTIST_ROYALTY);
   const platform = amountCents - sellerNet - initiePool - artistRoyalty;
-  // Legacy aliases kept for compat
-  const scout = initiePool;
+  const scout = initiePool; // alias legacy
   return { platform, artistRoyalty, scout, sellerNet, initiePool };
 };
 

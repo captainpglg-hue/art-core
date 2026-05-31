@@ -3,36 +3,29 @@ import { calculateSplit, COMMISSION } from "../stripe";
 
 // ============================================================================
 // calculateSplit — CŒUR DU MODÈLE ÉCONOMIQUE (split d'argent réel).
-// Ces tests FIGENT le comportement actuel de lib/stripe.ts :
-//   vente normale : 75% vendeur · 20% plateforme · 5% pool Initiés
-//   revente       : + 5% royalties artiste, pris sur la part plateforme (→ 15%)
-//
-// ⚠️ INCOHÉRENCE BUSINESS À ARBITRER (signalée, NON corrigée ici) :
-//   - lib/stripe.ts          → plateforme 20%
-//   - /api/purchase/confirm  → plateforme 10% (PLATFORM_FEE_RATE = 0.10)
-//   - art-core/CLAUDE.md     → « commission vente 25% »
-//   Trois valeurs différentes. Le bon taux est une décision de Philippe.
-//   Quand il sera tranché, mettre ces tests à jour EN CONNAISSANCE DE CAUSE.
+// Modèle arbitré par Philippe (31/05/2026), Option A :
+//   VENTE PRIMAIRE : 90% vendeur · 10% plateforme (rien d'autre).
+//   REVENTE        : 75% vendeur · 15% plateforme · 5% Initiés · 5% royalties.
+// Aligné sur /api/purchase/confirm (PLATFORM_FEE_RATE = 0.10 sur le primaire).
 // ============================================================================
 
 describe("COMMISSION (constantes)", () => {
-  it("somme vente normale = 100% (75 + 20 + 5)", () => {
-    expect(COMMISSION.SELLER + COMMISSION.PLATFORM + COMMISSION.INITIE_POOL).toBeCloseTo(1, 10);
+  it("revente : 75 + 5 (Initiés) + 5 (royalties) + 15 (plateforme remainder) = 100", () => {
+    expect(COMMISSION.SELLER + COMMISSION.INITIE_POOL + COMMISSION.ARTIST_ROYALTY).toBeCloseTo(0.85, 10);
+  });
+  it("primaire : plateforme 10%", () => {
+    expect(COMMISSION.PRIMARY_PLATFORM).toBe(0.10);
   });
 });
 
-describe("calculateSplit — vente normale", () => {
-  it("répartit 10 000 cents en 7500 / 2000 / 500", () => {
+describe("calculateSplit — vente primaire (90 / 10)", () => {
+  it("répartit 10 000 cents en 9000 vendeur / 1000 plateforme, sans pool ni royalties", () => {
     const s = calculateSplit(10000);
-    expect(s.sellerNet).toBe(7500);
-    expect(s.initiePool).toBe(500);
+    expect(s.sellerNet).toBe(9000);
+    expect(s.platform).toBe(1000);
+    expect(s.initiePool).toBe(0);
     expect(s.artistRoyalty).toBe(0);
-    expect(s.platform).toBe(2000);
-  });
-
-  it("expose l'alias legacy scout = initiePool", () => {
-    const s = calculateSplit(10000);
-    expect(s.scout).toBe(s.initiePool);
+    expect(s.scout).toBe(0);
   });
 });
 
