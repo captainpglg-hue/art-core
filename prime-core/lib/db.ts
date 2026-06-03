@@ -191,13 +191,22 @@ async function sqlViaRest(text: string, params: any[]): Promise<{ rows: any[]; r
   throw new Error(`sqlViaRest: pattern non supporté pour "${normalized.slice(0, 100)}"`);
 }
 
-function isAuthError(e: any): boolean {
+export function isAuthError(e: any): boolean {
   const m = (e?.message || "").toLowerCase();
   return (
     m.includes("password authentication failed") ||
     m.includes("tenant/user") ||
     m.includes("enotfound") ||
     m.includes("econnrefused") ||
+    // DATABASE_URL corrompu (caractère non-Latin1, ex: U+FFFD '�' collé
+    // dans le mot de passe via un copier-coller mangé) : postgres-js plante en
+    // convertissant le password en ByteString lors du SCRAM. Sans ce cas, le
+    // crash n'était pas reconnu comme une panne pg → __primePgOk restait true,
+    // chaque appel re-crashait et /api/markets renvoyait [] en boucle (cause des
+    // échecs smoke-tests CI depuis le 25/05). On le traite comme une panne pg
+    // pour basculer définitivement sur le fallback REST.
+    m.includes("bytestring") ||
+    m.includes("cannot convert argument") ||
     e?.code === "28P01"
   );
 }
