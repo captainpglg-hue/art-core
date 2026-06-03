@@ -31,6 +31,19 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- SSO inter-domaines : codes à usage unique (art-core = fournisseur d'identité).
+-- Voir art-core/supabase/migrations/20260603000000_sso_codes.sql (version Postgres).
+CREATE TABLE IF NOT EXISTS sso_codes (
+  code TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  client TEXT NOT NULL,
+  redirect_uri TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Artworks
 CREATE TABLE IF NOT EXISTS artworks (
   id TEXT PRIMARY KEY,
