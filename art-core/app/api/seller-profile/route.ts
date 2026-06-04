@@ -106,27 +106,36 @@ export async function POST(req: NextRequest) {
 
   let merchantId: string | null = (existingProfile as { merchant_id?: string | null } | null)?.merchant_id || null;
 
-  // Si rôle pro et pas encore de merchant : créer
+  // Si rôle pro et pas encore de merchant lié au profil :
   if (PRO_ROLES.includes(role) && !merchantId && merchantPayload) {
-    const romPrefix = generateNumeroRom({ ville: merchantPayload.ville, siret: merchantPayload.siret });
-    const { data: merchantRow, error: mErr } = await sb.from("merchants").insert({
-      raison_sociale: merchantPayload.raison_sociale,
-      siret: merchantPayload.siret,
-      activite: role,
-      nom_gerant: merchantPayload.nom_gerant,
-      email: user.email || "",
-      telephone: merchantPayload.telephone_pro,
-      adresse: merchantPayload.adresse,
-      code_postal: merchantPayload.code_postal,
-      ville: merchantPayload.ville,
-      numero_rom: romPrefix,
-      numero_rom_prefix: romPrefix,
-      abonnement: "gratuit",
-      user_id: userId,
-      actif: true,
-    }).select("id").single();
-    if (mErr) return NextResponse.json({ error: `Création merchant : ${mErr.message}` }, { status: 500 });
-    merchantId = (merchantRow as { id: string }).id;
+    // D'ABORD réutiliser le merchant déjà créé pour ce user (ex: inscription
+    // pass-core). Sans ça, on tentait un INSERT avec le même SIRET → erreur
+    // "duplicate key" qui faisait planter la création du seller_profile, donc
+    // pas de fiche police pour les antiquaires. (Découvert via test E2E.)
+    const existingMerchant = await getMerchantForUser(userId);
+    if (existingMerchant && (existingMerchant as { id?: string }).id) {
+      merchantId = (existingMerchant as { id: string }).id;
+    } else {
+      const romPrefix = generateNumeroRom({ ville: merchantPayload.ville, siret: merchantPayload.siret });
+      const { data: merchantRow, error: mErr } = await sb.from("merchants").insert({
+        raison_sociale: merchantPayload.raison_sociale,
+        siret: merchantPayload.siret,
+        activite: role,
+        nom_gerant: merchantPayload.nom_gerant,
+        email: user.email || "",
+        telephone: merchantPayload.telephone_pro,
+        adresse: merchantPayload.adresse,
+        code_postal: merchantPayload.code_postal,
+        ville: merchantPayload.ville,
+        numero_rom: romPrefix,
+        numero_rom_prefix: romPrefix,
+        abonnement: "gratuit",
+        user_id: userId,
+        actif: true,
+      }).select("id").single();
+      if (mErr) return NextResponse.json({ error: `Création merchant : ${mErr.message}` }, { status: 500 });
+      merchantId = (merchantRow as { id: string }).id;
+    }
   }
 
   // Insert ou update seller_profile
