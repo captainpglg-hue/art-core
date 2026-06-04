@@ -10,87 +10,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Projet Vercel qui sert RÉELLEMENT prime-core (www.prime-core.app).
+    # Nom historique trompeur = "fresh-core-app". IDs figés ici pour ne plus
+    # dépendre d'un scan par alias (qui tombait sur le projet apex en redirect)
+    # ni d'un `cd prime-core` (qui se cumulait au Root Directory du projet =
+    # "prime-core" → chemin prime-core/prime-core inexistant).
+    env:
+      VERCEL_ORG_ID: team_Ey0JNi1Ok35Kpv64uu9zRtaS
+      VERCEL_PROJECT_ID: prj_wJ31AApnU0saNw2FoAXnpMPmaYHx
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Find Vercel project and deploy
+      - name: Deploy to production
+        # Lancé depuis la RACINE du repo : le Root Directory "prime-core" du
+        # projet Vercel résout correctement vers art-core/prime-core. Les IDs
+        # ORG/PROJECT remplacent le `vercel link` (pas de secret, ce sont des
+        # identifiants publics).
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          # No set -e: we handle errors explicitly
-          # No -f on curl: we capture HTTP errors instead of crashing
-
-          echo "==> Checking token..."
-          USER_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v2/user")
-          USER_EMAIL=$(echo "$USER_JSON" | jq -r '.user.email // empty')
-          if [ -z "$USER_EMAIL" ]; then
-            echo "ERROR: token invalide. Response:"
-            echo "$USER_JSON" | jq '.' 2>/dev/null || echo "$USER_JSON"
-            exit 1
-          fi
-          echo "    OK: $USER_EMAIL"
-          USER_ID=$(echo "$USER_JSON" | jq -r '.user.id')
-
-          echo "==> Listing teams..."
-          TEAMS_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v2/teams")
-          TEAM_IDS=$(echo "$TEAMS_JSON" | jq -r '.teams[].id' 2>/dev/null || true)
-          TEAM_SLUGS=$(echo "$TEAMS_JSON" | jq -r '.teams[] | "\(.id)=\(.slug)"' 2>/dev/null || true)
-          echo "    Teams: $(echo "$TEAM_SLUGS" | tr '\n' ' ' || echo 'none')"
-
-          PROJECT_ID=""
-          ORG_ID=""
-
-          for SCOPE in personal $TEAM_IDS; do
-            if [ "$SCOPE" = "personal" ]; then
-              QUERY="https://api.vercel.com/v9/projects?limit=100"
-            else
-              QUERY="https://api.vercel.com/v9/projects?limit=100&teamId=$SCOPE"
-            fi
-
-            echo "==> Scanning scope: $SCOPE"
-            PROJECTS_JSON=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "$QUERY")
-            PIDS=$(echo "$PROJECTS_JSON" | jq -r '.projects[].id' 2>/dev/null || true)
-            PNAMES=$(echo "$PROJECTS_JSON" | jq -r '.projects[].name' 2>/dev/null || echo "none")
-            echo "    Projects: $(echo "$PNAMES" | tr '\n' ' ')"
-
-            while IFS= read -r PID; do
-              [ -z "$PID" ] && continue
-              if [ "$SCOPE" = "personal" ]; then
-                DETAIL_URL="https://api.vercel.com/v9/projects/$PID"
-              else
-                DETAIL_URL="https://api.vercel.com/v9/projects/$PID?teamId=$SCOPE"
-              fi
-
-              DETAIL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "$DETAIL_URL")
-              PNAME=$(echo "$DETAIL" | jq -r '.name // "?"')
-
-              if echo "$DETAIL" | grep -q '"prime-core\.app"'; then
-                echo "    FOUND: $PNAME ($PID) in scope $SCOPE"
-                PROJECT_ID="$PID"
-                ORG_ID="$( [ "$SCOPE" = "personal" ] && echo "$USER_ID" || echo "$SCOPE" )"
-                break 2
-              fi
-            done <<< "$PIDS"
-          done
-
-          if [ -z "$PROJECT_ID" ]; then
-            echo "ERROR: prime-core.app introuvable dans tous les scopes."
-            echo "Domaines visibles sur le premier projet :"
-            FIRST_PID=$(echo "$PROJECTS_JSON" | jq -r '.projects[0].id // empty')
-            if [ -n "$FIRST_PID" ]; then
-              curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-                "https://api.vercel.com/v9/projects/$FIRST_PID" | jq '.alias // [] | .[].domain' 2>/dev/null || true
-            fi
-            exit 1
-          fi
-
-          echo "==> Deploying project=$PROJECT_ID org=$ORG_ID"
-          cd prime-core
-          VERCEL_ORG_ID="$ORG_ID" \
-          VERCEL_PROJECT_ID="$PROJECT_ID" \
-            vercel deploy --prod --yes --token="$VERCEL_TOKEN"
