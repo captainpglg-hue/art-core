@@ -438,6 +438,23 @@ export async function getBetsForMarket(marketId: string): Promise<any[]> {
 }
 
 export async function getUserByToken(token: string): Promise<any | undefined> {
+  // postgres D'ABORD : la table `sessions` n'est PAS exposée en lecture par la
+  // clé REST applicative (RLS — c'est voulu, elle contient les tokens). Le
+  // chemin REST renvoie donc [] à tort → l'ancienne version retournait
+  // undefined sans essayer pg, ce qui cassait TOUTE auth prime-core (paris…).
+  // La connexion postgres directe (DATABASE_URL) a un accès complet et lit
+  // `sessions` sans problème ; queryOne gère déjà le fallback REST si pg KO.
+  try {
+    const row = await queryOne<any>(
+      `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id
+       WHERE s.token = ? AND s.expires_at > NOW()`,
+      [token],
+    );
+    if (row) return row;
+  } catch {
+    /* pg indisponible → tentative REST ci-dessous */
+  }
+  // Fallback REST en 2 temps (si pg KO et que la clé a malgré tout accès).
   try {
     const sessions = await restSelect("sessions", { token }, { limit: 1 });
     const s = sessions[0];
@@ -446,14 +463,7 @@ export async function getUserByToken(token: string): Promise<any | undefined> {
     const users = await restSelect("users", { id: s.user_id }, { limit: 1 });
     return users[0];
   } catch {
-    try {
-      return await queryOne<any>(
-        `SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()`,
-        [token],
-      );
-    } catch {
-      return undefined;
-    }
+    return undefined;
   }
 }
 
