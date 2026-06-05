@@ -1,10 +1,11 @@
 name: Deploy prime-core
 
+# DÉSACTIVÉ en auto : le déploiement de prime-core (projet Vercel fresh-core-app)
+# est assuré par l'INTÉGRATION GIT DE VERCEL sur push to main — fiable et
+# vérifié. Ce workflow était redondant et échouait à chaque push (spam de mails
+# d'échec sans impact réel). On le garde uniquement en déclenchement MANUEL
+# (workflow_dispatch) comme filet de secours.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'prime-core/**'
   workflow_dispatch:
 
 jobs:
