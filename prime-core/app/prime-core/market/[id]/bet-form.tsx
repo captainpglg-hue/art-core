@@ -27,6 +27,13 @@ export function BetForm({ marketId, question, oddsYes, oddsNo }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ market_id: marketId, position, amount: parseFloat(amount) }),
       });
+      if (res.status === 401) {
+        // Pas connecté → SSO inter-domaines : on se connecte via art-core
+        // (fournisseur d'identité) puis on revient sur ce marché pour parier.
+        const next = window.location.pathname + window.location.search;
+        window.location.href = `/auth/sso/start?next=${encodeURIComponent(next)}`;
+        return;
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setResult(data);
