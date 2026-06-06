@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Trash2, Eye, EyeOff, Edit3, Check, X, RefreshCw, Shield, AlertTriangle, Users,
-  Package, Download, BarChart3, TrendingUp, Lock, Unlock, Plus, Search
+  Package, Download, BarChart3, TrendingUp, Lock, Unlock, Plus, Search, RotateCcw
 } from "lucide-react";
 import { resolveFirstPhoto } from "@/lib/resolve-photo";
 
@@ -61,7 +61,7 @@ interface Stats {
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "artworks" | "users" | "certifications" | "export">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "artworks" | "users" | "certifications" | "export" | "reset">("dashboard");
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -79,6 +79,10 @@ export default function AdminPage() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingPoints, setEditingPoints] = useState("");
   const [showNewUserModal, setShowNewUserModal] = useState(false);
+  const [resetScope, setResetScope] = useState<"content" | "all">("content");
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetReport, setResetReport] = useState<{ deleted: Record<string, number>; skipped: Record<string, string> } | null>(null);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -315,6 +319,33 @@ export default function AdminPage() {
     }
   };
 
+  const handleReset = async () => {
+    if (resetConfirm !== "RESET") {
+      showMessage('Tape RESET pour confirmer.');
+      return;
+    }
+    setResetting(true);
+    setResetReport(null);
+    try {
+      const res = await fetch("/api/admin/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESET", scope: resetScope }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResetReport({ deleted: data.deleted, skipped: data.skipped });
+        setResetConfirm("");
+        showMessage("Base réinitialisée.");
+      } else {
+        showMessage(`Erreur : ${data.error || "réinitialisation impossible"}`);
+      }
+    } catch {
+      showMessage("Erreur reseau.");
+    }
+    setResetting(false);
+  };
+
   if (error && !user) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -373,6 +404,7 @@ export default function AdminPage() {
             { key: "users" as const, icon: Users, label: "Utilisateurs", count: users.length },
             { key: "certifications" as const, icon: Shield, label: "Certifications", count: certifications.length },
             { key: "export" as const, icon: Download, label: "Exporter", count: 0 },
+            { key: "reset" as const, icon: RotateCcw, label: "Réinitialiser", count: 0 },
           ].map((t) => (
             <button
               key={t.key}
@@ -884,6 +916,81 @@ export default function AdminPage() {
                 <span className="text-gold text-sm font-medium">Telecharger JSON</span>
               </button>
             ))}
+          </div>
+        )}
+
+        {/* ═══ ONGLET RÉINITIALISER ═══ */}
+        {tab === "reset" && (
+          <div className="max-w-2xl">
+            <div className="p-6 bg-red-500/[0.04] border border-red-500/20 rounded-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="size-6 text-red-400" />
+                <h2 className="text-xl font-bold text-white">Réinitialiser pour repartir à zéro</h2>
+              </div>
+              <p className="text-white/50 text-sm mb-6">
+                Vide la base pour tes tests. <span className="text-red-300">Action irréversible.</span>{" "}
+                Ton compte admin est toujours conservé.
+              </p>
+
+              {/* Périmètre */}
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={() => setResetScope("content")}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    resetScope === "content" ? "border-gold/50 bg-gold/5" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <p className="text-white font-medium text-sm">Contenu seulement</p>
+                  <p className="text-white/40 text-xs mt-1">Supprime œuvres, offres, jauges, favoris, transactions. Garde tous les comptes.</p>
+                </button>
+                <button
+                  onClick={() => setResetScope("all")}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    resetScope === "all" ? "border-red-500/50 bg-red-500/5" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <p className="text-white font-medium text-sm">Contenu + comptes</p>
+                  <p className="text-white/40 text-xs mt-1">En plus, supprime tous les comptes (artistes, galeries, antiquaires…) sauf les admins.</p>
+                </button>
+              </div>
+
+              {/* Confirmation */}
+              <label className="block text-white/60 text-sm mb-2">
+                Tape <span className="font-mono text-red-300">RESET</span> pour confirmer
+              </label>
+              <input
+                type="text"
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="RESET"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-red-500/40 mb-4"
+              />
+              <button
+                onClick={handleReset}
+                disabled={resetting || resetConfirm !== "RESET"}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-500/15 border border-red-500/40 rounded-lg text-red-300 hover:bg-red-500/25 transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="size-4" />
+                {resetting ? "Réinitialisation…" : "Réinitialiser la base"}
+              </button>
+
+              {/* Rapport */}
+              {resetReport && (
+                <div className="mt-6 p-4 bg-white/[0.02] border border-white/10 rounded-xl text-sm">
+                  <p className="text-white font-medium mb-2">Rapport</p>
+                  {Object.entries(resetReport.deleted).map(([t, n]) => (
+                    <p key={t} className="text-white/50 text-xs">
+                      <span className="text-green-400">✓</span> {t} : {n} ligne(s) supprimée(s)
+                    </p>
+                  ))}
+                  {Object.entries(resetReport.skipped).map(([t, msg]) => (
+                    <p key={t} className="text-white/40 text-xs">
+                      <span className="text-yellow-400">⚠</span> {t} : ignoré ({msg.slice(0, 60)})
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
