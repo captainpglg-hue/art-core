@@ -247,6 +247,11 @@ export function Navbar() {
                 <Link href="/art-core/deposer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#C9A84C] font-medium">
                   <Plus className="size-4" />Déposer une oeuvre
                 </Link>
+                {user.role === "admin" && (
+                  <Link href="/art-core/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 font-medium hover:bg-red-500/10">
+                    <ShieldCheck className="size-4" />Administration
+                  </Link>
+                )}
                 <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
                   <LogOut className="size-4" />Se déconnecter
                 </button>
