@@ -3,7 +3,7 @@ import { getAdminSession } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get("admin_session")?.value;
+    const token = req.cookies.get("admin_session")?.value || req.cookies.get("core_session")?.value;
     if (!token) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }

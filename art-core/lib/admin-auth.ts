@@ -18,7 +18,9 @@ export interface AdminUser {
  * Retourne `null` si une étape échoue (le caller renvoie 401/403).
  */
 export async function getAdminSession(req: NextRequest): Promise<AdminUser | null> {
-  const token = req.cookies.get("admin_session")?.value;
+  // Accepte la session admin dédiée OU la session normale (core_session) :
+  // une seule identité connectée normalement suffit si son rôle est 'admin'.
+  const token = req.cookies.get("admin_session")?.value || req.cookies.get("core_session")?.value;
   if (!token) return null;
 
   const session = await queryOne<{ user_id: string; expires_at: string }>(
@@ -46,7 +48,7 @@ export async function requireAdmin(req: NextRequest): Promise<
   | { error: NextResponse; user: null }
   | { error: null; user: AdminUser }
 > {
-  const token = req.cookies.get("admin_session")?.value;
+  const token = req.cookies.get("admin_session")?.value || req.cookies.get("core_session")?.value;
   if (!token) {
     return { error: NextResponse.json({ error: "Non authentifié" }, { status: 401 }), user: null };
   }

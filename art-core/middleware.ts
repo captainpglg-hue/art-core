@@ -19,9 +19,13 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // Admin routes requiring admin session
+  // Admin routes : on laisse passer la session admin dédiée OU la session
+  // normale (core_session). Le rôle 'admin' réel est vérifié côté serveur
+  // (getAdminSession / requireAdmin) — le middleware ne fait que filtrer
+  // les visiteurs non connectés. Ainsi une seule identité connectée
+  // normalement suffit si elle est admin.
   if (pathname === "/art-core/admin" || pathname.startsWith("/art-core/admin/") && !pathname.startsWith("/art-core/admin/login")) {
-    if (!adminToken) {
+    if (!adminToken && !token) {
       const url = request.nextUrl.clone();
       url.pathname = "/art-core/admin/login";
       return NextResponse.redirect(url);
